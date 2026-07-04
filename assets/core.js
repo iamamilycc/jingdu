@@ -94,8 +94,13 @@
   function norm(s){
     return s.toLowerCase()
       .replace(/[’']/g,"'")
+      .replace(/\bcan't\b/g,'cannot').replace(/\bwon't\b/g,'will not')
       .replace(/n't\b/g,' not').replace(/\bcan not\b/g,'cannot')
       .replace(/\bit's\b/g,'it is').replace(/\bi'm\b/g,'i am')
+      /* 英式↔美式拼寫歸一（識別引擎輸出美式） */
+      .replace(/\btheatre\b/g,'theater').replace(/\bcolour\b/g,'color')
+      .replace(/\bfavourite\b/g,'favorite').replace(/\bneighbour\b/g,'neighbor')
+      .replace(/\bcentre\b/g,'center').replace(/\btravelled\b/g,'traveled')
       .replace(/[^a-z0-9\s']/g,' ')
       .split(/\s+/).filter(Boolean);
   }
