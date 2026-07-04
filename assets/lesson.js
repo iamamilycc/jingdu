@@ -27,9 +27,11 @@
   const ltBox = $('#ltText');
   if(ltBox){
     ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+JD.esc(s.en)+'</span>').join(' ');
+    insertZhCard(ltBox, L.sentences);
   }
   function ltHighlight(i){
     $$('.lt-sent').forEach((el,k)=>el.classList.toggle('now', k===i));
+    $$('.lt-zh').forEach((el,k)=>el.classList.toggle('now', k===i));
     const el = document.getElementById('lt'+i);
     if(el) el.scrollIntoView({block:'center', behavior:'smooth'});
   }
@@ -65,6 +67,16 @@
     ltPlayFrom(0);
   };
   function ltBtnState(btn,on){ btn.classList.toggle('mango',on); btn.classList.toggle('ghost',!on); }
+  /* 全文中文翻譯卡：插在全文下方，播放時對應句一起高亮；小朋友看不懂英文可對照 */
+  function insertZhCard(box, sentences){
+    const card=document.createElement('div'); card.className='card'; card.id='ltZhCard';
+    card.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+      '<b style="font-family:var(--font-head);color:var(--teal-deep)">🀄 全文中文翻譯</b>'+
+      '<button class="big-btn ghost" style="padding:5px 12px;font-size:.82rem;margin:0 0 0 auto" onclick="ltToggleZh(this)">隱藏</button></div>'+
+      '<div id="ltZhBody">'+sentences.map((s,i)=>'<div class="lt-zh" id="ltzh'+i+'"><span class="lt-zh-idx">'+(i+1)+'</span><span>'+JD.esc(s.zh||'')+'</span></div>').join('')+'</div>';
+    box.parentNode.insertBefore(card, box.nextSibling);
+  }
+  window.ltToggleZh=function(btn){ const body=$('#ltZhBody'); const hide=body.style.display!=='none'; body.style.display=hide?'none':'block'; btn.textContent=hide?'顯示':'隱藏'; };
   window.ltToggleSpeed = function(btn){ lt.slow=!lt.slow; btn.textContent='🐢 慢速：'+(lt.slow?'開':'關'); ltBtnState(btn,lt.slow); };
   window.ltToggleBlind = function(btn){
     lt.blind=!lt.blind; btn.textContent='🙈 盲聽：'+(lt.blind?'開':'關'); ltBtnState(btn,lt.blind);

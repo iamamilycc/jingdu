@@ -49,9 +49,20 @@
   if(ltBox){
     ltBox.classList.add('jp-text');
     ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+R.toRubyHTML(JD.esc(s.jp))+'</span>').join('　');
+    insertZhCard(ltBox, L.sentences);
   }
+  function insertZhCard(box, sentences){
+    const card=document.createElement('div'); card.className='card'; card.id='ltZhCard';
+    card.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
+      '<b style="font-family:var(--font-head);color:var(--teal-deep)">🀄 全文中文翻譯</b>'+
+      '<button class="big-btn ghost" style="padding:5px 12px;font-size:.82rem;margin:0 0 0 auto" onclick="ltToggleZh(this)">隱藏</button></div>'+
+      '<div id="ltZhBody">'+sentences.map((s,i)=>'<div class="lt-zh" id="ltzh'+i+'"><span class="lt-zh-idx">'+(i+1)+'</span><span>'+JD.esc(s.zh||'')+'</span></div>').join('')+'</div>';
+    box.parentNode.insertBefore(card, box.nextSibling);
+  }
+  window.ltToggleZh=function(btn){ const body=$('#ltZhBody'); const hide=body.style.display!=='none'; body.style.display=hide?'none':'block'; btn.textContent=hide?'顯示':'隱藏'; };
   function ltHighlight(i){
     $$('.lt-sent').forEach((el,k)=>el.classList.toggle('now', k===i));
+    $$('.lt-zh').forEach((el,k)=>el.classList.toggle('now', k===i));
     const el=document.getElementById('lt'+i); if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
   }
   function ltPlayFrom(i){
