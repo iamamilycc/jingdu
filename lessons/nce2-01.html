@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>NCE2-01 · A Private Conversation · 精讀</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="../index.html">← 目錄</a>
+  <h1 id="hTitle">精讀</h1>
+  <a href="../review.html">📅 復盤</a>
+</div></header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-t="read"    onclick="switchTab('read')">📖 逐句<span class="dot" data-s="read"></span></button>
+  <button class="tab-btn" data-t="vocab"   onclick="switchTab('vocab')">🃏 生詞<span class="dot" data-s="vocab"></span></button>
+  <button class="tab-btn" data-t="grammar" onclick="switchTab('grammar')">📝 語法<span class="dot" data-s="grammar"></span></button>
+  <button class="tab-btn" data-t="speak"   onclick="switchTab('speak')">🗣️ 跟讀<span class="dot" data-s="speak"></span></button>
+  <button class="tab-btn" data-t="recite"  onclick="switchTab('recite')">🧠 背句<span class="dot" data-s="recite"></span></button>
+  <button class="tab-btn" data-t="done"    onclick="switchTab('done')">✅ 打卡<span class="dot" data-s="done"></span></button>
+</nav>
+
+<main>
+  <section id="p-read" class="tab-panel active">
+    <h2 class="sec">📖 逐句精讀</h2>
+    <p class="hint">點每一句展開中文和講解；🔊 聽發音，「慢」是慢速。全部點開過，本環節自動打勾。</p>
+    <div id="readList"></div>
+  </section>
+
+  <section id="p-vocab" class="tab-panel">
+    <h2 class="sec">🃏 生詞卡</h2>
+    <p class="hint">先想中文意思，再點卡片翻面對答案。全部翻過自動打勾。</p>
+    <div class="vgrid" id="vocabGrid"></div>
+  </section>
+
+  <section id="p-grammar" class="tab-panel">
+    <h2 class="sec">📝 本課語法點</h2>
+    <div id="grammarBox"></div>
+    <div style="text-align:center"><button id="grammarDoneBtn" class="big-btn teal" >我讀完了 ✓</button></div>
+  </section>
+
+  <section id="p-speak" class="tab-panel">
+    <h2 class="sec">🗣️ 口語跟讀</h2>
+    <p class="hint">先聽 → 大聲跟讀 → 看哪些詞念對了（綠=對，黃=漏，紅=不對）。</p>
+    <div class="progress-pills" id="spkPills"></div>
+    <div class="stage">
+      <div class="target" id="spkTarget"></div>
+      <div style="margin-top:10px">
+        <button class="big-btn teal" onclick="spkPlay()">🔊 聽一遍</button>
+        <button class="big-btn mango" onclick="spkPlaySlow()">🐢 慢速</button>
+        <button id="spkRecBtn" class="big-btn rec" onclick="spkRec()">🎙️ 跟讀</button>
+      </div>
+      <div id="spkResult" style="margin-top:14px"></div>
+      <div class="heard" id="spkHeard"></div>
+      <div style="margin-top:10px">
+        <button class="big-btn ghost" onclick="spkNext(-1)">← 上一句</button>
+        <button class="big-btn ghost" onclick="spkNext(1)">下一句 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-recite" class="tab-panel">
+    <h2 class="sec">🧠 背句挑戰</h2>
+    <p class="hint">看 10 秒 → 句子蓋住 → 開口背 → 得分。低於 85% 自動進錯題本，按記憶規律安排復盤。</p>
+    <div class="progress-pills" id="rcPills"></div>
+    <div class="stage">
+      <div class="ring" id="rcRing" style="display:none"></div>
+      <div class="target" id="rcTarget"></div>
+      <div id="rcBtns" style="margin-top:12px"></div>
+      <div id="rcResult" style="margin-top:14px"></div>
+      <div class="heard" id="rcHeard"></div>
+    </div>
+  </section>
+
+  <section id="p-done" class="tab-panel">
+    <h2 class="sec">✅ 本課打卡</h2>
+    <div class="card"><ul class="check-list" id="doneList"></ul></div>
+    <div class="celebrate card stitch" id="celebrate">
+      <div class="emoji">🎉🏆🎉</div>
+      <h3>太棒了！本課全部完成！</h3>
+      <p style="color:var(--muted);margin-top:6px">記得明天回來看「📅 復盤」哦</p>
+    </div>
+  </section>
+</main>
+<footer class="site">jingdu · 給小家伙的精讀站</footer>
+
+<script>
+window.LESSON = {
+  id:'nce2-01', badge:'NCE2 · L1', title:'A Private Conversation 私人談話',
+  sentences:[
+    {en:"Last week I went to the theatre.", zh:"上星期我去看戲了。",
+     ana:"⭐ <b>went</b> 是 go 的過去式。「上星期」發生的事，動詞要用<b>過去式</b>。theatre 是英式拼法（美式 theater），go to the theatre＝去看戲、看演出。"},
+    {en:"I had a very good seat.", zh:"我的座位很好。",
+     ana:"had 是 have 的過去式。<b>have a good seat</b>＝座位好（位置好），不是「擁有一把椅子」——英語裡很多 have 都是這種搭配用法。"},
+    {en:"The play was very interesting.", zh:"戲很有意思。",
+     ana:"play 在這裡是名詞「戲劇」，不是動詞「玩」！一詞多義要看位置：前面有 The，後面跟 was，它只能是名詞。"},
+    {en:"I did not enjoy it.", zh:"可是我卻無法欣賞。",
+     ana:"⭐ 過去式的否定：<b>did not（didn't）+ 動詞原形</b>。注意是 did not enjoy，不是 did not enjoyed——did 已經表過去了，後面動詞要變回原形。"},
+    {en:"A young man and a young woman were sitting behind me.", zh:"一個年輕男人和一個年輕女人坐在我身後。",
+     ana:"⭐ <b>were sitting</b> 是過去進行時：過去某段時間「正在」做的事。兩個人所以用 were。behind me＝在我身後。"},
+    {en:"They were talking loudly.", zh:"他們大聲地說著話。",
+     ana:"又一個過去進行時 were talking。<b>loudly</b> 是副詞修飾動詞（怎樣地說話）；形容詞 loud → 副詞 loudly，很多副詞都是「形容詞+ly」。"},
+    {en:"I got very angry.", zh:"我非常生氣。",
+     ana:"<b>get + 形容詞</b>＝變得…。get angry＝生氣起來（強調變化過程）。got 是 get 的過去式。"},
+    {en:"I could not hear the actors.", zh:"我聽不見演員在說什麼。",
+     ana:"could 是 can 的過去式。<b>could not（couldn't）hear</b>＝當時聽不見。actor 男演員，女演員是 actress。"},
+    {en:"I turned round.", zh:"我轉過身去。",
+     ana:"turn round＝轉身（也寫作 turn around）。round 在這裡是副詞「轉過來」的意思。"},
+    {en:"I looked at the man and the woman angrily.", zh:"我生氣地看著那男人和女人。",
+     ana:"<b>look at</b>＝看著（look 後面要加 at 才能接對象）。angrily 是 angry 的副詞：angry→angrily，y 變 i 再加 ly。"},
+    {en:"They did not pay any attention.", zh:"他們毫不理會。",
+     ana:"⭐ <b>pay attention</b>＝注意、理會（固定搭配，「付出注意力」）。否定句中用 any：not…any＝一點也不。"},
+    {en:"In the end, I could not bear it.", zh:"最後，我實在忍不住了。",
+     ana:"<b>in the end</b>＝最後、終於。<b>bear</b> 在這裡不是「熊」🐻，是動詞「忍受」！couldn't bear it＝受不了了。"},
+    {en:"I turned round again.", zh:"我又一次轉過身去。",
+     ana:"again＝又、再一次。整個故事都用過去式講述，這就是講故事的基本時態。"},
+    {en:"'I can't hear a word!' I said angrily.", zh:"「我一個字也聽不見了！」我生氣地說。",
+     ana:"⭐ 引號裡是「直接引語」——原話照搬，所以用現在時 can't。<b>not…a word</b>＝一個字都（聽）不到，誇張表達生氣。"},
+    {en:"'It's none of your business,' the young man said rudely.", zh:"「不關你的事，」那男的毫不客氣地說。",
+     ana:"⭐ <b>It's none of your business!</b>＝不關你的事！（很不客氣的話，慎用😄）rudely＝無禮地（rude 粗魯的 + ly）。"},
+    {en:"'This is a private conversation!'", zh:"「這是私人間的談話！」",
+     ana:"呼應課文標題！private＝私人的，conversation＝談話。可笑點在於：在劇院大聲聊天還說是 private conversation。"}
+  ],
+  vocab:[
+    {w:'private', ipa:'/ˈpraɪvɪt/', pos:'adj. 形容詞', zh:'私人的', eg:'This is a private conversation.'},
+    {w:'conversation', ipa:'/ˌkɒnvəˈseɪʃən/', pos:'n. 名詞', zh:'談話', eg:'They had a long conversation.'},
+    {w:'theatre', ipa:'/ˈθɪətə/', pos:'n. 名詞', zh:'劇場，戲院', eg:'I went to the theatre last week.'},
+    {w:'seat', ipa:'/siːt/', pos:'n. 名詞', zh:'座位', eg:'I had a very good seat.'},
+    {w:'play', ipa:'/pleɪ/', pos:'n. 名詞', zh:'戲（劇）', eg:'The play was very interesting.'},
+    {w:'loudly', ipa:'/ˈlaʊdli/', pos:'adv. 副詞', zh:'大聲地', eg:'They were talking loudly.'},
+    {w:'angry', ipa:'/ˈæŋɡri/', pos:'adj. 形容詞', zh:'生氣的', eg:'I got very angry.'},
+    {w:'angrily', ipa:'/ˈæŋɡrəli/', pos:'adv. 副詞', zh:'生氣地', eg:'I looked at them angrily.'},
+    {w:'attention', ipa:'/əˈtenʃən/', pos:'n. 名詞', zh:'注意', eg:'They did not pay any attention.'},
+    {w:'bear', ipa:'/beə/', pos:'v. 動詞', zh:'容忍，忍受', eg:'I could not bear it.'},
+    {w:'business', ipa:'/ˈbɪznɪs/', pos:'n. 名詞', zh:'事（務）', eg:"It's none of your business."},
+    {w:'rudely', ipa:'/ˈruːdli/', pos:'adv. 副詞', zh:'無禮地，粗魯地', eg:'The young man said rudely.'}
+  ],
+  grammar:[
+    {t:'① 一般過去時：講「已經發生的事」',
+     body:'<p>整篇課文在講<b>上星期</b>發生的事，所以動詞全部穿上「過去式外衣」：go→went、have→had、get→got、can→could。</p>'+
+     '<p><b>否定句</b>要請 did 幫忙：did not（didn\'t）+ 動詞原形。did 已經表示過去了，後面的動詞就變回原形。</p>'+
+     '<div class="eg">✅ I did not <b>enjoy</b> it.（對）<br>❌ I did not <b>enjoyed</b> it.（錯——enjoy 不用再變過去式）</div>'},
+    {t:'② 過去進行時：過去「正在」做的事',
+     body:'<p>was/were + 動詞ing，表示過去某個時刻<b>正在進行</b>的動作，像給當時拍了一段小視頻🎬。</p>'+
+     '<div class="eg">A young man and a young woman <b>were sitting</b> behind me.（他們當時正坐在我後面）<br>They <b>were talking</b> loudly.（正在大聲說話）</div>'+
+     '<p style="margin-top:8px">對比：I turned round.（轉身「咔嚓」一下完成 → 一般過去時）vs They were talking.（說話持續了一陣 → 過去進行時）</p>'},
+    {t:'③ 三個超實用口語表達',
+     body:'<div class="eg">🗣️ <b>pay attention</b> 注意、理會 —— Pay attention, please!（請注意！）<br>'+
+     '🗣️ <b>in the end</b> 最後、終於 —— In the end, we won!（最後我們贏了！）<br>'+
+     '🗣️ <b>It\'s none of your business.</b> 不關你的事（很衝的話，聽得懂就好，別隨便對人說😄）</div>'}
+  ]
+};
+</script>
+<script src="../assets/core.js"></script>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>

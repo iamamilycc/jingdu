@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>精讀 · 我的課文本</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="row">
+  <h1>📚 精讀 · 我的課文本</h1>
+  <a href="review.html">📅 復盤</a>
+</div></header>
+<main>
+  <a class="due-banner" id="dueBanner" href="review.html"></a>
+
+  <h2 class="sec">課文列表</h2>
+  <div id="lessonList"></div>
+</main>
+<footer class="site">每天一點點，越背越輕鬆 🌱</footer>
+
+<script src="assets/core.js"></script>
+<script>
+/* 課文註冊表：新增課文時 Claude 在此追加一行 */
+const LESSONS = [
+  {id:'nce2-01', badge:'NCE2', num:'L1', en:'A Private Conversation', zh:'私人談話', href:'lessons/nce2-01.html', secs:5}
+];
+
+const due = JD.dueItems().length;
+const banner = document.getElementById('dueBanner');
+if(due>0){
+  banner.innerHTML = '<span class="n">📅</span><span>今日待復盤 <b style="font-size:1.3rem">'+due+'</b> 句 —— 點我開始！</span>';
+}else{
+  banner.classList.add('zero');
+  banner.innerHTML = '<span class="n">🌿</span><span>今天沒有到期的復盤任務，去學新課吧！</span>';
+}
+
+const box = document.getElementById('lessonList');
+LESSONS.forEach(l=>{
+  const p = JD.getProgress(l.id);
+  const doneCnt = ['read','vocab','grammar','speak','recite'].filter(k=>p[k]).length;
+  const pct = Math.round(doneCnt/l.secs*100);
+  const a = document.createElement('a');
+  a.className='card lesson-item';
+  a.href=l.href;
+  a.innerHTML = '<span class="badge">'+l.num+'<small>'+l.badge+'</small></span>'+
+    '<span class="t"><span class="en">'+l.en+'</span><br><span class="zh">'+l.zh+'</span></span>'+
+    '<span class="pct">'+(pct>=100?'✅ 完成':pct+'%')+'</span>';
+  box.appendChild(a);
+});
+</script>
+</body>
+</html>
