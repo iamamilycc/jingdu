@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>精讀 · 我的課文本</title>
-<link rel="stylesheet" href="assets/style.css">
+<title>日語精讀 · 我的課文本</title>
+<link rel="stylesheet" href="../assets/style.css">
 </head>
 <body>
 <header class="site"><div class="row">
-  <h1>📚 精讀 · 我的課文本</h1>
-  <a href="review.html">📅 復盤</a>
-  <a href="jp/index.html">🎌 日語版</a>
+  <h1>🎌 日語精讀 · 我的課文本</h1>
+  <a href="../index.html">📘 英語版</a>
 </div></header>
 <main>
   <a class="due-banner" id="dueBanner" href="review.html"></a>
@@ -19,15 +18,14 @@
   <h2 class="sec">課文列表</h2>
   <div id="lessonList"></div>
 </main>
-<footer class="site">每天一點點，越背越輕鬆 🌱</footer>
+<footer class="site">日語加油！頑張って！ 🌱</footer>
 
-<script src="assets/core.js"></script>
-<script src="assets/sync.js"></script>
+<script src="../assets/core.js"></script>
+<script src="../assets/sync.js"></script>
 <script>
-/* 課文註冊表：新增課文時 Claude 在此追加一行 */
+/* 課文註冊表：新增課文時由 build_lessons_jp.py 自動維護 */
 const LESSONS = [
-  {id:'nce2-01', badge:'NCE2', num:'L1', en:'A Private Conversation', zh:'私人談話', href:'lessons/nce2-01.html', secs:8},
-  {id:'nce2-02', badge:'NCE2', num:'L2', en:'Breakfast or Lunch?', zh:'早餐還是午餐？', href:'lessons/nce2-02.html', secs:8}
+  {id:'jp-01', badge:'日語', num:'第1課', title:'はじめまして（原創示例課・驗證引擎用）', href:'lessons/jp-01.html', secs:8}
 ];
 
 const due = JD.dueItems().length;
@@ -40,6 +38,9 @@ if(due>0){
 }
 
 const box = document.getElementById('lessonList');
+if(!LESSONS.length){
+  box.innerHTML = '<p class="empty">還沒有課文，等內容準備好就會出現在這裡～</p>';
+}
 LESSONS.forEach(l=>{
   const p = JD.getProgress(l.id);
   const doneCnt = ['listen','read','vocab','grammar','build','speak','quiz','recite'].filter(k=>p[k]).length;
@@ -48,7 +49,7 @@ LESSONS.forEach(l=>{
   a.className='card lesson-item';
   a.href=l.href;
   a.innerHTML = '<span class="badge">'+l.num+'<small>'+l.badge+'</small></span>'+
-    '<span class="t"><span class="en">'+l.en+'</span><br><span class="zh">'+l.zh+'</span></span>'+
+    '<span class="t"><span class="en">'+l.title+'</span></span>'+
     '<span class="pct">'+(pct>=100?'✅ 完成':pct+'%')+'</span>';
   box.appendChild(a);
 });

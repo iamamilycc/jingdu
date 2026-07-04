@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>復盤中心 · 日語精讀</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="index.html">← 目錄</a>
+  <h1>📅 復盤中心</h1>
+</div></header>
+<main>
+  <p class="hint" style="margin-top:4px">背錯的句子在這裡按「記憶最佳時間」排隊：30分鐘 → 1天 → 2天 → 4天 → 7天 → 15天。每個節點背到 85 分以上就晉一級，六級全過＝牢固 🏅</p>
+
+  <div id="quizZone" style="display:none">
+    <div class="stage">
+      <div class="ring" id="qRing" style="display:none"></div>
+      <div class="target" id="qTarget"></div>
+      <div id="qBtns" style="margin-top:12px"></div>
+      <div id="qResult" style="margin-top:14px"></div>
+      <div class="heard" id="qHeard"></div>
+    </div>
+  </div>
+
+  <h2 class="sec">⏰ 現在到期（<span id="dueCnt">0</span>）</h2>
+  <div id="dueList"></div>
+
+  <h2 class="sec" style="margin-top:26px">🗂️ 全部錯題</h2>
+  <div id="allList"></div>
+</main>
+<footer class="site">按時復盤的句子，最不容易忘 🧠</footer>
+
+<script src="../assets/core.js"></script>
+<script src="../assets/sync.js"></script>
+<script>
+const LANG='ja-JP';
+const $ = s=>document.querySelector(s);
+let cur=null, timer=null, recBusy=false;
+
+function levelBar(lv){
+  let h='<span class="lv">';
+  for(let i=0;i<6;i++) h+='<i class="'+(i<lv?'on':'')+'"></i>';
+  return h+'</span>';
+}
+function render(){
+  const due = JD.dueItems().filter(it=>it.lessonId && it.lessonId.startsWith('jp-'));
+  const all = JD.allItems().filter(it=>it.lessonId && it.lessonId.startsWith('jp-'));
+  $('#dueCnt').textContent = due.length;
+  const dl = $('#dueList'); dl.innerHTML='';
+  if(!due.length) dl.innerHTML='<p class="empty">現在沒有到期的句子 🌿</p>';
+  due.forEach(it=>{
+    const d=document.createElement('div');
+    d.className='card srs-item';
+    const head = it.type==='word'
+      ? '<b>🀄 '+JD.esc(it.zh)+'</b> <span style="color:var(--muted);font-size:.85rem">單詞 '+JD.esc(it.pos||'')+'</span>'
+      : '<b class="jp-text">'+JD.esc(it.en)+'</b><br><span style="color:var(--muted);font-size:.85rem">'+JD.esc(it.zh)+'</span>';
+    d.innerHTML='<div style="display:flex;align-items:center;gap:12px">'+
+      '<div style="flex:1">'+head+levelBar(it.level)+'</div>'+
+      '<button class="big-btn mango" style="padding:10px 20px">背它</button></div>';
+    d.querySelector('button').onclick=()=>startQuiz(it);
+    dl.appendChild(d);
+  });
+  const al = $('#allList'); al.innerHTML='';
+  if(!all.length) al.innerHTML='<p class="empty">錯題本是空的——太厲害了吧！</p>';
+  all.forEach(it=>{
+    const d=document.createElement('div');
+    d.className='card srs-item';
+    const label = (it.type==='word' && !it.solid)
+      ? '🀄 '+JD.esc(it.zh)+' <span style="color:var(--muted);font-size:.85rem">單詞 '+JD.esc(it.pos||'')+'</span>'
+      : '<span class="jp-text">'+JD.esc(it.en)+'</span>';
+    d.innerHTML='<div style="display:flex;align-items:center;gap:12px">'+
+      '<div style="flex:1"><b>'+label+'</b>'+levelBar(it.level)+'</div>'+
+      '<span style="font-family:var(--font-head);font-size:.82rem;color:'+(it.solid?'var(--green)':'var(--muted)')+'">'+
+      (it.solid?'🏅 牢固':'下次：'+JD.fmtDue(it.due))+'</span></div>';
+    al.appendChild(d);
+  });
+}
+
+function startQuiz(it){
+  cur=it; clearInterval(timer);
+  $('#quizZone').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(it.type==='word'){
+    $('#qRing').style.display='none';
+    $('#qTarget').innerHTML='<div class="mask-box">🀄 「'+JD.esc(it.zh)+'」'+(it.pos?'（'+JD.esc(it.pos)+'）':'')+
+      '<br>這個詞的日語怎麼讀？按麥克風說出來！</div>';
+    $('#qResult').innerHTML=''; $('#qHeard').textContent='';
+    $('#qBtns').innerHTML='<button id="qRecBtn" class="big-btn rec" onclick="qRec()">🎙️ 開口說</button>'+
+      '<button class="big-btn ghost" onclick="qFail(true)">😳 忘了，看答案</button>';
+    return;
+  }
+  $('#qTarget').innerHTML = '<span class="jp-text">'+JD.esc(it.en)+'</span>';
+  JD.speak(it.en,false,LANG);
+  $('#qResult').innerHTML=''; $('#qHeard').textContent='';
+  const ring=$('#qRing'); ring.style.display='flex';
+  $('#qBtns').innerHTML='';
+  let left=10; const C=2*Math.PI*30;
+  ring.innerHTML='<svg width="66" height="66"><circle class="bg" cx="33" cy="33" r="30"/>'+
+    '<circle class="fg" cx="33" cy="33" r="30" stroke-dasharray="'+C+'" stroke-dashoffset="0"/></svg><span id="qSec">10</span>';
+  const fg=ring.querySelector('.fg');
+  timer=setInterval(()=>{
+    left--; $('#qSec').textContent=left;
+    fg.style.strokeDashoffset=C*(10-left)/10;
+    if(left<=0){ clearInterval(timer); mask(); }
+  },1000);
+}
+function mask(){
+  $('#qRing').style.display='none';
+  $('#qTarget').innerHTML='<div class="mask-box">🙈 蓋住了！按麥克風背出來</div>';
+  $('#qBtns').innerHTML='<button id="qRecBtn" class="big-btn rec" onclick="qRec()">🎙️ 開始背</button>'+
+    '<button class="big-btn ghost" onclick="qFail(true)">😳 忘了，看答案</button>';
+}
+window.qRec = function(){
+  const btn=$('#qRecBtn');
+  if(recBusy) return;
+  if(!JD.recSupported()){
+    $('#qResult').innerHTML='<p style="margin-bottom:8px">此設備不支援語音識別，改用自評：</p>'+
+      '<button class="big-btn teal" onclick="qPass()">✅ 背對了</button>'+
+      '<button class="big-btn ghost" onclick="qFail()">❌ 沒背對</button>';
+    $('#qTarget').innerHTML = '<span class="jp-text">'+JD.esc(cur.en)+'</span>';
+    return;
+  }
+  recBusy=true;
+  btn.disabled=true; btn.classList.add('listening'); btn.textContent='👂 正在聽…';
+  $('#qResult').innerHTML='<div class="acc-badge">👂 開始背吧！說完停一下，會自動結束打分</div>';
+  JD.listen((text,err)=>{
+    recBusy=false;
+    btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次';
+    if(err && !text){
+      const msg = err==='not-allowed'?'麥克風權限被拒絕：設定→Safari→麥克風':(err==='silence'?'沒聽到聲音，再大聲點':(err==='timeout'?'等了好久沒聽清，再按一次試試':(err==='aborted'?'剛剛還在聽呢～說完停頓一下會自動結束':'識別出錯，再試一次')));
+      $('#qResult').innerHTML='<div class="acc-badge bad">'+msg+'</div>'; return;
+    }
+    let normed = text;
+    if(cur.kmap){ Object.keys(cur.kmap).sort((a,b)=>b.length-a.length).forEach(k=>{ normed = normed.split(k).join(cur.kmap[k]); }); }
+    const r=JD.compareJP(cur.en,normed);
+    $('#qTarget').innerHTML = '<span class="jp-text">'+JD.esc(cur.en)+'</span>';
+    $('#qResult').innerHTML='<div class="result-words jp-text">'+r.tokens.map(t=>'<span class="rw '+t.st+'">'+JD.esc(t.w)+'</span>').join('')+'</div>'+
+      '<div class="acc-badge '+(r.accuracy>=JD.PASS?'good':'bad')+'">'+(r.accuracy>=JD.PASS?'🎉':'💪')+' 準確率 '+r.accuracy+'%</div>';
+    $('#qHeard').textContent='你說的是：'+text;
+    if(r.accuracy>=JD.PASS) qPass(); else qFail();
+  }, undefined, LANG);
+};
+window.qPass = function(){
+  JD.reviewPass(cur.id);
+  $('#qBtns').innerHTML='<div class="acc-badge good">⬆️ 晉級成功！下次復盤：'+JD.fmtDue(JD.getBook()[cur.id].due)+'</div>'+
+    '<div><button class="big-btn teal" onclick="closeQuiz()">繼續 →</button></div>';
+  render();
+};
+window.qFail = function(showAns){
+  JD.reviewFail(cur.id);
+  if(showAns) $('#qTarget').innerHTML = '<span class="jp-text">'+JD.esc(cur.en)+'</span>';
+  $('#qBtns').innerHTML='<div class="acc-badge bad">回到第一級，30 分鐘後再戰 💪</div>'+
+    '<div><button class="big-btn teal" onclick="closeQuiz()">繼續 →</button></div>';
+  render();
+};
+window.closeQuiz = function(){ $('#quizZone').style.display='none'; cur=null; };
+
+render();
+</script>
+</body>
+</html>

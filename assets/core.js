@@ -34,6 +34,7 @@
     b[item.id] = {
       id:item.id, lessonId:item.lessonId, en:item.en, zh:item.zh||'',
       type:item.type||'sent', pos:item.pos||'',
+      kmap:item.kmap||undefined, /* 日語課專用：漢字→讀音對照，供 review 頁把識別結果的漢字換成讀音再比對 */
       level:0, due:Date.now()+INTERVALS[0],
       fails:(old?old.fails:0)+1, ts:Date.now()
     };
@@ -57,32 +58,34 @@
   }
   function allItems(){ return Object.values(getBook()).sort((a,b)=>a.due-b.due); }
 
-  /* ---------- TTS ---------- */
-  let voiceCache = null;
-  function pickVoice(){
-    if(voiceCache) return voiceCache;
-    const vs = speechSynthesis.getVoices().filter(v=>/^en(-|_)US/i.test(v.lang));
-    voiceCache = vs.find(v=>/Samantha|Ava|Allison/i.test(v.name)) || vs[0] || null;
-    return voiceCache;
+  /* ---------- TTS（lang 預設 en-US，日語頁傳 'ja-JP'） ---------- */
+  const voiceCache = {};
+  function pickVoice(lang){
+    if(voiceCache[lang]) return voiceCache[lang];
+    const prefix = lang.split('-')[0];
+    const vs = speechSynthesis.getVoices().filter(v=>new RegExp('^'+prefix+'(-|_)','i').test(v.lang));
+    const v = vs.find(v=>/Samantha|Ava|Allison|Kyoko|O-ren/i.test(v.name)) || vs[0] || null;
+    voiceCache[lang]=v; return v;
   }
-  if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged = ()=>{ voiceCache=null; pickVoice(); }; }
-  function speak(text, slow){
+  if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged = ()=>{ for(const k in voiceCache) delete voiceCache[k]; }; }
+  function speak(text, slow, lang){
     if(!('speechSynthesis' in window)) return;
+    lang = lang || 'en-US';
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang='en-US'; u.rate = slow?0.55:0.9;
-    const v = pickVoice(); if(v) u.voice=v;
+    u.lang=lang; u.rate = slow?0.55:0.9;
+    const v = pickVoice(lang); if(v) u.voice=v;
     speechSynthesis.speak(u);
   }
 
   /* ---------- 語音識別（iPad Safari: webkitSpeechRecognition，需開啟 Siri 與聽寫） ---------- */
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   function recSupported(){ return !!SR; }
-  /* 單句模式：開始→說完自動停；cb(transcript or null, errMsg) */
-  function listen(cb, onstate){
+  /* 單句模式：開始→說完自動停；cb(transcript or null, errMsg)；lang 預設 en-US */
+  function listen(cb, onstate, lang){
     if(!SR){ cb(null,'unsupported'); return null; }
     const r = new SR();
-    r.lang='en-US'; r.interimResults=false; r.maxAlternatives=3; r.continuous=false;
+    r.lang=lang||'en-US'; r.interimResults=false; r.maxAlternatives=3; r.continuous=false;
     let got=false;
     /* 安全超時：12 秒沒有任何結果就強制結束，避免卡在「正在聽」 */
     const guard = setTimeout(()=>{ if(!got){ try{ r.stop(); r.abort(); }catch(e){} if(!got){ got=true; cb(null,'timeout'); } } }, 12000);
@@ -133,6 +136,34 @@
     return {accuracy, tokens};
   }
 
+  /* ---------- 日語逐字比對（無空格分詞，按字符 LCS；比對對象為平假名讀音） ----------
+     kk2hh：片假名→平假名（碼位平移），去掉空白／標點／長音符差異影響 */
+  function kk2hh(s){
+    return s.replace(/[ァ-ヶ]/g, c=>String.fromCharCode(c.charCodeAt(0)-0x60));
+  }
+  function normJP(s){
+    return kk2hh(s||'')
+      .replace(/[\s　、。！？「」『』・~〜ー]/g,'')
+      .normalize('NFKC');
+  }
+  function compareJP(targetKana, spoken){
+    const T = Array.from(normJP(targetKana)), S = Array.from(normJP(spoken));
+    const n=T.length, m=S.length;
+    const dp = Array.from({length:n+1},()=>new Array(m+1).fill(0));
+    for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)
+      dp[i][j] = T[i]===S[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
+    const tokens=[]; let i=0,j=0,match=0;
+    while(i<n && j<m){
+      if(T[i]===S[j]){ tokens.push({w:T[i],st:'ok'}); match++; i++; j++; }
+      else if(dp[i+1][j] >= dp[i][j+1]){ tokens.push({w:T[i],st:'miss'}); i++; }
+      else { tokens.push({w:S[j],st:'bad'}); j++; }
+    }
+    while(i<n){ tokens.push({w:T[i],st:'miss'}); i++; }
+    while(j<m){ tokens.push({w:S[j],st:'bad'}); j++; }
+    const accuracy = n ? Math.round(match/n*100) : 0;
+    return {accuracy, tokens};
+  }
+
   /* ---------- 小工具 ---------- */
   function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
   function fmtDue(ts){
@@ -145,6 +176,6 @@
   }
 
   window.JD = { getProgress, markDone, getBook, addError, reviewPass, reviewFail,
-                dueItems, allItems, speak, listen, recSupported, compare, esc, fmtDue,
+                dueItems, allItems, speak, listen, recSupported, compare, compareJP, kk2hh, esc, fmtDue,
                 LEVEL_NAMES, PASS:85 };
 })();

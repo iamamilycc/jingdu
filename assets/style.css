@@ -224,3 +224,13 @@ footer.site{
   text-align:center;color:var(--muted);font-size:.78rem;padding:18px;font-family:var(--font-head);
 }
 @media (max-width:520px){html{font-size:16px}.stage .target{font-size:1.12rem}}
+
+/* ===== 日語版專用（ruby 振假名 / 羅馬音） ===== */
+.jp-text{font-family:'Atkinson Hyperlegible','Hiragino Sans','Noto Sans JP','PingFang SC',sans-serif}
+ruby{ruby-align:center}
+rt{font-size:.55em;color:var(--muted);font-weight:500;user-select:none}
+.jp-romaji{color:var(--muted);font-size:.82rem;letter-spacing:.02em;margin-top:2px}
+.sent .jp-en{font-size:1.22rem;line-height:2.2}
+#ltText.jp-text{font-size:1.28rem;line-height:2.6}
+.vface .jp-w{font-size:1.5rem}
+.stage .jp-target{font-size:1.35rem;line-height:2.3}

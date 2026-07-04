@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>JP-01 · はじめまして（原創示例課・驗證引擎用） · 日語精讀</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="../index.html">← 目錄</a>
+  <h1 id="hTitle">日語精讀</h1>
+  <a href="../review.html">📅 復盤</a>
+</div></header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-t="listen"  onclick="switchTab('listen')">🎧 聽全文<span class="dot" data-s="listen"></span></button>
+  <button class="tab-btn" data-t="read"    onclick="switchTab('read')">📖 逐句<span class="dot" data-s="read"></span></button>
+  <button class="tab-btn" data-t="vocab"   onclick="switchTab('vocab')">🃏 生詞<span class="dot" data-s="vocab"></span></button>
+  <button class="tab-btn" data-t="grammar" onclick="switchTab('grammar')">📝 語法<span class="dot" data-s="grammar"></span></button>
+  <button class="tab-btn" data-t="build"   onclick="switchTab('build')">🧩 連詞<span class="dot" data-s="build"></span></button>
+  <button class="tab-btn" data-t="speak"   onclick="switchTab('speak')">🗣️ 跟讀<span class="dot" data-s="speak"></span></button>
+  <button class="tab-btn" data-t="quiz"    onclick="switchTab('quiz')">🎯 聽力題<span class="dot" data-s="quiz"></span></button>
+  <button class="tab-btn" data-t="recite"  onclick="switchTab('recite')">🧠 背句<span class="dot" data-s="recite"></span></button>
+  <button class="tab-btn" data-t="done"    onclick="switchTab('done')">✅ 打卡<span class="dot" data-s="done"></span></button>
+</nav>
+
+<main>
+  <section id="p-listen" class="tab-panel active">
+    <h2 class="sec">🎧 聽全文</h2>
+    <p class="hint">整篇連續朗讀，讀到哪句亮哪句。「盲聽」開啟後文字會藏起來，只用耳朵！完整聽完一遍自動打勾。</p>
+    <div class="card" style="text-align:center">
+      <button id="ltPlayBtn" class="big-btn teal" onclick="ltPlay()">▶️ 播放全文</button>
+      <button class="big-btn ghost" onclick="ltToggleSpeed(this)">🐢 慢速：關</button>
+      <button class="big-btn ghost" onclick="ltToggleBlind(this)">🙈 盲聽：關</button>
+      <button class="big-btn ghost" onclick="ltToggleLoop(this)">🔁 循環：關</button>
+    </div>
+    <div class="card stitch" id="ltText"></div>
+  </section>
+
+  <section id="p-read" class="tab-panel">
+    <h2 class="sec">📖 逐句精讀</h2>
+    <p class="hint">點每一句展開中文和講解；🔊 聽發音，「慢」是慢速。全部點開過，本環節自動打勾。</p>
+    <div id="readList"></div>
+  </section>
+
+  <section id="p-vocab" class="tab-panel">
+    <h2 class="sec">🃏 生詞卡</h2>
+    <p class="hint">正面記住讀音 → 翻面憑記憶輸入平假名讀音！對了打勾，錯的詞自動進錯題本。</p>
+    <div class="vgrid" id="vocabGrid"></div>
+  </section>
+
+  <section id="p-grammar" class="tab-panel">
+    <h2 class="sec">📝 本課語法點</h2>
+    <div id="grammarBox"></div>
+    <div style="text-align:center"><button id="grammarDoneBtn" class="big-btn teal">我讀完了 ✓</button></div>
+  </section>
+
+  <section id="p-build" class="tab-panel">
+    <h2 class="sec">🧩 連詞成句</h2>
+    <p class="hint">把打亂的詞語按正確順序排成句子（日語動詞在句末哦）。排對打勾，看答案的句子會進錯題本。</p>
+    <div class="progress-pills" id="bdPills"></div>
+    <div id="buildBox"></div>
+  </section>
+
+  <section id="p-speak" class="tab-panel">
+    <h2 class="sec">🗣️ 口語跟讀</h2>
+    <p class="hint">先聽 → 按 🎙️ 大聲跟讀 → 讀完停一下會<b>自動結束打分</b>。綠=對，黃=漏，紅=不對。</p>
+    <div class="progress-pills" id="spkPills"></div>
+    <div class="stage">
+      <div class="target" id="spkTarget"></div>
+      <div style="margin-top:10px">
+        <button class="big-btn teal" onclick="spkPlay()">🔊 聽一遍</button>
+        <button class="big-btn mango" onclick="spkPlaySlow()">🐢 慢速</button>
+        <button id="spkRecBtn" class="big-btn rec" onclick="spkRec()">🎙️ 跟讀</button>
+      </div>
+      <div id="spkResult" style="margin-top:14px"></div>
+      <div class="heard" id="spkHeard"></div>
+      <div style="margin-top:10px">
+        <button class="big-btn ghost" onclick="spkNext(-1)">← 上一句</button>
+        <button class="big-btn ghost" onclick="spkNext(1)">下一句 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-quiz" class="tab-panel">
+    <h2 class="sec">🎯 聽力題</h2>
+    <p class="hint">不看課文，只用耳朵！聽錄音選答案，答錯的句子會自動進錯題本。</p>
+    <div id="quizBox"></div>
+  </section>
+
+  <section id="p-recite" class="tab-panel">
+    <h2 class="sec">🧠 背句挑戰</h2>
+    <p class="hint">看 10 秒 → 句子蓋住 → 開口背 → 得分。低於 85% 自動進錯題本。</p>
+    <div class="progress-pills" id="rcPills"></div>
+    <div class="stage">
+      <div class="ring" id="rcRing" style="display:none"></div>
+      <div class="target" id="rcTarget"></div>
+      <div id="rcBtns" style="margin-top:12px"></div>
+      <div id="rcResult" style="margin-top:14px"></div>
+      <div class="heard" id="rcHeard"></div>
+    </div>
+  </section>
+
+  <section id="p-done" class="tab-panel">
+    <h2 class="sec">✅ 本課打卡</h2>
+    <div class="card"><ul class="check-list" id="doneList"></ul></div>
+    <div class="celebrate card stitch" id="celebrate">
+      <div class="emoji">🎉🏆🎉</div>
+      <h3>太棒了！本課全部完成！</h3>
+      <p style="color:var(--muted);margin-top:6px">記得明天回來看「📅 復盤」哦</p>
+    </div>
+  </section>
+</main>
+<footer class="site">jingdu 日語版 · 給小家伙的日語精讀站</footer>
+
+<script>
+window.LESSON = {
+  "id": "jp-01",
+  "badge": "日語 · 第1課",
+  "title": "はじめまして（原創示例課・驗證引擎用）",
+  "sentences": [
+    {
+      "jp": "はじめまして。",
+      "romaji": "hajimemashite.",
+      "zh": "初次見面，你好。",
+      "ana": "⭐ 這是日語裡認識新朋友時的第一句話，字面意思接近「這是頭一次（見面）」。整句是固定寒暄語，記住整句發音就好。"
+    },
+    {
+      "jp": "私[わたし]は　学生[がくせい]です。",
+      "romaji": "watashi wa gakusei desu.",
+      "zh": "我是學生。",
+      "ana": "⭐ 基本句型：<b>A は B です</b>＝A是B。私（わたし）＝我，は 在這裡讀作「wa」不是「ha」（助詞的特殊讀法），學生（がくせい）＝學生，です 放句尾表示「是」。",
+      "chunks": [
+        "私[わたし]は",
+        "学生[がくせい]です"
+      ]
+    },
+    {
+      "jp": "よろしくお願[ねが]いします。",
+      "romaji": "yoroshiku onegai shimasu.",
+      "zh": "請多關照。",
+      "ana": "初次見面結尾常說的話，中文沒有完全對應的說法，大概是「以後請多多照顧、指教」的意思，日常寒暄裡很常用。"
+    },
+    {
+      "jp": "これは　本[ほん]です。",
+      "romaji": "kore wa hon desu.",
+      "zh": "這是書。",
+      "ana": "<b>これ</b>＝這個（指近處的東西）。本（ほん）＝書。同樣是 これは…です 的句型。",
+      "chunks": [
+        "これは",
+        "本[ほん]です"
+      ]
+    },
+    {
+      "jp": "それは　私[わたし]の　鞄[かばん]です。",
+      "romaji": "sore wa watashi no kaban desu.",
+      "zh": "那是我的包。",
+      "ana": "⭐ <b>それ</b>＝那個（指對方那邊的東西）。<b>の</b>是「的」的意思：私の鞄＝我的包。の 放在兩個名詞中間表示所屬關係。",
+      "chunks": [
+        "それは",
+        "私[わたし]の",
+        "鞄[かばん]です"
+      ]
+    },
+    {
+      "jp": "猫[ねこ]が　好[す]きです。",
+      "romaji": "neko ga suki desu.",
+      "zh": "我喜歡貓。",
+      "ana": "⭐ <b>が</b>是助詞，這裡標示「喜歡的對象」。好き（すき）＝喜歡，是な形容詞，後面直接加です。整句直譯像「貓、是喜歡的」，但翻成中文就是「我喜歡貓」。",
+      "chunks": [
+        "猫[ねこ]が",
+        "好[す]きです"
+      ]
+    },
+    {
+      "jp": "ありがとうございます。",
+      "romaji": "arigatou gozaimasu.",
+      "zh": "謝謝。",
+      "ana": "最常用的道謝說法，比簡單說「ありがとう」更禮貌、更正式，對長輩或不熟的人都適合用。"
+    }
+  ],
+  "vocab": [
+    {
+      "w": "私[わたし]",
+      "romaji": "watashi",
+      "pos": "代名詞",
+      "zh": "我",
+      "eg": "私[わたし]は　学生[がくせい]です。"
+    },
+    {
+      "w": "学生[がくせい]",
+      "romaji": "gakusei",
+      "pos": "名詞",
+      "zh": "學生",
+      "eg": "私[わたし]は　学生[がくせい]です。"
+    },
+    {
+      "w": "本[ほん]",
+      "romaji": "hon",
+      "pos": "名詞",
+      "zh": "書",
+      "eg": "これは　本[ほん]です。"
+    },
+    {
+      "w": "鞄[かばん]",
+      "romaji": "kaban",
+      "pos": "名詞",
+      "zh": "包，書包",
+      "eg": "それは　私[わたし]の　鞄[かばん]です。"
+    },
+    {
+      "w": "猫[ねこ]",
+      "romaji": "neko",
+      "pos": "名詞",
+      "zh": "貓",
+      "eg": "猫[ねこ]が　好[す]きです。"
+    },
+    {
+      "w": "好[す]き",
+      "romaji": "suki",
+      "pos": "な形容詞",
+      "zh": "喜歡的",
+      "eg": "猫[ねこ]が　好[す]きです。"
+    }
+  ],
+  "listening": [
+    {
+      "play": [
+        1
+      ],
+      "srcIdx": 1,
+      "q": "說話的人是做什麼的？",
+      "ans": 0,
+      "opts": [
+        "學生",
+        "老師",
+        "醫生",
+        "廚師"
+      ]
+    },
+    {
+      "play": [
+        3
+      ],
+      "srcIdx": 3,
+      "q": "これ指的是什麼東西？",
+      "ans": 1,
+      "opts": [
+        "鉛筆",
+        "書",
+        "手機",
+        "雨傘"
+      ]
+    },
+    {
+      "play": [
+        5
+      ],
+      "srcIdx": 5,
+      "q": "說話的人喜歡什麼？",
+      "ans": 2,
+      "opts": [
+        "狗",
+        "小鳥",
+        "貓",
+        "兔子"
+      ]
+    }
+  ],
+  "grammar": [
+    {
+      "t": "① 基本句型：A は B です",
+      "body": "<p>日語最基礎的句型，意思是「A是B」：</p><div class=\"eg\">私[わたし]は　学生[がくせい]です。（我是學生）</div><p style=\"margin-top:8px\">⭐ <b>は</b> 作助詞時讀作「wa」，不是「ha」——這是初學者最容易讀錯的地方之一。</p>"
+    },
+    {
+      "t": "② 指示詞：これ／それ／あれ",
+      "body": "<div class=\"eg\">これ＝這個（離說話人近）<br>それ＝那個（離聽話人近）<br>あれ＝那個（離兩人都遠）</div><p style=\"margin-top:8px\">配合 は…です 句型：これは本です。（這是書）</p>"
+    },
+    {
+      "t": "③ の＝的（所屬關係）",
+      "body": "<p><b>の</b> 放在兩個名詞中間，表示「…的…」：</p><div class=\"eg\">私[わたし]の　鞄[かばん]（我的包）<br>学生[がくせい]の　本[ほん]（學生的書）</div>"
+    }
+  ]
+};
+</script>
+<script src="../../assets/core.js"></script>
+<script src="../../assets/sync.js"></script>
+<script src="../../assets/ruby.js"></script>
+<script src="../../assets/lesson-jp.js"></script>
+</body>
+</html>
