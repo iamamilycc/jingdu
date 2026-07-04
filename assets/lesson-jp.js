@@ -349,11 +349,18 @@
     JD.listen((text, err)=>{
       if(btn){ btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次'; }
       if(err && !text){
+        /* 日語語音識別在 iPad Safari 上常不可用（未開日語聽寫 / 不支援日語），
+           不論哪種錯都給「自評按鈕」讓孩子能繼續，不被卡死 */
         const msg = err==='not-allowed' ? '麥克風權限被拒絕：請在 設定→Safari→麥克風 允許'
                   : err==='silence' ? '沒聽到聲音，再大聲一點試試'
                   : err==='timeout' ? '等了好久沒聽清，再按一次試試'
-                  : '識別出錯（'+err+'），再試一次';
-        $(resultSel).innerHTML='<div class="acc-badge bad">'+msg+'</div>';
+                  : err==='language-not-supported' ? '這台設備的 Safari 目前不支援日語語音識別'
+                  : '日語語音識別出錯（'+err+'）';
+        $(resultSel).innerHTML='<div class="acc-badge bad">'+msg+'</div>'+
+          '<p style="margin:10px 0 6px;font-size:.88rem;color:var(--muted)">聽完自己判斷背得對不對：</p>'+
+          '<button class="big-btn teal" onclick="this.parentNode._ok(100)">✅ 我背對了</button>'+
+          '<button class="big-btn ghost" onclick="this.parentNode._ok(0)">❌ 沒背對</button>';
+        $(resultSel)._ok = onAcc;
         return;
       }
       const r = JD.compareJP(R.toKana(sent.jp), normRecognized(text));
