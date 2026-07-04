@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>NCE2-02 · Breakfast or Lunch? · 精讀</title>
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="../index.html">← 目錄</a>
+  <h1 id="hTitle">精讀</h1>
+  <a href="../review.html">📅 復盤</a>
+</div></header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-t="listen"  onclick="switchTab('listen')">🎧 聽全文<span class="dot" data-s="listen"></span></button>
+  <button class="tab-btn" data-t="read"    onclick="switchTab('read')">📖 逐句<span class="dot" data-s="read"></span></button>
+  <button class="tab-btn" data-t="vocab"   onclick="switchTab('vocab')">🃏 生詞<span class="dot" data-s="vocab"></span></button>
+  <button class="tab-btn" data-t="grammar" onclick="switchTab('grammar')">📝 語法<span class="dot" data-s="grammar"></span></button>
+  <button class="tab-btn" data-t="speak"   onclick="switchTab('speak')">🗣️ 跟讀<span class="dot" data-s="speak"></span></button>
+  <button class="tab-btn" data-t="quiz"    onclick="switchTab('quiz')">🎯 聽力題<span class="dot" data-s="quiz"></span></button>
+  <button class="tab-btn" data-t="recite"  onclick="switchTab('recite')">🧠 背句<span class="dot" data-s="recite"></span></button>
+  <button class="tab-btn" data-t="done"    onclick="switchTab('done')">✅ 打卡<span class="dot" data-s="done"></span></button>
+</nav>
+
+<main>
+  <section id="p-listen" class="tab-panel active">
+    <h2 class="sec">🎧 聽全文</h2>
+    <p class="hint">整篇課文連續朗讀，讀到哪句亮哪句。想練真聽力就開「盲聽」——文字會藏起來，只用耳朵！完整聽完一遍自動打勾。</p>
+    <div class="card" style="text-align:center">
+      <button id="ltPlayBtn" class="big-btn teal" onclick="ltPlay()">▶️ 播放全文</button>
+      <button class="big-btn ghost" onclick="ltToggleSpeed(this)">🐢 慢速：關</button>
+      <button class="big-btn ghost" onclick="ltToggleBlind(this)">🙈 盲聽：關</button>
+      <button class="big-btn ghost" onclick="ltToggleLoop(this)">🔁 循環：關</button>
+    </div>
+    <div class="card stitch" id="ltText"></div>
+  </section>
+
+  <section id="p-read" class="tab-panel">
+    <h2 class="sec">📖 逐句精讀</h2>
+    <p class="hint">點每一句展開中文和講解；🔊 聽發音，「慢」是慢速。全部點開過，本環節自動打勾。</p>
+    <div id="readList"></div>
+  </section>
+
+  <section id="p-vocab" class="tab-panel">
+    <h2 class="sec">🃏 生詞卡</h2>
+    <p class="hint">正面記住單詞的樣子 → 翻面憑記憶拼出來！拼對打勾，拼錯的單詞自動進錯題本。全部拼過自動打勾。</p>
+    <div class="vgrid" id="vocabGrid"></div>
+  </section>
+
+  <section id="p-grammar" class="tab-panel">
+    <h2 class="sec">📝 本課語法點</h2>
+    <div id="grammarBox"></div>
+    <div style="text-align:center"><button id="grammarDoneBtn" class="big-btn teal" >我讀完了 ✓</button></div>
+  </section>
+
+  <section id="p-speak" class="tab-panel">
+    <h2 class="sec">🗣️ 口語跟讀</h2>
+    <p class="hint">先聽 → 按 🎙️ 大聲跟讀 → 讀完停一下會<b>自動結束打分</b>（不用再按！）。綠=對，黃=漏，紅=不對。</p>
+    <div class="progress-pills" id="spkPills"></div>
+    <div class="stage">
+      <div class="target" id="spkTarget"></div>
+      <div style="margin-top:10px">
+        <button class="big-btn teal" onclick="spkPlay()">🔊 聽一遍</button>
+        <button class="big-btn mango" onclick="spkPlaySlow()">🐢 慢速</button>
+        <button id="spkRecBtn" class="big-btn rec" onclick="spkRec()">🎙️ 跟讀</button>
+      </div>
+      <div id="spkResult" style="margin-top:14px"></div>
+      <div class="heard" id="spkHeard"></div>
+      <div style="margin-top:10px">
+        <button class="big-btn ghost" onclick="spkNext(-1)">← 上一句</button>
+        <button class="big-btn ghost" onclick="spkNext(1)">下一句 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-quiz" class="tab-panel">
+    <h2 class="sec">🎯 聽力題</h2>
+    <p class="hint">不看課文，只用耳朵！聽錄音選答案，答錯的句子會自動進錯題本。</p>
+    <div id="quizBox"></div>
+  </section>
+
+  <section id="p-recite" class="tab-panel">
+    <h2 class="sec">🧠 背句挑戰</h2>
+    <p class="hint">看 10 秒 → 句子蓋住 → 開口背 → 得分。低於 85% 自動進錯題本，按記憶規律安排復盤。</p>
+    <div class="progress-pills" id="rcPills"></div>
+    <div class="stage">
+      <div class="ring" id="rcRing" style="display:none"></div>
+      <div class="target" id="rcTarget"></div>
+      <div id="rcBtns" style="margin-top:12px"></div>
+      <div id="rcResult" style="margin-top:14px"></div>
+      <div class="heard" id="rcHeard"></div>
+    </div>
+  </section>
+
+  <section id="p-done" class="tab-panel">
+    <h2 class="sec">✅ 本課打卡</h2>
+    <div class="card"><ul class="check-list" id="doneList"></ul></div>
+    <div class="celebrate card stitch" id="celebrate">
+      <div class="emoji">🎉🏆🎉</div>
+      <h3>太棒了！本課全部完成！</h3>
+      <p style="color:var(--muted);margin-top:6px">記得明天回來看「📅 復盤」哦</p>
+    </div>
+  </section>
+</main>
+<footer class="site">jingdu · 給小家伙的精讀站</footer>
+
+<script>
+window.LESSON = {
+  "id": "nce2-02",
+  "badge": "NCE2 · L2",
+  "title": "Breakfast or Lunch? 早餐還是午餐？",
+  "sentences": [
+    {
+      "en": "It was Sunday.",
+      "zh": "那是個星期天。",
+      "ana": "⭐ 這裡的 <b>It</b> 是「虛主語」——英語句子一定要有主語，說時間、天氣時就用 it 占位，本身沒有實際意思。was 是 is 的過去式。"
+    },
+    {
+      "en": "I never get up early on Sundays.",
+      "zh": "星期天我從來不早起。",
+      "ana": "⭐ <b>never</b>（從不）直接放在動詞前面，本身就表示否定，不用再加 not。<b>on Sundays</b> 用複數＝每個星期天。get up＝起床。"
+    },
+    {
+      "en": "I sometimes stay in bed until lunchtime.",
+      "zh": "有時我會一直躺到吃午飯的時候。",
+      "ana": "<b>stay in bed</b>＝賴在床上（bed 前不加 the）。<b>until</b>＝一直到…為止。sometimes（有時）是頻率副詞，放在動詞前。"
+    },
+    {
+      "en": "Last Sunday I got up very late.",
+      "zh": "上個星期天我起得很晚。",
+      "ana": "⭐ <b>Last Sunday</b> 前面不加 on，也不加 the——last / next / this 開頭的時間，介詞和 the 都要省掉。got 是 get 的過去式。"
+    },
+    {
+      "en": "I looked out of the window.",
+      "zh": "我望瞭望窗外。",
+      "ana": "<b>look out of…</b>＝往…外面看。look 表示「看」的動作，後面要加介詞（out of / at）才能接對象。"
+    },
+    {
+      "en": "It was dark outside.",
+      "zh": "外面一片昏暗。",
+      "ana": "又一個虛主語 It 說天氣／環境。<b>dark</b>＝黑的、暗的。<b>outside</b>＝在外面（副詞）。"
+    },
+    {
+      "en": "'What a day!' I thought.",
+      "zh": "「這鬼天氣！」我心想。",
+      "ana": "⭐ <b>What a day!</b> 是感嘆句：What + a + 名詞！完整說法是 What a day it is！，口語裡常把主語謂語省掉。這裡帶點抱怨＝糟糕的天氣。thought 是 think 的過去式。"
+    },
+    {
+      "en": "'It's raining again.'",
+      "zh": "「又下雨了。」",
+      "ana": "<b>It's raining</b>＝正在下雨（現在進行時，it 是天氣虛主語）。again＝又、再一次。"
+    },
+    {
+      "en": "Just then, the telephone rang.",
+      "zh": "正在這時，電話鈴響了。",
+      "ana": "<b>just then</b>＝就在那時。<b>rang</b> 是 ring（響）的過去式（ring→rang→rung）。"
+    },
+    {
+      "en": "It was my aunt Lucy.",
+      "zh": "是我姑媽露西打來的。",
+      "ana": "打電話不知道對方是誰、或介紹是誰時，習慣用 <b>It is / It was</b>。aunt＝姑媽、姨媽、舅媽（都可以）。"
+    },
+    {
+      "en": "'I've just arrived by train,' she said.",
+      "zh": "「我剛坐火車到，」她說。",
+      "ana": "⭐ <b>I've just arrived</b>＝我剛剛到（現在完成時，just 常和它搭配）。<b>by train</b>＝坐火車（by + 交通工具，中間不加 the，也不加複數）。"
+    },
+    {
+      "en": "'I'm coming to see you.'",
+      "zh": "「我這就來看你。」",
+      "ana": "⭐ 這裡用<b>現在進行時表示馬上要做的事</b>（近期計劃）。come / go / leave / arrive 這類詞常這樣用，字面「正在來」其實是「就要來」。"
+    },
+    {
+      "en": "'But I'm still having breakfast,' I said.",
+      "zh": "「可是我還在吃早飯呢，」我說。",
+      "ana": "<b>I'm still having breakfast</b>＝我還在吃早飯（現在進行時＝此刻正在做）。have 在這裡是「吃」，不是「擁有」。still＝仍然、還。"
+    },
+    {
+      "en": "'What are you doing?' she asked.",
+      "zh": "「你在幹什麼？」她問道。",
+      "ana": "<b>What are you doing?</b> 是現在進行時的疑問句：What + are + 主語 + doing。asked 是 ask 的過去式。"
+    },
+    {
+      "en": "'I'm having breakfast,' I repeated.",
+      "zh": "「我在吃早飯，」我又說了一遍。",
+      "ana": "<b>repeat</b>＝重複、再說一遍。因為姑媽沒聽清，「我」把剛才的話又說了一次。"
+    },
+    {
+      "en": "'Dear me,' she said.",
+      "zh": "「天哪，」她說。",
+      "ana": "<b>Dear me!</b> 是感嘆語＝天哪！哎呀！表示驚訝。也可以說 Oh dear! 或 Dear, dear!"
+    },
+    {
+      "en": "'Do you always get up so late?'",
+      "zh": "「你總是起得這麼晚嗎？」",
+      "ana": "一般現在時的疑問句用 <b>Do you…?</b>。always（總是）放在動詞前。so late＝這麼晚。"
+    },
+    {
+      "en": "'It's one o'clock!'",
+      "zh": "「已經一點鐘了！」",
+      "ana": "說幾點鐘還是用虛主語 <b>It's</b>。one o'clock＝一點鐘（o'clock 用於整點）。姑媽的意思是：都一點了你還在吃早飯！"
+    }
+  ],
+  "vocab": [
+    {
+      "w": "Sunday",
+      "ipa": "/ˈsʌndeɪ/",
+      "pos": "n. 名詞",
+      "zh": "星期天",
+      "eg": "I never get up early on Sunday."
+    },
+    {
+      "w": "lunchtime",
+      "ipa": "/ˈlʌntʃtaɪm/",
+      "pos": "n. 名詞",
+      "zh": "午餐時間",
+      "eg": "I stay in bed until lunchtime."
+    },
+    {
+      "w": "window",
+      "ipa": "/ˈwɪndəʊ/",
+      "pos": "n. 名詞",
+      "zh": "窗戶",
+      "eg": "I looked out of the window."
+    },
+    {
+      "w": "dark",
+      "ipa": "/dɑːk/",
+      "pos": "adj. 形容詞",
+      "zh": "黑暗的",
+      "eg": "It was dark outside."
+    },
+    {
+      "w": "telephone",
+      "ipa": "/ˈtelɪfəʊn/",
+      "pos": "n. 名詞",
+      "zh": "電話",
+      "eg": "The telephone rang."
+    },
+    {
+      "w": "ring",
+      "ipa": "/rɪŋ/",
+      "pos": "v. 動詞",
+      "zh": "（鈴、電話）響；打電話",
+      "eg": "Please ring me tonight."
+    },
+    {
+      "w": "aunt",
+      "ipa": "/ɑːnt/",
+      "pos": "n. 名詞",
+      "zh": "姑媽，姨媽",
+      "eg": "It was my aunt Lucy."
+    },
+    {
+      "w": "arrive",
+      "ipa": "/əˈraɪv/",
+      "pos": "v. 動詞",
+      "zh": "到達",
+      "eg": "The train will arrive soon."
+    },
+    {
+      "w": "train",
+      "ipa": "/treɪn/",
+      "pos": "n. 名詞",
+      "zh": "火車",
+      "eg": "I came here by train."
+    },
+    {
+      "w": "repeat",
+      "ipa": "/rɪˈpiːt/",
+      "pos": "v. 動詞",
+      "zh": "重複，重說",
+      "eg": "Please repeat after me."
+    }
+  ],
+  "listening": [
+    {
+      "play": [
+        0
+      ],
+      "srcIdx": 0,
+      "q": "故事發生在星期幾？",
+      "ans": 1,
+      "opts": [
+        "星期六",
+        "星期天",
+        "星期一",
+        "星期五"
+      ]
+    },
+    {
+      "play": [
+        3
+      ],
+      "srcIdx": 3,
+      "q": "上個星期天，作者起床起得怎樣？",
+      "ans": 1,
+      "opts": [
+        "很早",
+        "很晚",
+        "沒睡覺",
+        "跟平常一樣"
+      ]
+    },
+    {
+      "play": [
+        7
+      ],
+      "srcIdx": 7,
+      "q": "這句在說天氣怎麼樣？",
+      "ans": 1,
+      "opts": [
+        "出太陽了",
+        "又下雨了",
+        "下雪了",
+        "颳大風"
+      ]
+    },
+    {
+      "play": [
+        8
+      ],
+      "srcIdx": 8,
+      "q": "就在這時，發生了什麼事？",
+      "ans": 1,
+      "opts": [
+        "有人敲門",
+        "電話響了",
+        "鬧鐘響了",
+        "狗叫了"
+      ]
+    },
+    {
+      "play": [
+        10
+      ],
+      "srcIdx": 10,
+      "q": "姑媽露西是怎麼來的？",
+      "ans": 1,
+      "opts": [
+        "開車",
+        "坐火車",
+        "坐飛機",
+        "走路"
+      ]
+    },
+    {
+      "play": [
+        16,
+        17
+      ],
+      "srcIdx": 17,
+      "q": "姑媽最後說現在幾點了？",
+      "ans": 2,
+      "opts": [
+        "十點",
+        "十二點",
+        "一點",
+        "兩點"
+      ]
+    }
+  ],
+  "grammar": [
+    {
+      "t": "① 現在進行時 vs 一般現在時（本課核心）",
+      "body": "<p><b>現在進行時</b>（am/is/are + 動詞ing）＝說話當下<b>正在做</b>的事，像在拍一段小視頻🎬：</p><div class=\"eg\">I'm having breakfast.（我正在吃早飯）<br>What are you doing?（你正在幹什麼？）</div><p style=\"margin-top:8px\"><b>一般現在時</b>＝<b>經常、習慣</b>做的事，常和 always / never / sometimes 一起用：</p><div class=\"eg\">I never get up early on Sundays.（星期天我從不早起——這是習慣）<br>Do you always get up so late?（你總是起這麼晚嗎？）</div>"
+    },
+    {
+      "t": "② 用「現在進行時」表示馬上要做的事",
+      "body": "<p>come、go、leave、arrive 這幾個「來去」動詞，用現在進行時可以表示<b>近期就要發生</b>的事，不是真的此刻在做：</p><div class=\"eg\">I'm coming to see you.（我這就來看你——馬上要來）<br>She is leaving tomorrow.（她明天就走）</div>"
+    },
+    {
+      "t": "③ 感嘆句 What a…！",
+      "body": "<p>結構是 <b>What + a/an +（形容詞）+ 名詞！</b>，主語謂語常常省掉：</p><div class=\"eg\">What a day!（多糟的天氣！）<br>What a clever boy (you are)!（你真是個聰明的孩子！）</div><p style=\"margin-top:8px\">小訣竅：What 後面跟的是<b>名詞</b>；如果換成形容詞開頭，那要用 How（How nice!）。</p>"
+    }
+  ]
+};
+</script>
+<script src="../assets/core.js"></script>
+<script src="../assets/sync.js"></script>
+<script src="../assets/lesson.js"></script>
+</body>
+</html>
