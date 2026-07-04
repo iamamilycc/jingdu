@@ -25,8 +25,8 @@
 <script>
 /* 課文註冊表：新增課文時 Claude 在此追加一行 */
 const LESSONS = [
-  {id:'nce2-01', badge:'NCE2', num:'L1', en:'A Private Conversation', zh:'私人談話', href:'lessons/nce2-01.html', secs:7},
-  {id:'nce2-02', badge:'NCE2', num:'L2', en:'Breakfast or Lunch?', zh:'早餐還是午餐？', href:'lessons/nce2-02.html', secs:7}
+  {id:'nce2-01', badge:'NCE2', num:'L1', en:'A Private Conversation', zh:'私人談話', href:'lessons/nce2-01.html', secs:8},
+  {id:'nce2-02', badge:'NCE2', num:'L2', en:'Breakfast or Lunch?', zh:'早餐還是午餐？', href:'lessons/nce2-02.html', secs:8}
 ];
 
 const due = JD.dueItems().length;
@@ -41,7 +41,7 @@ if(due>0){
 const box = document.getElementById('lessonList');
 LESSONS.forEach(l=>{
   const p = JD.getProgress(l.id);
-  const doneCnt = ['listen','read','vocab','grammar','speak','quiz','recite'].filter(k=>p[k]).length;
+  const doneCnt = ['listen','read','vocab','grammar','build','speak','quiz','recite'].filter(k=>p[k]).length;
   const pct = Math.round(doneCnt/l.secs*100);
   const a = document.createElement('a');
   a.className='card lesson-item';

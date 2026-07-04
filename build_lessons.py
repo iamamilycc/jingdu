@@ -39,6 +39,7 @@ PAGE = """<!DOCTYPE html>
   <button class="tab-btn" data-t="read"    onclick="switchTab('read')">📖 逐句<span class="dot" data-s="read"></span></button>
   <button class="tab-btn" data-t="vocab"   onclick="switchTab('vocab')">🃏 生詞<span class="dot" data-s="vocab"></span></button>
   <button class="tab-btn" data-t="grammar" onclick="switchTab('grammar')">📝 語法<span class="dot" data-s="grammar"></span></button>
+  <button class="tab-btn" data-t="build"   onclick="switchTab('build')">🧩 連詞<span class="dot" data-s="build"></span></button>
   <button class="tab-btn" data-t="speak"   onclick="switchTab('speak')">🗣️ 跟讀<span class="dot" data-s="speak"></span></button>
   <button class="tab-btn" data-t="quiz"    onclick="switchTab('quiz')">🎯 聽力題<span class="dot" data-s="quiz"></span></button>
   <button class="tab-btn" data-t="recite"  onclick="switchTab('recite')">🧠 背句<span class="dot" data-s="recite"></span></button>
@@ -74,6 +75,13 @@ PAGE = """<!DOCTYPE html>
     <h2 class="sec">📝 本課語法點</h2>
     <div id="grammarBox"></div>
     <div style="text-align:center"><button id="grammarDoneBtn" class="big-btn teal" >我讀完了 ✓</button></div>
+  </section>
+
+  <section id="p-build" class="tab-panel">
+    <h2 class="sec">🧩 連詞成句</h2>
+    <p class="hint">把打亂的單詞按正確順序排成句子。點單詞排到框裡，點錯了再點一下移回去。排對打勾，看答案的句子會進錯題本。</p>
+    <div class="progress-pills" id="bdPills"></div>
+    <div id="buildBox"></div>
   </section>
 
   <section id="p-speak" class="tab-panel">
@@ -204,7 +212,7 @@ def rebuild_index(metas):
         en = d['en'].replace("'", "\\'")
         zh = d['zh'].replace("'", "\\'")
         entries[d['id']] = {'num': d['num'],
-            'text': "{id:'%s', badge:'NCE2', num:'%s', en:'%s', zh:'%s', href:'lessons/%s.html', secs:7}"
+            'text': "{id:'%s', badge:'NCE2', num:'%s', en:'%s', zh:'%s', href:'lessons/%s.html', secs:8}"
                     % (d['id'], d['num'], en, zh, d['id'])}
     ordered = sorted(entries.values(), key=lambda e: _numkey(e['num']))
     block = "const LESSONS = [\n" + ",\n".join('  ' + e['text'] for e in ordered) + "\n];"

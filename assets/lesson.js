@@ -143,6 +143,77 @@
   });
   $('#grammarDoneBtn').onclick = ()=>{ done('grammar'); $('#grammarDoneBtn').textContent='✓ 已讀完'; };
 
+  /* ========== 3.5 連詞成句（把打亂的單詞排成正確句子） ========== */
+  function bdTokens(s){
+    return s.replace(/[“”‘’]/g,"'").replace(/^['"\s]+/,'').replace(/[.!?,'"\s]+$/,'').trim().split(/\s+/).filter(Boolean);
+  }
+  const bdItems=[];
+  L.sentences.forEach((s,i)=>{ const w=bdTokens(s.en); if(w.length>=3 && w.length<=8) bdItems.push({idx:i, en:s.en, zh:s.zh, words:w}); });
+  while(bdItems.length>8) bdItems.pop();
+  const bd={ i:0, placed:[], pool:[], results:[] };
+  function bdShuffle(a){ a=a.slice(); for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)), t=a[k]; a[k]=a[j]; a[j]=t; } return a; }
+  function bdPills(){
+    const el=$('#bdPills'); if(!el) return;
+    el.innerHTML=bdItems.map((_,k)=>{ const st=bd.results[k]==null?'':(bd.results[k]?'ok':'bad'); return '<span class="pill '+(k===bd.i?'now':'')+' '+st+'"></span>'; }).join('');
+  }
+  function bdLoad(){
+    if(!bdItems.length) return;
+    const it=bdItems[bd.i]; bd.placed=[];
+    let sh=bdShuffle(it.words);
+    if(sh.join(' ')===it.words.join(' ') && it.words.length>1){ sh.push(sh.shift()); }
+    bd.pool=sh.map((w,k)=>({w:w,cid:k}));
+    bdRender();
+  }
+  function bdChip(c, where){ return '<button class="bd-chip" onclick="'+(where==='pool'?'bdPlace':'bdUnplace')+'('+c.cid+')">'+JD.esc(c.w)+'</button>'; }
+  function bdRender(fb){
+    bdPills();
+    const box=$('#buildBox'); if(!box) return;
+    if(bd.i>=bdItems.length){
+      const right=bd.results.filter(Boolean).length;
+      box.innerHTML='<div class="stage"><div style="font-size:2.4rem">🧩</div>'+
+        '<div class="acc-badge '+(right>=bdItems.length*0.8?'good':'bad')+'">排對 '+right+' / '+bdItems.length+' 句</div>'+
+        '<div style="margin-top:10px"><button class="big-btn ghost" onclick="bdRestart()">再玩一遍</button></div></div>';
+      return;
+    }
+    const it=bdItems[bd.i];
+    box.innerHTML='<div class="stage">'+
+      '<div class="hint" style="margin:0 0 10px">🀄 '+JD.esc(it.zh)+'</div>'+
+      '<div class="bd-answer" id="bdAnswer">'+(bd.placed.length?bd.placed.map(c=>bdChip(c,'ans')).join(''):'<span class="bd-ph">點下面的單詞，按正確順序排到這裡</span>')+'</div>'+
+      '<div class="bd-pool">'+bd.pool.map(c=>bdChip(c,'pool')).join('')+'</div>'+
+      '<div style="margin-top:14px">'+
+        '<button class="big-btn teal" onclick="bdPlay()">🔊 聽一遍</button>'+
+        '<button class="big-btn mango" onclick="bdCheck()">✓ 檢查</button>'+
+        '<button class="big-btn ghost" onclick="bdReset()">↺ 清空</button>'+
+        '<button class="big-btn ghost" onclick="bdReveal()">看答案</button></div>'+
+      '<div id="bdFb" style="margin-top:12px">'+(fb||'')+'</div>'+
+      '<div style="margin-top:8px"><button class="big-btn ghost" onclick="bdNav(1)">下一句 →</button></div></div>';
+  }
+  window.bdPlace=function(cid){ const k=bd.pool.findIndex(c=>c.cid===cid); if(k<0)return; bd.placed.push(bd.pool[k]); bd.pool.splice(k,1); bdRender(); };
+  window.bdUnplace=function(cid){ const k=bd.placed.findIndex(c=>c.cid===cid); if(k<0)return; bd.pool.push(bd.placed[k]); bd.placed.splice(k,1); bdRender(); };
+  window.bdReset=function(){ bd.pool=bd.pool.concat(bd.placed); bd.placed=[]; bdRender(); };
+  window.bdPlay=function(){ JD.speak(bdItems[bd.i].en,false); };
+  window.bdCheck=function(){
+    const it=bdItems[bd.i];
+    if(bd.placed.length<it.words.length){ bdRender('<div class="acc-badge bad">還有單詞沒排上去哦</div>'); return; }
+    const got=bd.placed.map(c=>c.w).join(' ').toLowerCase(), want=it.words.join(' ').toLowerCase();
+    if(got===want){
+      bd.results[bd.i]=true; JD.speak(it.en,false);
+      bdRender('<div class="acc-badge good">🎉 排對了！<br>'+JD.esc(it.en)+'</div>'); bdMaybeDone();
+    }else{
+      bdRender('<div class="acc-badge bad">順序還不對，再試試～（點已排的單詞可移回去）</div>');
+    }
+  };
+  window.bdReveal=function(){
+    const it=bdItems[bd.i]; bd.results[bd.i]=false;
+    JD.addError({id:L.id+'#'+it.idx, lessonId:L.id, en:it.en, zh:it.zh});
+    bdRender('<div class="acc-badge bad">正確順序是：<br>'+JD.esc(it.en)+'<br><span style="font-size:.8rem">（已放進錯題本，之後復盤）</span></div>'); bdMaybeDone();
+  };
+  window.bdNav=function(d){ bd.i=Math.min(Math.max(bd.i+(d||1),0), bdItems.length); if(bd.i>=bdItems.length) bdRender(); else bdLoad(); };
+  window.bdRestart=function(){ bd.i=0; bd.results=[]; bdLoad(); };
+  function bdMaybeDone(){ if(bd.results.filter(x=>x!=null).length>=bdItems.length) done('build'); }
+  if(bdItems.length) bdLoad();
+  else { const bb=$('#buildBox'); if(bb) bb.innerHTML='<p class="empty">本課句子較長，這一課沒有連詞成句練習～</p>'; done('build'); }
+
   /* ========== 4 口語跟讀 ========== */
   const spk = { i:0, results:[] };
   function spkRender(){
@@ -335,7 +406,7 @@
   }
 
   /* ========== 6 打卡 ========== */
-  const SEC_LABEL = {listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',speak:'🗣️ 口語跟讀',quiz:'🎯 聽力題',recite:'🧠 背句挑戰'};
+  const SEC_LABEL = {listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',build:'🧩 連詞成句',speak:'🗣️ 口語跟讀',quiz:'🎯 聽力題',recite:'🧠 背句挑戰'};
   function renderDone(){
     const p = JD.getProgress(L.id);
     $('#doneList').innerHTML = Object.keys(SEC_LABEL).map(k=>
