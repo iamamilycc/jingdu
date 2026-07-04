@@ -55,10 +55,19 @@
     </div>
 
     <div class="gen-field">
-      <label>③ 課文內容（拍照 或 粘貼文字，二選一）</label>
-      <input type="file" id="photo" accept="image/*" capture="environment" style="margin-bottom:10px">
+      <label>③ 課文內容（下面任選一種：打字／語音／上傳圖片／Word·txt 檔）</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <label class="big-btn ghost" style="cursor:pointer;padding:10px 16px;font-size:.9rem;margin:0">
+          🖼️ 上傳圖片<input type="file" id="photo" accept="image/*" style="display:none">
+        </label>
+        <label class="big-btn ghost" style="cursor:pointer;padding:10px 16px;font-size:.9rem;margin:0">
+          📄 Word / txt 檔<input type="file" id="docfile" accept=".txt,.docx,text/plain" style="display:none">
+        </label>
+        <button type="button" class="big-btn ghost" id="voiceBtn" style="padding:10px 16px;font-size:.9rem;margin:0" onclick="toggleVoice()">🎤 語音輸入</button>
+      </div>
       <div class="photo-name" id="photoName"></div>
-      <textarea id="pasteText" placeholder="或直接粘貼課文文字…"></textarea>
+      <textarea id="pasteText" placeholder="打字或粘貼課文；也可按上面的按鈕語音輸入 / 上傳圖片 / 選 Word 檔…"></textarea>
+      <div class="key-hint">💡 圖片走「看圖識字」，文字/Word 走文字理解。手機鍵盤上的麥克風也能直接口述。</div>
     </div>
 
     <div style="text-align:center">
@@ -72,6 +81,7 @@
 <script src="assets/core.js"></script>
 <script src="assets/sync.js"></script>
 <script src="assets/generate.js"></script>
+<script src="assets/fileread.js"></script>
 <script>
 const $=s=>document.querySelector(s);
 let lang='en';
@@ -83,16 +93,47 @@ if(localStorage.getItem('jingdu_zhipu_model_text')) $('#modelText').value = JDGe
 if(localStorage.getItem('jingdu_zhipu_model_vision')) $('#modelVision').value = JDGen.getVisionModel();
 
 let photoDataUrl = null;
-$('#photo').addEventListener('change', e=>{
-  const f = e.target.files[0]; if(!f){ photoDataUrl=null; $('#photoName').textContent=''; return; }
-  $('#photoName').textContent = '已選：'+f.name+'（讀取中…）';
-  const r = new FileReader();
-  r.onload = ()=>{ photoDataUrl = r.result; $('#photoName').textContent = '已選圖片：'+f.name+' ✓'; };
-  r.onerror = ()=>{ $('#photoName').textContent = '圖片讀取失敗，換一張試試'; };
-  r.readAsDataURL(f);
+function fb(msg, bad){ $('#genFb').innerHTML='<div class="acc-badge '+(bad?'bad':'good')+'">'+JD.esc(msg)+'</div>'; }
+
+/* 圖片上傳（相簿或拍照）→ 走看圖識字 */
+$('#photo').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  $('#photoName').textContent = '讀取圖片…';
+  try{
+    const r = await JDFile.read(f);
+    photoDataUrl = r.dataUrl;
+    $('#photoName').textContent = '已選圖片：'+f.name+' ✓（生成時走看圖識字）';
+  }catch(err){ $('#photoName').textContent = '圖片讀取失敗：'+(err.message||err); }
 });
 
-function fb(msg, bad){ $('#genFb').innerHTML='<div class="acc-badge '+(bad?'bad':'good')+'">'+JD.esc(msg)+'</div>'; }
+/* Word / txt 檔 → 抽出文字填進輸入框 */
+$('#docfile').addEventListener('change', async e=>{
+  const f = e.target.files[0]; if(!f) return;
+  $('#photoName').textContent = '讀取檔案…';
+  try{
+    const r = await JDFile.read(f);
+    if(r.kind==='text'){ $('#pasteText').value = r.text; photoDataUrl=null; $('#photoName').textContent = '已讀取「'+f.name+'」的文字 ✓（可在下面修改）'; }
+    else { photoDataUrl = r.dataUrl; $('#photoName').textContent = '已選圖片：'+f.name+' ✓'; }
+  }catch(err){ $('#photoName').textContent = '讀取失敗：'+(err.message||err); }
+});
+
+/* 語音輸入 → 識別後追加到輸入框（語言跟隨所選課程） */
+let voiceRec=null;
+function toggleVoice(){
+  const btn=$('#voiceBtn');
+  if(voiceRec){ try{ voiceRec.stop(); }catch(e){} return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){ $('#photoName').textContent='這台設備不支援語音輸入，請用鍵盤上的麥克風口述，或打字'; return; }
+  const r=new SR(); voiceRec=r;
+  r.lang = lang==='jp' ? 'ja-JP' : 'en-US';
+  r.interimResults=false; r.continuous=true; r.maxAlternatives=1;
+  btn.textContent='🔴 聽寫中（再按停止）'; btn.classList.add('rec');
+  r.onresult=e=>{ let s=''; for(let i=e.resultIndex;i<e.results.length;i++){ if(e.results[i].isFinal) s+=e.results[i][0].transcript; }
+    if(s){ const t=$('#pasteText'); t.value=(t.value?t.value+' ':'')+s.trim(); } };
+  r.onerror=e=>{ $('#photoName').textContent = e.error==='not-allowed'?'麥克風權限被拒絕：設定→Safari→麥克風':'語音輸入出錯（'+e.error+'），可改用鍵盤麥克風'; };
+  r.onend=()=>{ voiceRec=null; btn.textContent='🎤 語音輸入'; btn.classList.remove('rec'); };
+  try{ r.start(); }catch(e){ voiceRec=null; btn.textContent='🎤 語音輸入'; btn.classList.remove('rec'); }
+}
 
 async function doGenerate(){
   const key = $('#apiKey').value.trim();
@@ -101,7 +142,7 @@ async function doGenerate(){
   JDGen.setModels($('#modelText').value.trim(), $('#modelVision').value.trim());
 
   const text = $('#pasteText').value.trim();
-  if(!photoDataUrl && !text){ fb('請拍照 或 粘貼課文文字', true); return; }
+  if(!photoDataUrl && !text){ fb('請先輸入課文：打字／語音／上傳圖片／選 Word·txt 檔', true); return; }
 
   const btn=$('#genBtn'); btn.disabled=true; const old=btn.textContent; btn.textContent='⏳ 生成中…';
   try{
