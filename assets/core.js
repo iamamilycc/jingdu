@@ -36,7 +36,7 @@
   function reviewPass(id){
     const b = getBook(); const it = b[id]; if(!it) return;
     it.level += 1;
-    if(it.level >= 6){ it.due = Infinity===Infinity ? Number.MAX_SAFE_INTEGER : 0; it.solid = true; }
+    if(it.level >= 6){ it.due = Number.MAX_SAFE_INTEGER; it.solid = true; }
     else{ it.due = Date.now()+INTERVALS[it.level]; }
     setBook(b);
   }
@@ -105,7 +105,8 @@
       .replace(/\bfavourite\b/g,'favorite').replace(/\bneighbour\b/g,'neighbor')
       .replace(/\bcentre\b/g,'center').replace(/\btravelled\b/g,'traveled')
       .replace(/[^a-z0-9\s']/g,' ')
-      .split(/\s+/).filter(Boolean);
+      /* 詞首尾的撇號是引號（'I can't hear!' 的單引號對話），剝掉；詞中間的（can't）保留 */
+      .split(/\s+/).map(w=>w.replace(/^'+|'+$/g,'')).filter(Boolean);
   }
   function compare(target, spoken){
     const T = norm(target), S = norm(spoken||'');
@@ -114,14 +115,14 @@
     for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)
       dp[i][j] = T[i]===S[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
     const tokens=[]; let i=0,j=0,match=0;
-    const origWords = target.replace(/\s+/g,' ').trim().split(' ');
-    /* 用規範化長度對齊原詞：T 與 origWords 可能長度不同（縮寫展開），簡化處理按 T 渲染 */
+    /* 按規範化後的 T 渲染（縮寫展開後與原句詞數可能不同，簡化處理） */
     while(i<n && j<m){
       if(T[i]===S[j]){ tokens.push({w:T[i],st:'ok'}); match++; i++; j++; }
       else if(dp[i+1][j] >= dp[i][j+1]){ tokens.push({w:T[i],st:'miss'}); i++; }
-      else { j++; } /* 多說的詞不展示原句位置，僅不計分 */
+      else { tokens.push({w:S[j],st:'bad'}); j++; } /* 多說/說錯的詞標紅，不計分 */
     }
     while(i<n){ tokens.push({w:T[i],st:'miss'}); i++; }
+    while(j<m){ tokens.push({w:S[j],st:'bad'}); j++; }
     const accuracy = n ? Math.round(match/n*100) : 0;
     return {accuracy, tokens};
   }

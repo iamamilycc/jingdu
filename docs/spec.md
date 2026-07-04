@@ -29,5 +29,11 @@
 - 明確不做：推送提醒、跨設備同步、家長遠程報告
 - 新課文由 Claude 按本規格生成（後續固化成 jingdu skill），數據結構必須一致
 
+## 加課檢查清單（每課上線前必過）
+1. 數據核對：listening 的 play/srcIdx 索引在 sentences 範圍內、ans 正確；vocab 音標/詞性無誤
+2. **拼寫歸一實測**：課文若含英式拼寫（-re/-our/-ise/雙寫 l 等）或縮寫，必須逐句過一遍 `JD.compare(en, 美式拼寫版)` 確認 100 分；有新差異詞就加進 core.js norm() 對照表（識別引擎輸出美式）
+3. 三處同步：index.html LESSONS 加一行（secs 數）＋（若新增環節）doneCnt key 列表＋lesson.js SEC_LABEL
+4. 手機視口實際打開一遍：8 個 tab 全點、背句跑一句、聽力題答一題
+
 ## 設計語言
 暖紙閃卡風：奶油紙 #FBF6EC / 墨 #2B2320 / 深青 #0F7B6C / 芒果 #F5A623 / 珊瑚(錯) #E85D3D / 綠(對) #3E8E5A。字體 Fredoka(標題)+Atkinson Hyperlegible(英文正文)，中文 PingFang。觸屏大按鈕，圓角卡片，虛線裝訂線細節。

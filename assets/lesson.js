@@ -4,7 +4,6 @@
   const L = window.LESSON;
   if(!L){ return; }
   const $ = s=>document.querySelector(s), $$ = s=>Array.from(document.querySelectorAll(s));
-  const SECS = ['read','vocab','grammar','speak','recite','done'];
 
   document.title = L.id.toUpperCase()+' · '+L.title+' · 精讀';
   $('#hTitle').textContent = L.badge+' · '+L.title;
@@ -166,7 +165,7 @@
     if(k===0) speechSynthesis.cancel();
     speechSynthesis.speak(u);
   }
-  function qzRender(){
+  function qzRender(autoplay){
     const box = $('#quizBox'); if(!box) return;
     if(qz.i >= L.listening.length){
       box.innerHTML='<div class="stage"><div style="font-size:2.6rem">'+(qz.score===L.listening.length?'🏆':'🎯')+'</div>'+
@@ -182,7 +181,9 @@
       '<div id="qzOpts">'+it.opts.map((o,k)=>'<button class="qz-opt" data-k="'+k+'">'+String.fromCharCode(65+k)+'. '+JD.esc(o)+'</button>').join('')+'</div>'+
       '<div id="qzFb" style="margin-top:10px"></div></div>';
     $$('#qzOpts .qz-opt').forEach(b=>b.onclick=()=>qzAnswer(parseInt(b.dataset.k)));
-    qzPlaySeq(it.play);
+    /* 頁面載入時不自動播音（默認頁是聽全文，且無用戶手勢會被瀏覽器攔截）；
+       點「下一題/再做一遍」屬用戶操作，此時自動連播 */
+    if(autoplay) qzPlaySeq(it.play);
   }
   window.qzPlay = ()=>qzPlaySeq(L.listening[qz.i].play);
   function qzAnswer(k){
@@ -200,9 +201,9 @@
     }
     $('#qzFb').innerHTML += '<div style="margin-top:8px"><button class="big-btn teal" onclick="qzNext()">下一題 →</button></div>';
   }
-  window.qzNext = function(){ qz.i++; qzRender(); };
-  window.qzRestart = function(){ qz.i=0; qz.score=0; qzRender(); };
-  if(L.listening) qzRender();
+  window.qzNext = function(){ qz.i++; qzRender(true); };
+  window.qzRestart = function(){ qz.i=0; qz.score=0; qzRender(true); };
+  if(L.listening) qzRender(false);
 
   /* ========== 5 背句挑戰 ========== */
   const rc = { i:0, timer:null, results:[] };
