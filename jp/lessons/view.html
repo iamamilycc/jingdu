@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>課文載入中 · 日語精讀</title>
+<link rel="stylesheet" href="../../assets/style.css">
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="../index.html">← 目錄</a>
+  <h1 id="hTitle">日語精讀</h1>
+  <a href="../review.html">📅 復盤</a>
+</div></header>
+
+<nav class="tabs">
+  <button class="tab-btn active" data-t="listen"  onclick="switchTab('listen')">🎧 聽全文<span class="dot" data-s="listen"></span></button>
+  <button class="tab-btn" data-t="read"    onclick="switchTab('read')">📖 逐句<span class="dot" data-s="read"></span></button>
+  <button class="tab-btn" data-t="vocab"   onclick="switchTab('vocab')">🃏 生詞<span class="dot" data-s="vocab"></span></button>
+  <button class="tab-btn" data-t="grammar" onclick="switchTab('grammar')">📝 語法<span class="dot" data-s="grammar"></span></button>
+  <button class="tab-btn" data-t="build"   onclick="switchTab('build')">🧩 連詞<span class="dot" data-s="build"></span></button>
+  <button class="tab-btn" data-t="speak"   onclick="switchTab('speak')">🗣️ 跟讀<span class="dot" data-s="speak"></span></button>
+  <button class="tab-btn" data-t="quiz"    onclick="switchTab('quiz')">🎯 聽力題<span class="dot" data-s="quiz"></span></button>
+  <button class="tab-btn" data-t="recite"  onclick="switchTab('recite')">🧠 背句<span class="dot" data-s="recite"></span></button>
+  <button class="tab-btn" data-t="done"    onclick="switchTab('done')">✅ 打卡<span class="dot" data-s="done"></span></button>
+</nav>
+
+<main>
+  <section id="p-listen" class="tab-panel active">
+    <h2 class="sec">🎧 聽全文</h2>
+    <p class="hint">整篇連續朗讀，讀到哪句亮哪句。「盲聽」開啟後文字會藏起來，只用耳朵！完整聽完一遍自動打勾。</p>
+    <div class="card" style="text-align:center">
+      <button id="ltPlayBtn" class="big-btn teal" onclick="ltPlay()">▶️ 播放全文</button>
+      <button class="big-btn ghost" onclick="ltToggleSpeed(this)">🐢 慢速：關</button>
+      <button class="big-btn ghost" onclick="ltToggleBlind(this)">🙈 盲聽：關</button>
+      <button class="big-btn ghost" onclick="ltToggleLoop(this)">🔁 循環：關</button>
+    </div>
+    <div class="card stitch" id="ltText"></div>
+  </section>
+
+  <section id="p-read" class="tab-panel">
+    <h2 class="sec">📖 逐句精讀</h2>
+    <p class="hint">點每一句展開中文和講解；🔊 聽發音，「慢」是慢速。全部點開過，本環節自動打勾。</p>
+    <div id="readList"></div>
+  </section>
+
+  <section id="p-vocab" class="tab-panel">
+    <h2 class="sec">🃏 生詞卡</h2>
+    <p class="hint">正面記住讀音 → 翻面憑記憶輸入平假名讀音！對了打勾，錯的詞自動進錯題本。</p>
+    <div class="vgrid" id="vocabGrid"></div>
+  </section>
+
+  <section id="p-grammar" class="tab-panel">
+    <h2 class="sec">📝 本課語法點</h2>
+    <div id="grammarBox"></div>
+    <div style="text-align:center"><button id="grammarDoneBtn" class="big-btn teal">我讀完了 ✓</button></div>
+  </section>
+
+  <section id="p-build" class="tab-panel">
+    <h2 class="sec">🧩 連詞成句</h2>
+    <p class="hint">把打亂的詞語按正確順序排成句子（日語動詞在句末哦）。排對打勾，看答案的句子會進錯題本。</p>
+    <div class="progress-pills" id="bdPills"></div>
+    <div id="buildBox"></div>
+  </section>
+
+  <section id="p-speak" class="tab-panel">
+    <h2 class="sec">🗣️ 口語跟讀</h2>
+    <p class="hint">先聽 → 按 🎙️ 大聲跟讀 → 讀完停一下會<b>自動結束打分</b>。綠=對，黃=漏，紅=不對。</p>
+    <div class="progress-pills" id="spkPills"></div>
+    <div class="stage">
+      <div class="target" id="spkTarget"></div>
+      <div style="margin-top:10px">
+        <button class="big-btn teal" onclick="spkPlay()">🔊 聽一遍</button>
+        <button class="big-btn mango" onclick="spkPlaySlow()">🐢 慢速</button>
+        <button id="spkRecBtn" class="big-btn rec" onclick="spkRec()">🎙️ 跟讀</button>
+      </div>
+      <div id="spkResult" style="margin-top:14px"></div>
+      <div class="heard" id="spkHeard"></div>
+      <div style="margin-top:10px">
+        <button class="big-btn ghost" onclick="spkNext(-1)">← 上一句</button>
+        <button class="big-btn ghost" onclick="spkNext(1)">下一句 →</button>
+      </div>
+    </div>
+  </section>
+
+  <section id="p-quiz" class="tab-panel">
+    <h2 class="sec">🎯 聽力題</h2>
+    <p class="hint">不看課文，只用耳朵！聽錄音選答案，答錯的句子會自動進錯題本。</p>
+    <div id="quizBox"></div>
+  </section>
+
+  <section id="p-recite" class="tab-panel">
+    <h2 class="sec">🧠 背句挑戰</h2>
+    <p class="hint">看 10 秒 → 句子蓋住 → 開口背 → 得分。低於 85% 自動進錯題本。</p>
+    <div class="progress-pills" id="rcPills"></div>
+    <div class="stage">
+      <div class="ring" id="rcRing" style="display:none"></div>
+      <div class="target" id="rcTarget"></div>
+      <div id="rcBtns" style="margin-top:12px"></div>
+      <div id="rcResult" style="margin-top:14px"></div>
+      <div class="heard" id="rcHeard"></div>
+    </div>
+  </section>
+
+  <section id="p-done" class="tab-panel">
+    <h2 class="sec">✅ 本課打卡</h2>
+    <div class="card"><ul class="check-list" id="doneList"></ul></div>
+    <div class="celebrate card stitch" id="celebrate">
+      <div class="emoji">🎉🏆🎉</div>
+      <h3>太棒了！本課全部完成！</h3>
+      <p style="color:var(--muted);margin-top:6px">記得明天回來看「📅 復盤」哦</p>
+    </div>
+  </section>
+</main>
+<footer class="site">jingdu 日語版 · 給小家伙的日語精讀站</footer>
+
+<script src="../../assets/core.js"></script>
+<script src="../../assets/sync.js"></script>
+<script src="../../assets/ruby.js"></script>
+<script>
+(function(){
+  var id = new URLSearchParams(location.search).get('id');
+  function getLesson(){
+    try{ var all=JSON.parse(localStorage.getItem('jingdu_userlessons')||'{}'); return all[id]; }catch(e){ return null; }
+  }
+  var booted=false;
+  function boot(data){
+    if(booted) return; booted=true;
+    window.LESSON = data;
+    var s=document.createElement('script'); s.src='../../assets/lesson-jp.js'; document.body.appendChild(s);
+  }
+  var d = getLesson();
+  if(d){ boot(d); }
+  else {
+    var h=document.getElementById('hTitle'); if(h) h.textContent='從雲端載入中…';
+    window.JDSYNC_ONRESTORE = function(){ var x=getLesson(); if(x) boot(x); };
+    setTimeout(function(){ var x=getLesson(); if(!booted){ if(x) boot(x); else if(h) h.textContent='找不到這一課（可能還沒同步）'; } }, 4500);
+  }
+})();
+</script>
+</body>
+</html>

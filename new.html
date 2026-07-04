@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>新增課文 · 精讀</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .gen-field{margin-bottom:16px}
+  .gen-field label{display:block;font-family:var(--font-head);font-weight:600;margin-bottom:6px;font-size:.95rem}
+  .gen-field input[type=text], .gen-field input[type=password], .gen-field textarea{
+    width:100%;border:2px solid var(--line);border-radius:12px;padding:11px 13px;font-family:var(--font-en);
+    font-size:1rem;background:#fff;color:var(--ink);outline:none}
+  .gen-field input:focus, .gen-field textarea:focus{border-color:var(--mango)}
+  .gen-field textarea{min-height:180px;resize:vertical;line-height:1.6}
+  .lang-toggle{display:flex;gap:8px}
+  .lang-toggle button{flex:1;font-family:var(--font-head);font-weight:600;border:2px solid var(--line);background:#fff;
+    color:var(--muted);border-radius:12px;padding:12px;cursor:pointer;font-size:1rem}
+  .lang-toggle button.on{background:var(--teal);color:#fff;border-color:var(--teal)}
+  .key-hint{font-size:.8rem;color:var(--muted);margin-top:5px;line-height:1.5}
+  .genfb{margin-top:14px;min-height:1.4em}
+  details.adv{margin-top:8px}
+  details.adv summary{font-size:.85rem;color:var(--muted);cursor:pointer}
+  .photo-name{font-size:.85rem;color:var(--teal-deep);margin-top:6px}
+</style>
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="index.html">← 目錄</a>
+  <h1>➕ 新增課文</h1>
+</div></header>
+<main>
+  <p class="hint" style="margin-top:4px">拍照或粘貼一段課文，AI 自動做成精讀頁（逐句講解／生詞／聽力題／連詞成句／背句）。內容由你提供，你自己拍的、你有版權的才用。</p>
+
+  <div class="card">
+    <div class="gen-field">
+      <label>① 這是哪種語言的課文？</label>
+      <div class="lang-toggle">
+        <button id="langEn" class="on" onclick="setLang('en')">📘 英語</button>
+        <button id="langJp" onclick="setLang('jp')">🎌 日語</button>
+      </div>
+    </div>
+
+    <div class="gen-field">
+      <label>② 智譜 API Key（只存這台設備，用來調 AI 生成）</label>
+      <input type="password" id="apiKey" placeholder="貼上你的智譜 key（設過一次就會記住）">
+      <div class="key-hint">還沒有？去 <b>bigmodel.cn</b> 註冊 → 控制台領 API Key（智譜有免費額度，生成一課約幾分錢）。拍照識別需要視覺模型，key 通用。</div>
+      <details class="adv">
+        <summary>進階：自訂模型名稱</summary>
+        <div style="margin-top:8px">
+          <input type="text" id="modelText" placeholder="文字模型（預設 glm-4-flash）" style="margin-bottom:6px">
+          <input type="text" id="modelVision" placeholder="視覺模型（預設 glm-4v-flash）">
+        </div>
+      </details>
+    </div>
+
+    <div class="gen-field">
+      <label>③ 課文內容（拍照 或 粘貼文字，二選一）</label>
+      <input type="file" id="photo" accept="image/*" capture="environment" style="margin-bottom:10px">
+      <div class="photo-name" id="photoName"></div>
+      <textarea id="pasteText" placeholder="或直接粘貼課文文字…"></textarea>
+    </div>
+
+    <div style="text-align:center">
+      <button id="genBtn" class="big-btn teal" onclick="doGenerate()" style="min-width:180px">✨ 生成精讀</button>
+    </div>
+    <div class="genfb" id="genFb"></div>
+  </div>
+</main>
+<footer class="site">jingdu · 拍照即成課</footer>
+
+<script src="assets/core.js"></script>
+<script src="assets/sync.js"></script>
+<script src="assets/generate.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+let lang='en';
+function setLang(l){ lang=l; $('#langEn').classList.toggle('on',l==='en'); $('#langJp').classList.toggle('on',l==='jp'); }
+
+// 回填已存的 key/模型
+$('#apiKey').value = JDGen.getKey();
+if(localStorage.getItem('jingdu_zhipu_model_text')) $('#modelText').value = JDGen.getTextModel();
+if(localStorage.getItem('jingdu_zhipu_model_vision')) $('#modelVision').value = JDGen.getVisionModel();
+
+let photoDataUrl = null;
+$('#photo').addEventListener('change', e=>{
+  const f = e.target.files[0]; if(!f){ photoDataUrl=null; $('#photoName').textContent=''; return; }
+  $('#photoName').textContent = '已選：'+f.name+'（讀取中…）';
+  const r = new FileReader();
+  r.onload = ()=>{ photoDataUrl = r.result; $('#photoName').textContent = '已選圖片：'+f.name+' ✓'; };
+  r.onerror = ()=>{ $('#photoName').textContent = '圖片讀取失敗，換一張試試'; };
+  r.readAsDataURL(f);
+});
+
+function fb(msg, bad){ $('#genFb').innerHTML='<div class="acc-badge '+(bad?'bad':'good')+'">'+JD.esc(msg)+'</div>'; }
+
+async function doGenerate(){
+  const key = $('#apiKey').value.trim();
+  if(!key){ fb('請先填智譜 API Key', true); return; }
+  JDGen.setKey(key);
+  JDGen.setModels($('#modelText').value.trim(), $('#modelVision').value.trim());
+
+  const text = $('#pasteText').value.trim();
+  if(!photoDataUrl && !text){ fb('請拍照 或 粘貼課文文字', true); return; }
+
+  const btn=$('#genBtn'); btn.disabled=true; const old=btn.textContent; btn.textContent='⏳ 生成中…';
+  try{
+    const onP = m=>fb(m);
+    const data = photoDataUrl ? await JDGen.fromImage(lang, photoDataUrl, onP)
+                              : await JDGen.fromText(lang, text, onP);
+    fb('生成成功，正在保存…');
+    const id = JDGen.saveLesson(lang, data);
+    const viewer = lang==='jp' ? 'jp/lessons/view.html' : 'lessons/view.html';
+    location.href = viewer + '?id=' + encodeURIComponent(id);
+  }catch(e){
+    fb('生成失敗：'+(e.message||e), true);
+    btn.disabled=false; btn.textContent=old;
+  }
+}
+</script>
+</body>
+</html>

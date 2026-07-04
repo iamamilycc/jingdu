@@ -8,21 +8,25 @@
 </head>
 <body>
 <header class="site"><div class="row">
-  <h1>📚 精讀 · 我的課文本</h1>
+  <h1>📘 英語精讀 · 我的課文本</h1>
   <a href="review.html">📅 復盤</a>
-  <a href="jp/index.html">🎌 日語版</a>
+  <a href="jp/index.html">🎌 切換日語版</a>
 </div></header>
 <main>
   <a class="due-banner" id="dueBanner" href="review.html"></a>
   <div class="card" id="syncCard" style="display:none"></div>
 
+  <a class="due-banner" href="new.html" style="background:var(--teal);color:#fff"><span class="n">➕</span><span>拍照 / 粘貼一段課文，AI 自動做成精讀頁</span></a>
+
   <h2 class="sec">課文列表</h2>
   <div id="lessonList"></div>
+  <div id="userLessonList"></div>
 </main>
 <footer class="site">每天一點點，越背越輕鬆 🌱</footer>
 
 <script src="assets/core.js"></script>
 <script src="assets/sync.js"></script>
+<script src="assets/generate.js"></script>
 <script>
 /* 課文註冊表：新增課文時 Claude 在此追加一行 */
 const LESSONS = [
@@ -39,10 +43,11 @@ if(due>0){
   banner.innerHTML = '<span class="n">🌿</span><span>今天沒有到期的復盤任務，去學新課吧！</span>';
 }
 
+const SECS_KEYS = ['listen','read','vocab','grammar','build','speak','quiz','recite'];
 const box = document.getElementById('lessonList');
 LESSONS.forEach(l=>{
   const p = JD.getProgress(l.id);
-  const doneCnt = ['listen','read','vocab','grammar','build','speak','quiz','recite'].filter(k=>p[k]).length;
+  const doneCnt = SECS_KEYS.filter(k=>p[k]).length;
   const pct = Math.round(doneCnt/l.secs*100);
   const a = document.createElement('a');
   a.className='card lesson-item';
@@ -52,6 +57,25 @@ LESSONS.forEach(l=>{
     '<span class="pct">'+(pct>=100?'✅ 完成':pct+'%')+'</span>';
   box.appendChild(a);
 });
+
+/* 自建課文（本機/雲同步生成的英語課，lang==='en'） */
+function renderUserLessons(){
+  const ubox = document.getElementById('userLessonList'); ubox.innerHTML='';
+  const all = Object.values(JDGen.allUserLessons()).filter(l=>l.lang==='en').sort((a,b)=>(b._meta?b._meta.created:0)-(a._meta?a._meta.created:0));
+  if(!all.length) return;
+  const h=document.createElement('h2'); h.className='sec'; h.textContent='我自己加的課'; ubox.appendChild(h);
+  all.forEach(l=>{
+    const p = JD.getProgress(l.id);
+    const pct = Math.round(SECS_KEYS.filter(k=>p[k]).length/8*100);
+    const a=document.createElement('a'); a.className='card lesson-item'; a.href='lessons/view.html?id='+encodeURIComponent(l.id);
+    a.innerHTML='<span class="badge" style="background:var(--mango);color:var(--ink)">自建<small>ENG</small></span>'+
+      '<span class="t"><span class="en">'+JD.esc(l.title||'未命名')+'</span></span>'+
+      '<span class="pct">'+(pct>=100?'✅':pct+'%')+'</span>';
+    ubox.appendChild(a);
+  });
+}
+renderUserLessons();
+window.JDSYNC_ONRESTORE = renderUserLessons; /* 雲端同步回來後刷新列表 */
 </script>
 </body>
 </html>
