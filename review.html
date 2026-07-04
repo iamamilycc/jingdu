@@ -35,7 +35,7 @@
 <script src="assets/core.js"></script>
 <script>
 const $ = s=>document.querySelector(s);
-let cur=null, timer=null;
+let cur=null, timer=null, recBusy=false;
 
 function levelBar(lv){
   let h='<span class="lv">';
@@ -114,6 +114,7 @@ function mask(){
 }
 window.qRec = function(){
   const btn=$('#qRecBtn');
+  if(recBusy) return; /* 聆聽中鎖住，防連按 aborted */
   if(!JD.recSupported()){
     $('#qResult').innerHTML='<p style="margin-bottom:8px">此設備不支援語音識別，改用自評：</p>'+
       '<button class="big-btn teal" onclick="qPass()">✅ 背對了</button>'+
@@ -121,11 +122,14 @@ window.qRec = function(){
     $('#qTarget').innerHTML = JD.esc(cur.en);
     return;
   }
-  btn.classList.add('listening'); btn.textContent='👂 正在聽…';
+  recBusy=true;
+  btn.disabled=true; btn.classList.add('listening'); btn.textContent='👂 正在聽…';
+  $('#qResult').innerHTML='<div class="acc-badge">👂 開始背吧！說完停一下，會自動結束打分，不用再按</div>';
   JD.listen((text,err)=>{
-    btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次';
+    recBusy=false;
+    btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次';
     if(err && !text){
-      const msg = err==='not-allowed'?'麥克風權限被拒絕：設定→Safari→麥克風':(err==='silence'?'沒聽到聲音，再大聲點':(err==='timeout'?'等了好久沒聽清，再按一次試試':'識別出錯，再試一次'));
+      const msg = err==='not-allowed'?'麥克風權限被拒絕：設定→Safari→麥克風':(err==='silence'?'沒聽到聲音，再大聲點':(err==='timeout'?'等了好久沒聽清，再按一次試試':(err==='aborted'?'剛剛還在聽呢～說完停頓一下會自動結束，不用重複按':'識別出錯（'+err+'），再試一次')));
       $('#qResult').innerHTML='<div class="acc-badge bad">'+msg+'</div>'; return;
     }
     const r=JD.compare(cur.en,text);

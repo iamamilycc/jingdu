@@ -247,7 +247,7 @@
   };
   function rcMask(){
     $('#rcRing').style.display='none';
-    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>按下麥克風，大聲把它背出來</div>';
+    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>按下麥克風，大聲把它背出來<br><small style="color:var(--muted)">背完停一下會自動打分，不用再按</small></div>';
     $('#rcBtns').innerHTML='<button id="rcRecBtn" class="big-btn rec" onclick="rcRec()">🎙️ 開始背</button>'+
       '<button class="big-btn ghost" onclick="rcPeek()">😳 忘了，看一眼</button>';
   }
@@ -279,7 +279,9 @@
   rcRender('idle');
 
   /* ========== 共用：錄音 + 比對展示 ========== */
+  let recBusy = false; /* 聆聽中鎖住，防止連按產生 aborted */
   function startRec(btn, sent, resultSel, heardSel, onAcc){
+    if(recBusy){ return; }
     if(!JD.recSupported()){
       /* 降級：自評 */
       $(resultSel).innerHTML =
@@ -289,13 +291,17 @@
       $(resultSel)._ok = onAcc;
       return;
     }
-    if(btn){ btn.classList.add('listening'); btn.textContent='👂 正在聽…'; }
+    recBusy = true;
+    if(btn){ btn.disabled=true; btn.classList.add('listening'); btn.textContent='👂 正在聽…'; }
+    $(resultSel).innerHTML='<div class="acc-badge">👂 開始讀吧！讀完停一下，會自動結束打分，不用再按</div>';
     JD.listen((text, err)=>{
-      if(btn){ btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次'; }
+      recBusy = false;
+      if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次'; }
       if(err && !text){
         const msg = err==='not-allowed' ? '麥克風權限被拒絕：請在 設定→Safari→麥克風 允許'
                   : err==='silence' ? '沒聽到聲音，再大聲一點試試'
                   : err==='timeout' ? '等了好久沒聽清，再按一次試試'
+                  : err==='aborted' ? '剛剛還在聽呢～說完停頓一下會自動結束，不用重複按'
                   : '識別出錯（'+err+'），再試一次';
         $(resultSel).innerHTML='<div class="acc-badge bad">'+msg+'</div>';
         return;
