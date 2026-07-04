@@ -41,11 +41,17 @@
       ltStopUI(); return;
     }
     lt.idx = i; ltHighlight(i);
-    const u = new SpeechSynthesisUtterance(L.sentences[i].en);
+    const text = L.sentences[i].en;
+    const u = new SpeechSynthesisUtterance(text);
     u.lang='en-US'; u.rate = lt.slow ? 0.6 : 0.9;
-    u.onend = ()=>setTimeout(()=>ltPlayFrom(i+1), 350);
-    u.onerror = ()=>ltStopUI();
-    speechSynthesis.speak(u);
+    let advanced=false;
+    const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); setTimeout(()=>ltPlayFrom(i+1),300); };
+    /* onend/onerror 都推進：單句出錯不中斷整篇（iOS 上 onerror 常誤觸發） */
+    u.onend=go; u.onerror=go;
+    /* 看門狗：iOS Safari 的 speechSynthesis 會靜默卡死不觸發 onend，逾時強制推進保證讀完整篇 */
+    const est = text.length * (lt.slow?90:65) + 4000;
+    const watchdog=setTimeout(()=>{ try{ speechSynthesis.cancel(); }catch(e){} go(); }, est);
+    try{ speechSynthesis.speak(u); }catch(e){ go(); }
   }
   function ltStopUI(){
     lt.playing=false; speechSynthesis.cancel();

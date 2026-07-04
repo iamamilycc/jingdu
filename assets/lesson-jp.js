@@ -58,11 +58,19 @@
     if(!lt.playing) return;
     if(i>=L.sentences.length){ done('listen'); if(lt.loop){ ltPlayFrom(0); return; } ltStopUI(); return; }
     ltHighlight(i);
-    const u=new SpeechSynthesisUtterance(R.toKana(L.sentences[i].jp));
+    const text = R.toKana(L.sentences[i].jp);
+    const u=new SpeechSynthesisUtterance(text);
     u.lang=LANG; u.rate = lt.slow?0.6:0.85;
-    u.onend=()=>setTimeout(()=>ltPlayFrom(i+1),350);
-    u.onerror=()=>ltStopUI();
-    speechSynthesis.speak(u);
+    let advanced=false;
+    const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); setTimeout(()=>ltPlayFrom(i+1),300); };
+    /* onend 正常推進；onerror 也推進（單句出錯不該中斷整篇，iOS 上 onerror 常誤觸發） */
+    u.onend=go;
+    u.onerror=go;
+    /* 看門狗：iOS Safari 的 speechSynthesis 會靜默卡死不觸發 onend，
+       估算朗讀時間(每字約0.18s / 慢速0.26s)＋4秒兜底，逾時強制推進，保證讀完整篇 */
+    const est = text.length * (lt.slow?260:180) + 4000;
+    const watchdog=setTimeout(()=>{ try{ speechSynthesis.cancel(); }catch(e){} go(); }, est);
+    try{ speechSynthesis.speak(u); }catch(e){ go(); }
   }
   function ltStopUI(){
     lt.playing=false; speechSynthesis.cancel();
