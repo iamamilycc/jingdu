@@ -19,6 +19,7 @@
   <button class="tab-btn" data-t="vocab"   onclick="switchTab('vocab')">🃏 生詞<span class="dot" data-s="vocab"></span></button>
   <button class="tab-btn" data-t="grammar" onclick="switchTab('grammar')">📝 語法<span class="dot" data-s="grammar"></span></button>
   <button class="tab-btn" data-t="speak"   onclick="switchTab('speak')">🗣️ 跟讀<span class="dot" data-s="speak"></span></button>
+  <button class="tab-btn" data-t="quiz"    onclick="switchTab('quiz')">🎯 聽力題<span class="dot" data-s="quiz"></span></button>
   <button class="tab-btn" data-t="recite"  onclick="switchTab('recite')">🧠 背句<span class="dot" data-s="recite"></span></button>
   <button class="tab-btn" data-t="done"    onclick="switchTab('done')">✅ 打卡<span class="dot" data-s="done"></span></button>
 </nav>
@@ -72,6 +73,12 @@
         <button class="big-btn ghost" onclick="spkNext(1)">下一句 →</button>
       </div>
     </div>
+  </section>
+
+  <section id="p-quiz" class="tab-panel">
+    <h2 class="sec">🎯 聽力題</h2>
+    <p class="hint">不看課文，只用耳朵！聽錄音選答案，答錯的句子會自動進錯題本。</p>
+    <div id="quizBox"></div>
   </section>
 
   <section id="p-recite" class="tab-panel">
@@ -149,6 +156,20 @@ window.LESSON = {
     {w:'bear', ipa:'/beə/', pos:'v. 動詞', zh:'容忍，忍受', eg:'I could not bear it.'},
     {w:'business', ipa:'/ˈbɪznɪs/', pos:'n. 名詞', zh:'事（務）', eg:"It's none of your business."},
     {w:'rudely', ipa:'/ˈruːdli/', pos:'adv. 副詞', zh:'無禮地，粗魯地', eg:'The young man said rudely.'}
+  ],
+  listening:[
+    {play:[0], srcIdx:0, q:'作者上星期去了哪裡？', ans:1,
+     opts:['電影院','劇場（看戲）','公園','朋友家']},
+    {play:[3], srcIdx:3, q:'剛才這句話是什麼意思？', ans:2,
+     opts:['我非常喜歡這齣戲','我沒有去看戲','我卻沒能欣賞到這齣戲','我想再看一遍']},
+    {play:[4,5], srcIdx:5, q:'坐在作者後面的人在做什麼？', ans:0,
+     opts:['大聲說話','大聲唱歌','吃東西','睡覺']},
+    {play:[7], srcIdx:7, q:'作者為什麼生氣？', ans:3,
+     opts:['座位太差了','戲太無聊了','票太貴了','聽不見演員說話']},
+    {play:[10], srcIdx:10, q:'作者轉身瞪他們之後，那兩個人怎麼樣？', ans:1,
+     opts:['馬上道歉了','毫不理會','離開了劇場','小聲了一點']},
+    {play:[14], srcIdx:14, q:'年輕人說 "It\'s none of your business" 是什麼態度？', ans:2,
+     opts:['禮貌地道歉','友好地打招呼','無禮地回嗆「不關你的事」','害羞地小聲說話']}
   ],
   grammar:[
     {t:'① 一般過去時：講「已經發生的事」',

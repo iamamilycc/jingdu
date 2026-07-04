@@ -70,7 +70,24 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 
 /* 生詞卡 */
 .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-.vcard{perspective:900px;height:158px;cursor:pointer}
+.vcard{perspective:900px;height:186px;cursor:pointer}
+.vcard.known>.inner>.vface{border-color:var(--green);}
+.vcard.known>.inner>.vface.front::after{content:'😊';position:absolute;top:8px;right:10px}
+.vcard.unknown>.inner>.vface{border-color:var(--coral)}
+.vcard.unknown>.inner>.vface.front::after{content:'📌 要復盤';position:absolute;top:8px;right:10px;font-size:.7rem;font-family:var(--font-head);color:var(--coral);background:var(--coral-soft);padding:2px 8px;border-radius:8px}
+.vjudge{display:flex;gap:8px;margin-top:8px}
+.vbtn{font-family:var(--font-head);border:none;border-radius:999px;padding:7px 14px;font-size:.82rem;font-weight:600;cursor:pointer}
+.vbtn.no{background:var(--coral);color:#fff}
+.vbtn.yes{background:#fff;color:var(--teal-deep)}
+.qz-opt{
+  display:block;width:100%;max-width:520px;margin:8px auto;text-align:left;
+  font-family:var(--font-en);font-size:1rem;font-weight:600;
+  background:#fff;border:2px solid var(--line);border-radius:14px;padding:13px 16px;cursor:pointer;transition:.15s;
+}
+.qz-opt:active{transform:scale(.98)}
+.qz-opt.right{background:var(--green-soft);border-color:var(--green);color:var(--green)}
+.qz-opt.wrong{background:var(--coral-soft);border-color:var(--coral);color:var(--coral)}
+.qz-opt:disabled{opacity:.9}
 .vcard .inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
 .vcard.flip .inner{transform:rotateY(180deg)}
 .vface{

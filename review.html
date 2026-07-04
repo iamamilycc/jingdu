@@ -50,8 +50,12 @@ function render(){
   due.forEach(it=>{
     const d=document.createElement('div');
     d.className='card srs-item';
+    /* 單詞類到期項不預先顯示英文答案 */
+    const head = it.type==='word'
+      ? '<b>🀄 '+JD.esc(it.zh)+'</b> <span style="color:var(--muted);font-size:.85rem">單詞 '+JD.esc(it.pos||'')+'</span>'
+      : '<b>'+JD.esc(it.en)+'</b><br><span style="color:var(--muted);font-size:.85rem">'+JD.esc(it.zh)+'</span>';
     d.innerHTML='<div style="display:flex;align-items:center;gap:12px">'+
-      '<div style="flex:1"><b>'+JD.esc(it.en)+'</b><br><span style="color:var(--muted);font-size:.85rem">'+JD.esc(it.zh)+'</span>'+levelBar(it.level)+'</div>'+
+      '<div style="flex:1">'+head+levelBar(it.level)+'</div>'+
       '<button class="big-btn mango" style="padding:10px 20px">背它</button></div>';
     d.querySelector('button').onclick=()=>startQuiz(it);
     dl.appendChild(d);
@@ -73,6 +77,16 @@ function startQuiz(it){
   cur=it; clearInterval(timer);
   $('#quizZone').style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
+  if(it.type==='word'){
+    /* 單詞復盤：看中文 → 直接開口說英文單詞（不給看答案） */
+    $('#qRing').style.display='none';
+    $('#qTarget').innerHTML='<div class="mask-box">🀄 「'+JD.esc(it.zh)+'」'+(it.pos?'（'+JD.esc(it.pos)+'）':'')+
+      '<br>這個單詞的英文怎麼說？按麥克風說出來！</div>';
+    $('#qResult').innerHTML=''; $('#qHeard').textContent='';
+    $('#qBtns').innerHTML='<button id="qRecBtn" class="big-btn rec" onclick="qRec()">🎙️ 開口說</button>'+
+      '<button class="big-btn ghost" onclick="qFail(true)">😳 忘了，看答案</button>';
+    return;
+  }
   $('#qTarget').innerHTML = JD.esc(it.en);
   JD.speak(it.en,false);
   $('#qResult').innerHTML=''; $('#qHeard').textContent='';
@@ -107,7 +121,7 @@ window.qRec = function(){
   JD.listen((text,err)=>{
     btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次';
     if(err && !text){
-      const msg = err==='not-allowed'?'麥克風權限被拒絕：設定→Safari→麥克風':(err==='silence'?'沒聽到聲音，再大聲點':'識別出錯，再試一次');
+      const msg = err==='not-allowed'?'麥克風權限被拒絕：設定→Safari→麥克風':(err==='silence'?'沒聽到聲音，再大聲點':(err==='timeout'?'等了好久沒聽清，再按一次試試':'識別出錯，再試一次'));
       $('#qResult').innerHTML='<div class="acc-badge bad">'+msg+'</div>'; return;
     }
     const r=JD.compare(cur.en,text);

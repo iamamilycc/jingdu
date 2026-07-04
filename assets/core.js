@@ -27,6 +27,7 @@
     const old = b[item.id];
     b[item.id] = {
       id:item.id, lessonId:item.lessonId, en:item.en, zh:item.zh||'',
+      type:item.type||'sent', pos:item.pos||'',
       level:0, due:Date.now()+INTERVALS[0],
       fails:(old?old.fails:0)+1, ts:Date.now()
     };
@@ -77,15 +78,17 @@
     const r = new SR();
     r.lang='en-US'; r.interimResults=false; r.maxAlternatives=3; r.continuous=false;
     let got=false;
+    /* 安全超時：12 秒沒有任何結果就強制結束，避免卡在「正在聽」 */
+    const guard = setTimeout(()=>{ if(!got){ try{ r.stop(); r.abort(); }catch(e){} if(!got){ got=true; cb(null,'timeout'); } } }, 12000);
     r.onresult = e=>{
-      got=true;
+      got=true; clearTimeout(guard);
       let best='';
       for(const alt of e.results[0]){ if(alt.transcript.length>best.length) best=alt.transcript; }
       cb(best.trim(), null);
     };
-    r.onerror = e=>{ if(!got) cb(null, e.error||'error'); };
-    r.onend = ()=>{ if(onstate) onstate('end'); if(!got) cb(null,'silence'); got=true; };
-    try{ r.start(); if(onstate) onstate('start'); }catch(err){ cb(null,'start-failed'); }
+    r.onerror = e=>{ clearTimeout(guard); if(!got){ got=true; cb(null, e.error||'error'); } };
+    r.onend = ()=>{ clearTimeout(guard); if(onstate) onstate('end'); if(!got){ got=true; cb(null,'silence'); } };
+    try{ r.start(); if(onstate) onstate('start'); }catch(err){ clearTimeout(guard); if(!got){ got=true; cb(null,'start-failed'); } }
     return r;
   }
 

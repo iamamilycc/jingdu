@@ -89,18 +89,29 @@
     if(opened.size >= L.sentences.length) done('read');
   }
 
-  /* ========== 2 生詞卡 ========== */
+  /* ========== 2 生詞卡（翻面後自評：認識 / 不認識 → 不認識進錯題本） ========== */
   const vg = $('#vocabGrid');
-  let flipped = new Set();
+  const judged = new Set();
   L.vocab.forEach((v,i)=>{
     const c = document.createElement('div');
     c.className='vcard';
     c.innerHTML='<div class="inner"><div class="vface front"><div class="w">'+JD.esc(v.w)+'</div>'+
       '<div class="ipa">'+JD.esc(v.ipa)+'</div><div style="margin-top:8px"><button class="btn-voice">🔊</button></div></div>'+
       '<div class="vface back"><div class="pos">'+JD.esc(v.pos)+'</div><div class="zh">'+JD.esc(v.zh)+'</div>'+
-      '<div class="eg">'+JD.esc(v.eg)+'</div></div></div>';
+      '<div class="eg">'+JD.esc(v.eg)+'</div>'+
+      '<div class="vjudge"><button class="vbtn no">😵 不認識</button><button class="vbtn yes">😊 認識</button></div></div></div>';
     c.querySelector('.btn-voice').onclick = e=>{ e.stopPropagation(); JD.speak(v.w,false); };
-    c.onclick = ()=>{ c.classList.toggle('flip'); flipped.add(i); if(flipped.size>=L.vocab.length) done('vocab'); };
+    function judge(ok){
+      judged.add(i);
+      c.classList.remove('known','unknown');
+      c.classList.add(ok?'known':'unknown');
+      if(!ok) JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:v.w, zh:v.zh, type:'word', pos:v.pos});
+      c.classList.remove('flip');
+      if(judged.size >= L.vocab.length) done('vocab');
+    }
+    c.querySelector('.vbtn.no').onclick = e=>{ e.stopPropagation(); judge(false); };
+    c.querySelector('.vbtn.yes').onclick = e=>{ e.stopPropagation(); judge(true); };
+    c.onclick = ()=>{ c.classList.toggle('flip'); };
     vg.appendChild(c);
   });
 
@@ -127,8 +138,11 @@
   window.spkPlay = ()=>JD.speak(L.sentences[spk.i].en,false);
   window.spkPlaySlow = ()=>JD.speak(L.sentences[spk.i].en,true);
   window.spkRec = function(){
-    startRec($('#spkRecBtn'), L.sentences[spk.i], '#spkResult', '#spkHeard', acc=>{
-      spk.results[spk.i]=acc; spkRender0nly();
+    const i = spk.i, s = L.sentences[i];
+    startRec($('#spkRecBtn'), s, '#spkResult', '#spkHeard', acc=>{
+      spk.results[i]=acc; spkRender0nly();
+      /* 跟讀不達標也進錯題本（與背句同 id，自動合併） */
+      if(acc < JD.PASS) JD.addError({id:L.id+'#'+i, lessonId:L.id, en:s.en, zh:s.zh});
     });
   };
   function spkRender0nly(){ /* 只刷 pills，保留結果展示 */
@@ -141,6 +155,54 @@
     if(spk.results.filter(x=>x!=null).length >= L.sentences.length) done('speak');
   };
   spkRender();
+
+  /* ========== 4.5 聽力題（純聽音答題，答錯的句子進錯題本） ========== */
+  const qz = { i:0, score:0, answeredCnt:0 };
+  function qzPlaySeq(idxs, k){
+    k = k||0; if(k>=idxs.length) return;
+    const u = new SpeechSynthesisUtterance(L.sentences[idxs[k]].en);
+    u.lang='en-US'; u.rate=0.9;
+    u.onend = ()=>setTimeout(()=>qzPlaySeq(idxs,k+1), 300);
+    if(k===0) speechSynthesis.cancel();
+    speechSynthesis.speak(u);
+  }
+  function qzRender(){
+    const box = $('#quizBox'); if(!box) return;
+    if(qz.i >= L.listening.length){
+      box.innerHTML='<div class="stage"><div style="font-size:2.6rem">'+(qz.score===L.listening.length?'🏆':'🎯')+'</div>'+
+        '<div class="acc-badge '+(qz.score>=L.listening.length*0.8?'good':'bad')+'">答對 '+qz.score+' / '+L.listening.length+' 題</div>'+
+        '<div style="margin-top:10px"><button class="big-btn ghost" onclick="qzRestart()">再做一遍</button></div></div>';
+      done('quiz'); return;
+    }
+    const it = L.listening[qz.i];
+    box.innerHTML='<div class="stage">'+
+      '<div style="font-family:var(--font-head);color:var(--muted);font-size:.9rem;margin-bottom:8px">第 '+(qz.i+1)+' / '+L.listening.length+' 題</div>'+
+      '<button class="big-btn teal" onclick="qzPlay()">🔊 播放錄音</button>'+
+      '<div style="font-weight:700;font-size:1.05rem;margin:14px 0 10px">'+JD.esc(it.q)+'</div>'+
+      '<div id="qzOpts">'+it.opts.map((o,k)=>'<button class="qz-opt" data-k="'+k+'">'+String.fromCharCode(65+k)+'. '+JD.esc(o)+'</button>').join('')+'</div>'+
+      '<div id="qzFb" style="margin-top:10px"></div></div>';
+    $$('#qzOpts .qz-opt').forEach(b=>b.onclick=()=>qzAnswer(parseInt(b.dataset.k)));
+    qzPlaySeq(it.play);
+  }
+  window.qzPlay = ()=>qzPlaySeq(L.listening[qz.i].play);
+  function qzAnswer(k){
+    const it = L.listening[qz.i];
+    $$('#qzOpts .qz-opt').forEach((b,j)=>{
+      b.disabled=true;
+      if(j===it.ans) b.classList.add('right');
+      else if(j===k) b.classList.add('wrong');
+    });
+    if(k===it.ans){ qz.score++; $('#qzFb').innerHTML='<div class="acc-badge good">🎉 答對了！</div>'; }
+    else{
+      $('#qzFb').innerHTML='<div class="acc-badge bad">再聽聽～正確答案是 '+String.fromCharCode(65+it.ans)+'</div>';
+      const s = L.sentences[it.srcIdx];
+      JD.addError({id:L.id+'#'+it.srcIdx, lessonId:L.id, en:s.en, zh:s.zh});
+    }
+    $('#qzFb').innerHTML += '<div style="margin-top:8px"><button class="big-btn teal" onclick="qzNext()">下一題 →</button></div>';
+  }
+  window.qzNext = function(){ qz.i++; qzRender(); };
+  window.qzRestart = function(){ qz.i=0; qz.score=0; qzRender(); };
+  if(L.listening) qzRender();
 
   /* ========== 5 背句挑戰 ========== */
   const rc = { i:0, timer:null, results:[] };
@@ -232,6 +294,7 @@
       if(err && !text){
         const msg = err==='not-allowed' ? '麥克風權限被拒絕：請在 設定→Safari→麥克風 允許'
                   : err==='silence' ? '沒聽到聲音，再大聲一點試試'
+                  : err==='timeout' ? '等了好久沒聽清，再按一次試試'
                   : '識別出錯（'+err+'），再試一次';
         $(resultSel).innerHTML='<div class="acc-badge bad">'+msg+'</div>';
         return;
@@ -246,7 +309,7 @@
   }
 
   /* ========== 6 打卡 ========== */
-  const SEC_LABEL = {listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',speak:'🗣️ 口語跟讀',recite:'🧠 背句挑戰'};
+  const SEC_LABEL = {listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',speak:'🗣️ 口語跟讀',quiz:'🎯 聽力題',recite:'🧠 背句挑戰'};
   function renderDone(){
     const p = JD.getProgress(L.id);
     $('#doneList').innerHTML = Object.keys(SEC_LABEL).map(k=>
