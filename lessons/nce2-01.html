@@ -14,7 +14,8 @@
 </div></header>
 
 <nav class="tabs">
-  <button class="tab-btn active" data-t="read"    onclick="switchTab('read')">📖 逐句<span class="dot" data-s="read"></span></button>
+  <button class="tab-btn active" data-t="listen"  onclick="switchTab('listen')">🎧 聽全文<span class="dot" data-s="listen"></span></button>
+  <button class="tab-btn" data-t="read"    onclick="switchTab('read')">📖 逐句<span class="dot" data-s="read"></span></button>
   <button class="tab-btn" data-t="vocab"   onclick="switchTab('vocab')">🃏 生詞<span class="dot" data-s="vocab"></span></button>
   <button class="tab-btn" data-t="grammar" onclick="switchTab('grammar')">📝 語法<span class="dot" data-s="grammar"></span></button>
   <button class="tab-btn" data-t="speak"   onclick="switchTab('speak')">🗣️ 跟讀<span class="dot" data-s="speak"></span></button>
@@ -23,7 +24,19 @@
 </nav>
 
 <main>
-  <section id="p-read" class="tab-panel active">
+  <section id="p-listen" class="tab-panel active">
+    <h2 class="sec">🎧 聽全文</h2>
+    <p class="hint">整篇課文連續朗讀，讀到哪句亮哪句。想練真聽力就開「盲聽」——文字會藏起來，只用耳朵！完整聽完一遍自動打勾。</p>
+    <div class="card" style="text-align:center">
+      <button id="ltPlayBtn" class="big-btn teal" onclick="ltPlay()">▶️ 播放全文</button>
+      <button class="big-btn ghost" onclick="ltToggleSpeed(this)">🐢 慢速：關</button>
+      <button class="big-btn ghost" onclick="ltToggleBlind(this)">🙈 盲聽：關</button>
+      <button class="big-btn ghost" onclick="ltToggleLoop(this)">🔁 循環：關</button>
+    </div>
+    <div class="card stitch" id="ltText"></div>
+  </section>
+
+  <section id="p-read" class="tab-panel">
     <h2 class="sec">📖 逐句精讀</h2>
     <p class="hint">點每一句展開中文和講解；🔊 聽發音，「慢」是慢速。全部點開過，本環節自動打勾。</p>
     <div id="readList"></div>

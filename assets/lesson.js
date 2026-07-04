@@ -23,6 +23,50 @@
   }
   function done(sec){ JD.markDone(L.id, sec); refreshDots(); }
 
+  /* ========== 0 聽全文（連播 + 高亮 + 盲聽 + 循環） ========== */
+  const lt = { playing:false, idx:-1, slow:false, blind:false, loop:false };
+  const ltBox = $('#ltText');
+  if(ltBox){
+    ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+JD.esc(s.en)+'</span>').join(' ');
+  }
+  function ltHighlight(i){
+    $$('.lt-sent').forEach((el,k)=>el.classList.toggle('now', k===i));
+    const el = document.getElementById('lt'+i);
+    if(el) el.scrollIntoView({block:'center', behavior:'smooth'});
+  }
+  function ltPlayFrom(i){
+    if(!lt.playing) return;
+    if(i >= L.sentences.length){
+      done('listen');
+      if(lt.loop){ ltPlayFrom(0); return; }
+      ltStopUI(); return;
+    }
+    lt.idx = i; ltHighlight(i);
+    const u = new SpeechSynthesisUtterance(L.sentences[i].en);
+    u.lang='en-US'; u.rate = lt.slow ? 0.6 : 0.9;
+    u.onend = ()=>setTimeout(()=>ltPlayFrom(i+1), 350);
+    u.onerror = ()=>ltStopUI();
+    speechSynthesis.speak(u);
+  }
+  function ltStopUI(){
+    lt.playing=false; speechSynthesis.cancel();
+    $$('.lt-sent').forEach(el=>el.classList.remove('now'));
+    const b=$('#ltPlayBtn'); if(b){ b.textContent='▶️ 播放全文'; b.classList.remove('rec'); b.classList.add('teal'); }
+  }
+  window.ltPlay = function(){
+    if(lt.playing){ ltStopUI(); return; }
+    lt.playing=true; speechSynthesis.cancel();
+    const b=$('#ltPlayBtn'); b.textContent='⏹️ 停止'; b.classList.remove('teal'); b.classList.add('rec');
+    ltPlayFrom(0);
+  };
+  function ltBtnState(btn,on){ btn.classList.toggle('mango',on); btn.classList.toggle('ghost',!on); }
+  window.ltToggleSpeed = function(btn){ lt.slow=!lt.slow; btn.textContent='🐢 慢速：'+(lt.slow?'開':'關'); ltBtnState(btn,lt.slow); };
+  window.ltToggleBlind = function(btn){
+    lt.blind=!lt.blind; btn.textContent='🙈 盲聽：'+(lt.blind?'開':'關'); ltBtnState(btn,lt.blind);
+    if(ltBox) ltBox.classList.toggle('blind', lt.blind);
+  };
+  window.ltToggleLoop = function(btn){ lt.loop=!lt.loop; btn.textContent='🔁 循環：'+(lt.loop?'開':'關'); ltBtnState(btn,lt.loop); };
+
   /* ========== 1 逐句精讀 ========== */
   const readBox = $('#readList');
   L.sentences.forEach((s,i)=>{
@@ -202,7 +246,7 @@
   }
 
   /* ========== 6 打卡 ========== */
-  const SEC_LABEL = {read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',speak:'🗣️ 口語跟讀',recite:'🧠 背句挑戰'};
+  const SEC_LABEL = {listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',speak:'🗣️ 口語跟讀',recite:'🧠 背句挑戰'};
   function renderDone(){
     const p = JD.getProgress(L.id);
     $('#doneList').innerHTML = Object.keys(SEC_LABEL).map(k=>
