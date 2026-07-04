@@ -5,7 +5,13 @@
 
   /* ---------- 存儲 ---------- */
   function load(key, def){ try{ const v = localStorage.getItem(NS+key); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
-  function save(key, val){ try{ localStorage.setItem(NS+key, JSON.stringify(val)); }catch(e){} }
+  function save(key, val){
+    try{
+      localStorage.setItem(NS+key, JSON.stringify(val));
+      localStorage.setItem(NS+'updatedAt', String(Date.now()));
+      if(window.JDSYNC) window.JDSYNC.schedule(); /* 有開雲端備份就自動同步 */
+    }catch(e){}
+  }
 
   /* 課程進度：{lessonId:{sec1:true,...}} */
   function getProgress(lessonId){ return load('prog_'+lessonId, {}); }

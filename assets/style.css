@@ -70,7 +70,18 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 
 /* 生詞卡 */
 .vgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
-.vcard{perspective:900px;height:186px;cursor:pointer}
+.vcard{perspective:900px;height:212px;cursor:pointer}
+.vspell{display:flex;gap:6px;margin-top:10px;width:100%;padding:0 4px}
+.vspell input{
+  flex:1;min-width:0;border:2px solid rgba(255,255,255,.5);border-radius:10px;padding:9px 10px;
+  font-family:var(--font-en);font-size:1rem;font-weight:700;text-align:center;
+  background:rgba(255,255,255,.92);color:var(--ink);outline:none;
+}
+.vspell input:focus{border-color:var(--mango)}
+.vfb{margin-top:7px;font-size:.85rem;min-height:1.2em}
+.vfb .vok{color:#BFF5D0;font-weight:700}
+.vfb .vbad{color:#FFD9CE;font-weight:600}
+.vfb .vbad b{color:#fff;text-decoration:underline}
 .vcard.known>.inner>.vface{border-color:var(--green);}
 .vcard.known>.inner>.vface.front::after{content:'😊';position:absolute;top:8px;right:10px}
 .vcard.unknown>.inner>.vface{border-color:var(--coral)}

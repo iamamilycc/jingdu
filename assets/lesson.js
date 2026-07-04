@@ -88,29 +88,48 @@
     if(opened.size >= L.sentences.length) done('read');
   }
 
-  /* ========== 2 生詞卡（翻面後自評：認識 / 不認識 → 不認識進錯題本） ========== */
+  /* ========== 2 生詞卡（look-cover-write-check：正面看單詞 → 翻面拼寫 → 對✓錯入錯題本） ========== */
   const vg = $('#vocabGrid');
   const judged = new Set();
+  function maskWord(text, w){
+    /* 例句裡把單詞挖空，避免洩露拼寫（含首字母大寫變形） */
+    return text.replace(new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi'), '____');
+  }
   L.vocab.forEach((v,i)=>{
     const c = document.createElement('div');
     c.className='vcard';
     c.innerHTML='<div class="inner"><div class="vface front"><div class="w">'+JD.esc(v.w)+'</div>'+
-      '<div class="ipa">'+JD.esc(v.ipa)+'</div><div style="margin-top:8px"><button class="btn-voice">🔊</button></div></div>'+
-      '<div class="vface back"><div class="pos">'+JD.esc(v.pos)+'</div><div class="zh">'+JD.esc(v.zh)+'</div>'+
-      '<div class="eg">'+JD.esc(v.eg)+'</div>'+
-      '<div class="vjudge"><button class="vbtn no">😵 不認識</button><button class="vbtn yes">😊 認識</button></div></div></div>';
+      '<div class="ipa">'+JD.esc(v.ipa)+'</div><div style="margin-top:8px"><button class="btn-voice">🔊</button></div>'+
+      '<div class="hint" style="margin:8px 0 0;font-size:.72rem">記住拼寫，翻面默寫！</div></div>'+
+      '<div class="vface back"><div class="pos">'+JD.esc(v.pos)+' · '+JD.esc(v.zh)+'</div>'+
+      '<div class="eg">'+JD.esc(maskWord(v.eg, v.w))+'</div>'+
+      '<div class="vspell"><input type="text" placeholder="拼出這個單詞" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">'+
+      '<button class="vbtn yes">檢查</button></div>'+
+      '<div class="vfb"></div></div></div>';
     c.querySelector('.btn-voice').onclick = e=>{ e.stopPropagation(); JD.speak(v.w,false); };
-    function judge(ok){
+    const input = c.querySelector('.vspell input');
+    const fb = c.querySelector('.vfb');
+    function judge(){
+      const typed = (input.value||'').trim().toLowerCase().replace(/\s+/g,'');
+      if(!typed){ input.focus(); return; }
+      const ok = typed === v.w.toLowerCase().replace(/\s+/g,'');
       judged.add(i);
       c.classList.remove('known','unknown');
       c.classList.add(ok?'known':'unknown');
-      if(!ok) JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:v.w, zh:v.zh, type:'word', pos:v.pos});
-      c.classList.remove('flip');
+      if(ok){
+        fb.innerHTML='<span class="vok">✓ 拼對了！</span>';
+        JD.speak(v.w,false);
+        setTimeout(()=>c.classList.remove('flip'), 900);
+      }else{
+        fb.innerHTML='<span class="vbad">✗ 正確拼寫：<b>'+JD.esc(v.w)+'</b></span>';
+        JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:v.w, zh:v.zh, type:'word', pos:v.pos});
+      }
       if(judged.size >= L.vocab.length) done('vocab');
     }
-    c.querySelector('.vbtn.no').onclick = e=>{ e.stopPropagation(); judge(false); };
-    c.querySelector('.vbtn.yes').onclick = e=>{ e.stopPropagation(); judge(true); };
-    c.onclick = ()=>{ c.classList.toggle('flip'); };
+    c.querySelector('.vbtn.yes').onclick = e=>{ e.stopPropagation(); judge(); };
+    input.addEventListener('click', e=>e.stopPropagation());
+    input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); judge(); } });
+    c.onclick = ()=>{ c.classList.toggle('flip'); if(c.classList.contains('flip')) setTimeout(()=>input.focus(),450); };
     vg.appendChild(c);
   });
 
