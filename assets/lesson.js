@@ -172,7 +172,8 @@
       const right=bd.results.filter(Boolean).length;
       box.innerHTML='<div class="stage"><div style="font-size:2.4rem">🧩</div>'+
         '<div class="acc-badge '+(right>=bdItems.length*0.8?'good':'bad')+'">排對 '+right+' / '+bdItems.length+' 句</div>'+
-        '<div style="margin-top:10px"><button class="big-btn ghost" onclick="bdRestart()">再玩一遍</button></div></div>';
+        '<div style="margin-top:10px"><button class="big-btn ghost" onclick="bdNav(-1)">← 上一句</button>'+
+        '<button class="big-btn ghost" onclick="bdRestart()">再玩一遍</button></div></div>';
       return;
     }
     const it=bdItems[bd.i];
@@ -186,7 +187,9 @@
         '<button class="big-btn ghost" onclick="bdReset()">↺ 清空</button>'+
         '<button class="big-btn ghost" onclick="bdReveal()">看答案</button></div>'+
       '<div id="bdFb" style="margin-top:12px">'+(fb||'')+'</div>'+
-      '<div style="margin-top:8px"><button class="big-btn ghost" onclick="bdNav(1)">下一句 →</button></div></div>';
+      '<div style="margin-top:8px">'+
+        (bd.i>0?'<button class="big-btn ghost" onclick="bdNav(-1)">← 上一句</button>':'')+
+        '<button class="big-btn ghost" onclick="bdNav(1)">下一句 →</button></div></div>';
   }
   window.bdPlace=function(cid){ const k=bd.pool.findIndex(c=>c.cid===cid); if(k<0)return; bd.placed.push(bd.pool[k]); bd.pool.splice(k,1); bdRender(); };
   window.bdUnplace=function(cid){ const k=bd.placed.findIndex(c=>c.cid===cid); if(k<0)return; bd.pool.push(bd.placed[k]); bd.placed.splice(k,1); bdRender(); };
