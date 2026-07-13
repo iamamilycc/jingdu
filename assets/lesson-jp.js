@@ -72,6 +72,7 @@
     const text = R.toKana(L.sentences[i].jp);
     const u=new SpeechSynthesisUtterance(text);
     u.lang=LANG; u.rate = lt.slow?0.6:0.85;
+    const v=JD.pickVoice(LANG); if(v) u.voice=v; /* 不指定聲音時系統可能用預設聲讀日文 */
     let advanced=false;
     const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); setTimeout(()=>ltPlayFrom(i+1),300); };
     /* onend 正常推進；onerror 也推進（單句出錯不該中斷整篇，iOS 上 onerror 常誤觸發） */
@@ -266,6 +267,7 @@
     k=k||0; if(k>=idxs.length) return;
     const u=new SpeechSynthesisUtterance(R.toKana(L.sentences[idxs[k]].jp));
     u.lang=LANG; u.rate=0.85;
+    const v=JD.pickVoice(LANG); if(v) u.voice=v;
     u.onend=()=>setTimeout(()=>qzPlaySeq(idxs,k+1),300);
     if(k===0) speechSynthesis.cancel();
     speechSynthesis.speak(u);

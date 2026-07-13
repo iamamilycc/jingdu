@@ -176,6 +176,6 @@
   }
 
   window.JD = { getProgress, markDone, getBook, addError, reviewPass, reviewFail,
-                dueItems, allItems, speak, listen, recSupported, compare, compareJP, kk2hh, esc, fmtDue,
+                dueItems, allItems, speak, pickVoice, listen, recSupported, compare, compareJP, kk2hh, esc, fmtDue,
                 LEVEL_NAMES, PASS:85 };
 })();

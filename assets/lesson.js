@@ -46,6 +46,7 @@
     const text = L.sentences[i].en;
     const u = new SpeechSynthesisUtterance(text);
     u.lang='en-US'; u.rate = lt.slow ? 0.6 : 0.9;
+    const v = JD.pickVoice('en-US'); if(v) u.voice = v; /* 不指定聲音時系統可能用預設/中文聲讀英文 */
     let advanced=false;
     const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); setTimeout(()=>ltPlayFrom(i+1),300); };
     /* onend/onerror 都推進：單句出錯不中斷整篇（iOS 上 onerror 常誤觸發） */
@@ -272,6 +273,7 @@
     k = k||0; if(k>=idxs.length) return;
     const u = new SpeechSynthesisUtterance(L.sentences[idxs[k]].en);
     u.lang='en-US'; u.rate=0.9;
+    const v = JD.pickVoice('en-US'); if(v) u.voice = v;
     u.onend = ()=>setTimeout(()=>qzPlaySeq(idxs,k+1), 300);
     if(k===0) speechSynthesis.cancel();
     speechSynthesis.speak(u);
