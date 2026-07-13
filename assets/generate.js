@@ -15,6 +15,7 @@
 
   const SCHEMA_EN = `{
   "title": "課名（英文原題 + 中文，如 A Private Conversation 私人談話）",
+  "level": 難度星級整數1-5（按生詞率和語法複雜度估：1=很簡單 5=很難）,
   "sentences": [
     {"en": "英文句子（保持原文，逐句拆開）", "zh": "繁體中文翻譯", "ana": "給小學生看的講解，白話、標出重點語法，可用 <b>標籤</b>；重點前加 ⭐"}
   ],
@@ -31,6 +32,7 @@
 
   const SCHEMA_JP = `{
   "title": "課名（如 初めまして 第X課）",
+  "level": 難度星級整數1-5（按生詞率和語法複雜度估：1=很簡單 5=很難）,
   "sentences": [
     {"jp": "日文句子，漢字必須標振假名，格式為 漢字[かな]，如 私[わたし]は 学生[がくせい]です。（只在漢字後面用方括號標讀音，假名/片假名/數字不要標）",
      "romaji": "羅馬音", "zh": "繁體中文翻譯",
@@ -78,6 +80,7 @@ ${schema}`;
     const d = JSON.parse(t);
     if(!d.sentences || !d.sentences.length) throw new Error('生成結果沒有句子');
     d.vocab = d.vocab || []; d.listening = d.listening || []; d.grammar = d.grammar || [];
+    d.level = (Number.isInteger(d.level) && d.level>=1 && d.level<=5) ? d.level : 0; /* 0=未知,不顯示 */
     sanitizeListening(d);
     return d;
   }
@@ -212,6 +215,26 @@ ${schema}`;
     return { ok:r.ok, fix:String(r.fix||''), tip:String(r.tip||'') };
   }
 
+  /* ---- 課後小故事：只用學過的詞寫超短故事（泛讀甜點，AI 生成零版權）；結構校驗，失敗拋錯由 UI 兜底 ---- */
+  async function storyFromWords(lang, words, onProgress){
+    const langName = lang==='jp' ? '日語' : '英語';
+    if(onProgress) onProgress('AI 正在寫小故事…');
+    const jpRule = lang==='jp' ? '，漢字標振假名 漢字[かな]（只標漢字）' : '';
+    const content = await callApi(getTextModel(), [
+      { role:'user', content:
+        '請為小學生寫一個非常短的'+langName+'小故事（4-6 句，'+(lang==='jp'?'60 字':'60 詞')+'以內），'+
+        '**只能用下面這些學過的詞**，加上最基礎的功能詞（'+(lang==='jp'?'助詞、です/ます等':'冠詞、代詞、be 動詞、介詞等')+'）'+jpRule+'。故事要有趣、完整。\n'+
+        '只輸出 JSON，不要任何解釋：{"title":"故事標題（'+langName+'）","text":"故事全文","zh":"繁體中文翻譯"}\n\n'+
+        '學過的詞：'+words.join(', ') }
+    ]);
+    let t = stripFences(content);
+    const a=t.indexOf('{'), b=t.lastIndexOf('}');
+    if(a>=0 && b>a) t=t.slice(a,b+1);
+    const r = JSON.parse(t);
+    if(!r.text || typeof r.text!=='string') throw new Error('AI 返回格式不對');
+    return { title:String(r.title||'小故事'), text:String(r.text), zh:String(r.zh||'') };
+  }
+
   /* ---- 用戶課文存儲（本機 + 隨雲同步；view.html 讀取渲染） ---- */
   function allUserLessons(){ try{ return JSON.parse(localStorage.getItem('jingdu_userlessons')||'{}'); }catch(e){ return {}; } }
   function saveLesson(lang, data){
@@ -220,6 +243,7 @@ ${schema}`;
       id: id, lang: lang,
       badge: (lang==='jp'?'日語':'NCE') + ' · 自建',
       title: data.title || '未命名',
+      level: data.level || 0,
       sentences: data.sentences, vocab: data.vocab, listening: data.listening, grammar: data.grammar,
       _meta: { created: Date.now(), lang: lang, title: data.title || '未命名' }
     };
@@ -232,8 +256,9 @@ ${schema}`;
   function deleteLesson(id){
     const all = allUserLessons(); delete all[id];
     localStorage.setItem('jingdu_userlessons', JSON.stringify(all));
-    /* 連帶清掉這課的進度與錯題復盤，避免留下孤兒復盤任務 */
+    /* 連帶清掉這課的進度、錯題復盤、小故事快取，避免留孤兒數據 */
     localStorage.removeItem('jingdu_prog_'+id);
+    localStorage.removeItem('jingdu_story_'+id);
     try{
       const b = JSON.parse(localStorage.getItem('jingdu_errbook')||'{}');
       let changed = false;
@@ -246,6 +271,6 @@ ${schema}`;
 
   window.JDGen = { getKey, setKey, getTextModel, getVisionModel, setModels,
                    fromText, fromImage, parseLesson, systemPrompt,
-                   sanitizeListening, verifyListening, judgeSentence, knownWords,
+                   sanitizeListening, verifyListening, judgeSentence, knownWords, storyFromWords,
                    allUserLessons, saveLesson, deleteLesson };
 })();

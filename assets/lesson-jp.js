@@ -453,6 +453,46 @@
   window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=true; mk.i++; mkRender(); };
   mkRender();
 
+  /* ========== 5.7 課後彩蛋：AI 用學過的詞寫小故事（泛讀甜點；快取進 localStorage 不重複花錢） ========== */
+  function storyShow(box, st){
+    box.innerHTML='<div class="card jp-text" style="text-align:left">'+
+      '<b style="font-family:var(--font-head)">🎁 '+R.toRubyHTML(JD.esc(st.title))+'</b>'+
+      '<button class="btn-voice" style="margin-left:8px" onclick="storySpeak()">🔊</button>'+
+      '<p style="margin-top:8px;line-height:2">'+R.toRubyHTML(JD.esc(st.text))+'</p>'+
+      '<p style="color:var(--muted);margin-top:6px;font-size:.9rem">'+JD.esc(st.zh)+'</p>'+
+      '<button class="big-btn ghost" style="margin-top:8px" onclick="storyGen()">🔄 換一個故事</button></div>';
+  }
+  function storyUI(){
+    const c=$('#celebrate'); if(!c || document.getElementById('storyBox')) return;
+    const box=document.createElement('div'); box.id='storyBox'; box.style.marginTop='14px';
+    const cached=localStorage.getItem('jingdu_story_'+L.id);
+    let ok=false;
+    if(cached){ try{ storyShow(box, JSON.parse(cached)); ok=true; }catch(e){} }
+    if(!ok) box.innerHTML='<button class="big-btn mango" onclick="storyGen()">🎁 彩蛋：AI 用學過的詞寫個小故事</button>';
+    c.appendChild(box);
+  }
+  window.storySpeak=function(){
+    try{ const st=JSON.parse(localStorage.getItem('jingdu_story_'+L.id)||'{}'); if(st.text) JD.speak(R.toKana(st.text),false,LANG); }catch(e){}
+  };
+  window.storyGen=async function(){
+    const box=document.getElementById('storyBox'); if(!box) return;
+    if(!window.JDGen || !JDGen.getKey()){
+      box.innerHTML='<div class="acc-badge bad">要先在「➕ 新增課文」頁設定智譜 API Key，才能生成小故事</div>'; return;
+    }
+    box.innerHTML='<div class="acc-badge">⏳ AI 正在寫小故事…</div>';
+    try{
+      const words=Array.from(new Set((L.vocab||[]).map(v=>String(v.w).replace(/\[[^\]]+\]/g,'')).concat(JDGen.knownWords('jp')))).slice(0,40);
+      const st=await JDGen.storyFromWords('jp', words, null);
+      localStorage.setItem('jingdu_story_'+L.id, JSON.stringify(st));
+      localStorage.setItem('jingdu_updatedAt', String(Date.now()));
+      if(window.JDSYNC) window.JDSYNC.schedule();
+      storyShow(box, st);
+    }catch(e){
+      box.innerHTML='<div class="acc-badge bad">生成沒成功（'+JD.esc(e.message||String(e))+'）</div>'+
+        '<button class="big-btn ghost" onclick="storyGen()" style="margin-top:8px">再試一次</button>';
+    }
+  };
+
   /* ========== 6 打卡 ========== */
   const SEC_LABEL={listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',build:'🧩 連詞成句',speak:'🗣️ 口語跟讀',quiz:'🎯 聽力題',recite:'🧠 背句挑戰',make:'🖊️ 造句挑戰'};
   function renderDone(){
@@ -461,6 +501,7 @@
     const all=Object.keys(SEC_LABEL).every(k=>p[k]);
     if(all && !p.done) JD.markDone(L.id,'done');
     $('#celebrate').classList.toggle('show', all);
+    if(all) storyUI();
     refreshDots();
   }
   refreshDots();
