@@ -69,6 +69,15 @@ function renderUserLessons(){
     a.innerHTML='<span class="badge" style="background:var(--mango);color:var(--ink)">自建<small>日</small></span>'+
       '<span class="t"><span class="en">'+JD.esc(l.title||'未命名')+'</span></span>'+
       '<span class="pct">'+(pct>=100?'✅':pct+'%')+'</span>';
+    const del=document.createElement('button');
+    del.className='udel'; del.type='button'; del.textContent='🗑'; del.title='刪除這課';
+    del.addEventListener('click', e=>{
+      e.preventDefault(); e.stopPropagation();
+      if(!confirm('確定刪除「'+(l.title||'未命名')+'」嗎？\n這課的進度和錯題復盤會一併清除，刪除後無法復原。')) return;
+      JDGen.deleteLesson(l.id);
+      renderUserLessons();
+    });
+    a.appendChild(del);
     ubox.appendChild(a);
   });
 }

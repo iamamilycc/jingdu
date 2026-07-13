@@ -138,6 +138,14 @@ ${schema}`;
   function deleteLesson(id){
     const all = allUserLessons(); delete all[id];
     localStorage.setItem('jingdu_userlessons', JSON.stringify(all));
+    /* 連帶清掉這課的進度與錯題復盤，避免留下孤兒復盤任務 */
+    localStorage.removeItem('jingdu_prog_'+id);
+    try{
+      const b = JSON.parse(localStorage.getItem('jingdu_errbook')||'{}');
+      let changed = false;
+      for(const k in b){ if(b[k] && b[k].lessonId===id){ delete b[k]; changed=true; } }
+      if(changed) localStorage.setItem('jingdu_errbook', JSON.stringify(b));
+    }catch(e){}
     localStorage.setItem('jingdu_updatedAt', String(Date.now()));
     if(window.JDSYNC) window.JDSYNC.schedule();
   }

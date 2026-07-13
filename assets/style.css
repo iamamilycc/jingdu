@@ -219,6 +219,9 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .lesson-item .t .en{font-weight:700;font-size:1.02rem}
 .lesson-item .t .zh{color:var(--muted);font-size:.85rem;margin-top:2px}
 .lesson-item .pct{font-family:var(--font-head);font-weight:600;color:var(--teal-deep);font-size:.95rem}
+.lesson-item .udel{flex:none;border:2px solid var(--line);background:#fff;color:var(--coral);border-radius:12px;
+  width:40px;height:40px;font-size:1.05rem;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.lesson-item .udel:active{background:var(--coral-soft);border-color:var(--coral)}
 .srs-item .lv{display:flex;gap:3px;margin-top:6px}
 .srs-item .lv i{width:16px;height:7px;border-radius:4px;background:var(--line)}
 .srs-item .lv i.on{background:var(--teal)}
