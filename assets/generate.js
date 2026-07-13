@@ -152,10 +152,29 @@ ${schema}`;
     return content;
   }
 
+  /* 跨課詞彙複現：收集之前學過的詞（自建課生詞 + 錯題本單詞），
+     生成新課時讓 AI 在例句/選項裡自然複用——一個詞要在不同語境遇到 7-12 次才算習得 */
+  function knownWords(lang){
+    try{
+      const out=[];
+      Object.values(allUserLessons()).forEach(l=>{
+        if(l.lang===lang) (l.vocab||[]).forEach(v=>{ if(v.w) out.push(String(v.w).replace(/\[[^\]]+\]/g,'')); });
+      });
+      const eb=JSON.parse(localStorage.getItem('jingdu_errbook')||'{}');
+      Object.values(eb).forEach(it=>{ if(it.type==='word' && it.en) out.push(it.en); });
+      return Array.from(new Set(out)).slice(-30);
+    }catch(e){ return []; }
+  }
+  function reuseHint(lang){
+    const ws=knownWords(lang);
+    return ws.length ? '\n\n（這位學生之前學過這些詞：'+ws.join(', ')+
+      '。寫 vocab 例句和 listening 選項時，合適的地方自然複用其中幾個幫助複習；課文原文一字不可改。）' : '';
+  }
+
   async function fromText(lang, text, onProgress){
     const content = await callApi(getTextModel(), [
       { role:'system', content: systemPrompt(lang) },
-      { role:'user', content: '課文如下：\n\n'+text }
+      { role:'user', content: '課文如下：\n\n'+text+reuseHint(lang) }
     ], onProgress);
     if(onProgress) onProgress('正在整理課文…');
     const d = parseLesson(content);
@@ -165,7 +184,7 @@ ${schema}`;
   async function fromImage(lang, dataUrl, onProgress){
     const content = await callApi(getVisionModel(), [
       { role:'user', content: [
-        { type:'text', text: systemPrompt(lang)+'\n\n請先一字不漏地讀出圖片裡的課文（不要漏詞、不要改寫），再按上面規則輸出 JSON。' },
+        { type:'text', text: systemPrompt(lang)+'\n\n請先一字不漏地讀出圖片裡的課文（不要漏詞、不要改寫），再按上面規則輸出 JSON。'+reuseHint(lang) },
         { type:'image_url', image_url:{ url: dataUrl } }
       ]}
     ], onProgress);
@@ -227,6 +246,6 @@ ${schema}`;
 
   window.JDGen = { getKey, setKey, getTextModel, getVisionModel, setModels,
                    fromText, fromImage, parseLesson, systemPrompt,
-                   sanitizeListening, verifyListening, judgeSentence,
+                   sanitizeListening, verifyListening, judgeSentence, knownWords,
                    allUserLessons, saveLesson, deleteLesson };
 })();

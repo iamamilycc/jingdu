@@ -12,6 +12,7 @@
   <a href="../index.html">📘 切換英語版</a>
 </div></header>
 <main>
+  <a class="streak-chip" id="streakChip" href="../report.html"></a>
   <a class="due-banner" id="dueBanner" href="review.html"></a>
   <div class="card" id="syncCard" style="display:none"></div>
 
@@ -99,9 +100,16 @@ function renderUserLessons(){
     ubox.appendChild(a);
   });
 }
+function renderStreak(){
+  const el=document.getElementById('streakChip'); if(!el) return;
+  const st=JD.streak();
+  el.innerHTML = st.todayDone ? '🔥 連續學習 <b>'+st.n+'</b> 天 · 看週報 →'
+    : (st.n>0 ? '🌱 已連續 '+st.n+' 天，今天學一點就續上！ · 看週報 →' : '🌱 今天還沒開始學 · 看週報 →');
+}
 renderUserLessons();
 renderToday();
-window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); };
+renderStreak();
+window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderStreak(); };
 </script>
 </body>
 </html>

@@ -17,7 +17,29 @@
   function getProgress(lessonId){ return load('prog_'+lessonId, {}); }
   function markDone(lessonId, sec){
     const p = getProgress(lessonId); if(p[sec]) return p;
-    p[sec] = true; save('prog_'+lessonId, p); return p;
+    p[sec] = true; save('prog_'+lessonId, p);
+    touchDay();
+    return p;
+  }
+
+  /* ---------- 學習日曆 + 連續天數（streak）----------
+     days: {'2026-07-14': 動作次數,...}；任何學習動作(完成環節/復盤/錯題)都記一筆 */
+  function dstr(d){ const x=d||new Date(); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
+  function touchDay(){
+    const m = load('days', {});
+    m[dstr()] = (m[dstr()]||0)+1;
+    const keys = Object.keys(m).sort();
+    while(keys.length>400) delete m[keys.shift()];
+    save('days', m);
+  }
+  function daysMap(){ return load('days', {}); }
+  function streak(){
+    const m = daysMap();
+    const todayDone = !!m[dstr()];
+    let n=0; const d=new Date();
+    if(!todayDone) d.setDate(d.getDate()-1);
+    while(m[dstr(d)]){ n++; d.setDate(d.getDate()-1); }
+    return { n:n, todayDone:todayDone };
   }
 
   /* ---------- 錯題本 + 艾賓浩斯 ----------
@@ -29,6 +51,7 @@
   function getBook(){ return load('errbook', {}); }
   function setBook(b){ save('errbook', b); }
   function addError(item){
+    touchDay();
     const b = getBook();
     const old = b[item.id];
     b[item.id] = {
@@ -41,6 +64,7 @@
     setBook(b);
   }
   function reviewPass(id){
+    touchDay();
     const b = getBook(); const it = b[id]; if(!it) return;
     it.level += 1;
     if(it.level >= 6){ it.due = Number.MAX_SAFE_INTEGER; it.solid = true; }
@@ -48,6 +72,7 @@
     setBook(b);
   }
   function reviewFail(id){
+    touchDay();
     const b = getBook(); const it = b[id]; if(!it) return;
     it.level = 0; it.due = Date.now()+INTERVALS[0]; it.fails += 1; delete it.solid;
     setBook(b);
@@ -176,6 +201,6 @@
   }
 
   window.JD = { getProgress, markDone, getBook, addError, reviewPass, reviewFail,
-                dueItems, allItems, speak, pickVoice, listen, recSupported, compare, compareJP, kk2hh, esc, fmtDue,
+                dueItems, allItems, streak, daysMap, touchDay, speak, pickVoice, listen, recSupported, compare, compareJP, kk2hh, esc, fmtDue,
                 LEVEL_NAMES, PASS:85 };
 })();

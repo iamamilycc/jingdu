@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>學習週報 · 精讀</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="index.html">← 目錄</a>
+  <h1>📊 學習週報</h1>
+</div></header>
+<main>
+  <p class="hint" style="margin-top:4px">給家長看的：孩子最近學得怎麼樣、哪裡卡住了。英語＋日語數據合在一起。</p>
+
+  <div class="card" id="rpStreak"></div>
+
+  <h2 class="sec">最近 7 天學習量</h2>
+  <div class="card">
+    <div class="rp-bars" id="rpBars"></div>
+    <p class="hint" style="margin:10px 0 0">柱子＝當天的學習動作次數（完成環節、復盤、練錯題都算）。頻率比單次時長重要，每天一點點最好。</p>
+  </div>
+
+  <h2 class="sec">課程進度</h2>
+  <div id="rpLessons"></div>
+
+  <h2 class="sec">復盤與錯題</h2>
+  <div class="card" id="rpErr"></div>
+  <div class="card" id="rpTop"></div>
+
+  <p class="hint">數據存在這台設備上；開啟雲端備份後，換設備也能看到同一份。</p>
+</main>
+<footer class="site">jingdu · 家長週報</footer>
+
+<script src="assets/core.js"></script>
+<script src="assets/sync.js"></script>
+<script src="assets/generate.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+function dstr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+function lessonName(id){
+  let m;
+  if((m=id.match(/^nce2-(\d+)$/))) return 'NCE2 · L'+parseInt(m[1],10);
+  if((m=id.match(/^jp-(\d+)$/))) return '日語 · 第'+parseInt(m[1],10)+'課';
+  const ul=JDGen.allUserLessons()[id];
+  if(ul) return (ul.lang==='jp'?'日語自建 · ':'自建 · ')+(ul.title||'未命名');
+  return id;
+}
+
+function render(){
+  /* 連續天數 + 本週活躍 */
+  const st=JD.streak(), days=JD.daysMap();
+  let weekActive=0, weekActions=0;
+  const cols=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(); d.setDate(d.getDate()-i);
+    const k=dstr(d), c=days[k]||0;
+    if(c>0){ weekActive++; weekActions+=c; }
+    cols.push({lbl:(i===0?'今天':(d.getMonth()+1)+'/'+d.getDate()), c:c});
+  }
+  $('#rpStreak').innerHTML=
+    '<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">'+
+    '<span style="font-size:1.6rem">🔥</span>'+
+    '<span style="font-family:var(--font-head)">連續學習 <b style="font-size:1.5rem;color:var(--teal-deep)">'+st.n+'</b> 天'+(st.todayDone?'（含今天）':'（今天還沒學）')+'</span>'+
+    '<span style="font-family:var(--font-head);color:var(--muted)">本週學了 <b style="color:var(--teal-deep)">'+weekActive+'</b> 天 · 共 '+weekActions+' 次動作</span></div>';
+
+  /* 7 天條形 */
+  const max=Math.max.apply(null, cols.map(x=>x.c).concat([1]));
+  $('#rpBars').innerHTML=cols.map(x=>
+    '<div class="col"><span class="cnt">'+(x.c||'')+'</span>'+
+    '<div class="bar '+(x.c?'':'zero')+'" style="height:'+(x.c?Math.max(8,Math.round(x.c/max*100)):3)+'%"></div>'+
+    '<span class="lbl">'+x.lbl+'</span></div>').join('');
+
+  /* 課程進度：掃所有 jingdu_prog_* */
+  const SECS=['listen','read','vocab','grammar','build','speak','quiz','recite','make'];
+  const rows=[];
+  for(let i=0;i<localStorage.length;i++){
+    const k=localStorage.key(i);
+    if(!k || k.indexOf('jingdu_prog_')!==0) continue;
+    const id=k.slice('jingdu_prog_'.length);
+    const p=JD.getProgress(id);
+    const cnt=SECS.filter(s=>p[s]).length;
+    rows.push({id:id, name:lessonName(id), cnt:cnt, pct:Math.round(cnt/SECS.length*100)});
+  }
+  rows.sort((a,b)=>b.pct-a.pct);
+  $('#rpLessons').innerHTML = rows.length ?
+    rows.map(r=>'<div class="card lesson-item"><span class="t"><span class="en">'+JD.esc(r.name)+'</span></span>'+
+      '<span class="pct">'+(r.pct>=100?'✅ 完成':r.pct+'%（'+r.cnt+'/9 環節）')+'</span></div>').join('')
+    : '<div class="card empty">還沒開始學任何課</div>';
+
+  /* 錯題概況 */
+  const items=JD.allItems();
+  const solid=items.filter(x=>x.solid).length;
+  const due=JD.dueItems().length;
+  $('#rpErr').innerHTML='<div style="display:flex;gap:18px;flex-wrap:wrap;font-family:var(--font-head)">'+
+    '<span>錯題本共 <b style="color:var(--teal-deep)">'+items.length+'</b> 條</span>'+
+    '<span>已牢固 <b style="color:var(--green)">'+solid+'</b> 條</span>'+
+    '<span>現在到期 <b style="color:'+(due>0?'var(--coral)':'var(--green)')+'">'+due+'</b> 條</span></div>';
+
+  /* 錯最多 Top5（家長輔導抓手；不洩單詞答案的規則只適用於孩子的復盤清單，週報給家長看全文） */
+  const top=items.slice().sort((a,b)=>(b.fails||0)-(a.fails||0)).slice(0,5).filter(x=>(x.fails||0)>=2);
+  $('#rpTop').innerHTML = top.length ?
+    '<b style="font-family:var(--font-head)">反覆出錯（值得陪孩子看看）：</b>'+
+    '<ul style="margin:8px 0 0 20px;line-height:1.9">'+
+    top.map(x=>'<li>'+JD.esc((x.en||'').slice(0,60))+(x.zh?'（'+JD.esc(x.zh)+'）':'')+' — 錯 '+x.fails+' 次</li>').join('')+'</ul>'
+    : '<span style="color:var(--muted)">沒有反覆出錯的內容，很穩！</span>';
+}
+render();
+window.JDSYNC_ONRESTORE = render;
+</script>
+</body>
+</html>
