@@ -37,6 +37,7 @@ PAGE = """<!DOCTYPE html>
   <button class="tab-btn" data-t="speak"   onclick="switchTab('speak')">🗣️ 跟讀<span class="dot" data-s="speak"></span></button>
   <button class="tab-btn" data-t="quiz"    onclick="switchTab('quiz')">🎯 聽力題<span class="dot" data-s="quiz"></span></button>
   <button class="tab-btn" data-t="recite"  onclick="switchTab('recite')">🧠 背句<span class="dot" data-s="recite"></span></button>
+  <button class="tab-btn" data-t="make"    onclick="switchTab('make')">🖊️ 造句<span class="dot" data-s="make"></span></button>
   <button class="tab-btn" data-t="done"    onclick="switchTab('done')">✅ 打卡<span class="dot" data-s="done"></span></button>
 </nav>
 
@@ -117,6 +118,13 @@ PAGE = """<!DOCTYPE html>
     </div>
   </section>
 
+  <section id="p-make" class="tab-panel">
+    <h2 class="sec">🖊️ 造句挑戰</h2>
+    <p class="hint">用本課學的詞，說一句<b>你自己的話</b>！打字或按 🎤 用說的，AI 老師會幫你看；改一改可以再檢查。</p>
+    <div class="progress-pills" id="mkPills"></div>
+    <div class="stage" id="mkStage"></div>
+  </section>
+
   <section id="p-done" class="tab-panel">
     <h2 class="sec">✅ 本課打卡</h2>
     <div class="card"><ul class="check-list" id="doneList"></ul></div>
@@ -134,6 +142,7 @@ window.LESSON = {lesson_json};
 </script>
 <script src="../../assets/core.js"></script>
 <script src="../../assets/sync.js"></script>
+<script src="../../assets/generate.js"></script>
 <script src="../../assets/ruby.js"></script>
 <script src="../../assets/lesson-jp.js"></script>
 </body>
@@ -197,7 +206,7 @@ def rebuild_index(metas):
     for d in metas:
         title = d['title'].replace("'", "\\'")
         entries[d['id']] = {'num': d['num'],
-            'text': "{id:'%s', badge:'日語', num:'%s', title:'%s', href:'lessons/%s.html', secs:8}"
+            'text': "{id:'%s', badge:'日語', num:'%s', title:'%s', href:'lessons/%s.html', secs:9}"
                     % (d['id'], d['num'], title, d['id'])}
     ordered = sorted(entries.values(), key=lambda e: _numkey(e['num']))
     block = "const LESSONS = [\n" + ",\n".join('  ' + e['text'] for e in ordered) + "\n];"

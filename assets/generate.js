@@ -174,6 +174,25 @@ ${schema}`;
     return verifyListening(lang, d, onProgress);
   }
 
+  /* ---- 造句判分（造句挑戰環節用；返回結構經校驗，格式不對直接拋錯讓 UI 走自評兜底） ---- */
+  async function judgeSentence(lang, word, sentence){
+    const langName = lang==='jp' ? '日語' : '英語';
+    const content = await callApi(getTextModel(), [
+      { role:'user', content:
+        '你是親切的小學'+langName+'老師。孩子用指定單詞造了一個句子，請判斷：\n'+
+        '1. 是否用上了指定單詞（複數、過去式、活用等詞形變化都算用上）\n'+
+        '2. 句子語法是否基本正確（輕微拼寫、大小寫、標點問題不扣）\n'+
+        '只輸出 JSON，不要任何解釋：{"ok":true或false,"fix":"若不對，給一句修正後的句子；對則留空","tip":"一句繁體中文的鼓勵或提示，30字內"}\n\n'+
+        '指定單詞：'+word+'\n孩子的句子：'+sentence }
+    ]);
+    let t = stripFences(content);
+    const a=t.indexOf('{'), b=t.lastIndexOf('}');
+    if(a>=0 && b>a) t=t.slice(a,b+1);
+    const r = JSON.parse(t);
+    if(typeof r.ok!=='boolean') throw new Error('AI 返回格式不對');
+    return { ok:r.ok, fix:String(r.fix||''), tip:String(r.tip||'') };
+  }
+
   /* ---- 用戶課文存儲（本機 + 隨雲同步；view.html 讀取渲染） ---- */
   function allUserLessons(){ try{ return JSON.parse(localStorage.getItem('jingdu_userlessons')||'{}'); }catch(e){ return {}; } }
   function saveLesson(lang, data){
@@ -208,6 +227,6 @@ ${schema}`;
 
   window.JDGen = { getKey, setKey, getTextModel, getVisionModel, setModels,
                    fromText, fromImage, parseLesson, systemPrompt,
-                   sanitizeListening, verifyListening,
+                   sanitizeListening, verifyListening, judgeSentence,
                    allUserLessons, saveLesson, deleteLesson };
 })();

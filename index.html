@@ -30,20 +30,38 @@
 <script>
 /* 課文註冊表：新增課文時 Claude 在此追加一行 */
 const LESSONS = [
-  {id:'nce2-01', badge:'NCE2', num:'L1', en:'A Private Conversation', zh:'私人談話', href:'lessons/nce2-01.html', secs:8},
-  {id:'nce2-02', badge:'NCE2', num:'L2', en:'Breakfast or Lunch?', zh:'早餐還是午餐？', href:'lessons/nce2-02.html', secs:8}
+  {id:'nce2-01', badge:'NCE2', num:'L1', en:'A Private Conversation', zh:'私人談話', href:'lessons/nce2-01.html', secs:9},
+  {id:'nce2-02', badge:'NCE2', num:'L2', en:'Breakfast or Lunch?', zh:'早餐還是午餐？', href:'lessons/nce2-02.html', secs:9}
 ];
 
-const due = JD.dueItems().length;
-const banner = document.getElementById('dueBanner');
-if(due>0){
-  banner.innerHTML = '<span class="n">📅</span><span>今日待復盤 <b style="font-size:1.3rem">'+due+'</b> 句 —— 點我開始！</span>';
-}else{
-  banner.classList.add('zero');
-  banner.innerHTML = '<span class="n">🌿</span><span>今天沒有到期的復盤任務，去學新課吧！</span>';
-}
+const SECS_KEYS = ['listen','read','vocab','grammar','build','speak','quiz','recite','make'];
+const SEC_NAME = {listen:'聽全文',read:'逐句精讀',vocab:'生詞卡',grammar:'語法點',build:'連詞成句',speak:'跟讀',quiz:'聽力題',recite:'背句',make:'造句'};
 
-const SECS_KEYS = ['listen','read','vocab','grammar','build','speak','quiz','recite'];
+/* 今日學習流：到期復盤 → 第一個沒學完的課(直達環節) → 全完成才推新課。孩子零選擇。 */
+function firstUndone(id){ const p=JD.getProgress(id); return SECS_KEYS.find(k=>!p[k]); }
+function renderToday(){
+  const banner = document.getElementById('dueBanner');
+  banner.classList.remove('zero');
+  const due = JD.dueItems().length;
+  if(due>0){
+    banner.href='review.html';
+    banner.innerHTML='<span class="n">📅</span><span>今天的學習：先復盤 <b style="font-size:1.3rem">'+due+'</b> 句 —— 點我開始！</span>';
+    return;
+  }
+  for(const l of LESSONS){
+    const k=firstUndone(l.id);
+    if(k){ banner.href=l.href+'?tab='+k;
+      banner.innerHTML='<span class="n">▶️</span><span>今天的學習：繼續「'+JD.esc(l.en)+'」· '+SEC_NAME[k]+'</span>'; return; }
+  }
+  const ul=Object.values(JDGen.allUserLessons()).filter(x=>x.lang==='en').sort((a,b)=>(a._meta?a._meta.created:0)-(b._meta?b._meta.created:0));
+  for(const l of ul){
+    const k=firstUndone(l.id);
+    if(k){ banner.href='lessons/view.html?id='+encodeURIComponent(l.id)+'&tab='+k;
+      banner.innerHTML='<span class="n">▶️</span><span>今天的學習：繼續「'+JD.esc(l.title||'未命名')+'」· '+SEC_NAME[k]+'</span>'; return; }
+  }
+  banner.classList.add('zero'); banner.href='new.html';
+  banner.innerHTML='<span class="n">🌿</span><span>全部學完啦！拍照 / 粘貼課文，加一課新的吧</span>';
+}
 const box = document.getElementById('lessonList');
 LESSONS.forEach(l=>{
   const p = JD.getProgress(l.id);
@@ -66,7 +84,7 @@ function renderUserLessons(){
   const h=document.createElement('h2'); h.className='sec'; h.textContent='我自己加的課'; ubox.appendChild(h);
   all.forEach(l=>{
     const p = JD.getProgress(l.id);
-    const pct = Math.round(SECS_KEYS.filter(k=>p[k]).length/8*100);
+    const pct = Math.round(SECS_KEYS.filter(k=>p[k]).length/SECS_KEYS.length*100);
     const a=document.createElement('a'); a.className='card lesson-item'; a.href='lessons/view.html?id='+encodeURIComponent(l.id);
     a.innerHTML='<span class="badge" style="background:var(--mango);color:var(--ink)">自建<small>ENG</small></span>'+
       '<span class="t"><span class="en">'+JD.esc(l.title||'未命名')+'</span></span>'+
@@ -84,7 +102,8 @@ function renderUserLessons(){
   });
 }
 renderUserLessons();
-window.JDSYNC_ONRESTORE = renderUserLessons; /* 雲端同步回來後刷新列表 */
+renderToday();
+window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); }; /* 雲端同步回來後刷新 */
 </script>
 </body>
 </html>

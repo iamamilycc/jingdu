@@ -385,8 +385,76 @@
     }, undefined, LANG);
   }
 
+  /* ========== 5.6 造句挑戰（用本課生詞說自己的話；AI 老師判，無 key/出錯走自評兜底） ========== */
+  const mkWords = (L.vocab||[]).slice(0,3);
+  const mk = { i:0, results:[] };
+  function mkPlain(w){ return (w||'').replace(/\[[^\]]+\]/g,''); }
+  function mkPills(){
+    const el=$('#mkPills'); if(!el) return;
+    el.innerHTML = mkWords.map((_,k)=>'<span class="pill '+(k===mk.i?'now':'')+' '+(mk.results[k]==null?'':(mk.results[k]?'ok':'bad'))+'"></span>').join('');
+  }
+  function mkRender(){
+    const box=$('#mkStage'); if(!box) return;
+    mkPills();
+    if(!mkWords.length){ box.innerHTML='<div class="mask-box">本課沒有生詞數據，這一關直接通過 ✓</div>'; done('make'); return; }
+    if(mk.i>=mkWords.length){
+      box.innerHTML='<div style="font-size:2.6rem">'+(mk.results.every(Boolean)?'🏆':'🖊️')+'</div>'+
+        '<div class="acc-badge good">造了 '+mkWords.length+' 句自己的話，真棒！</div>'+
+        '<div style="margin-top:10px"><button class="big-btn ghost" onclick="mkRestart()">再來一輪</button></div>';
+      done('make'); return;
+    }
+    const v=mkWords[mk.i];
+    box.innerHTML='<div style="font-family:var(--font-head);color:var(--muted);font-size:.9rem">第 '+(mk.i+1)+' / '+mkWords.length+' 個詞</div>'+
+      '<div class="target jp-text" style="margin-top:6px"><b>'+R.toRubyHTML(JD.esc(v.w))+'</b><span style="color:var(--muted);font-size:.92rem;margin-left:10px">'+JD.esc(v.zh||'')+'</span></div>'+
+      '<div style="margin-top:6px"><button class="btn-voice" id="mkVoiceBtn">🔊</button></div>'+
+      '<div style="margin:12px 0"><textarea id="mkInput" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="用這個詞造一句你自己的話…" '+
+      'style="width:100%;min-height:72px;border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:1rem"></textarea></div>'+
+      '<div><button id="mkMicBtn" class="big-btn rec" onclick="mkMic()">🎤 用說的</button>'+
+      '<button class="big-btn teal" onclick="mkCheck()">✨ 檢查我的句子</button></div>'+
+      '<div id="mkFb" style="margin-top:12px"></div>';
+    const vb=$('#mkVoiceBtn'); if(vb) vb.onclick=()=>JD.speak(R.toKana(v.w),false,LANG);
+  }
+  window.mkRestart=function(){ mk.i=0; mk.results=[]; mkRender(); };
+  window.mkMic=function(){
+    const btn=$('#mkMicBtn');
+    if(!JD.recSupported()){ $('#mkFb').innerHTML='<div class="acc-badge bad">此設備不支援語音輸入，用打字吧</div>'; return; }
+    btn.classList.add('listening'); btn.textContent='👂 正在聽…';
+    JD.listen(text=>{
+      btn.classList.remove('listening'); btn.textContent='🎤 用說的';
+      if(text){ const t=$('#mkInput'); t.value=(t.value?t.value+' ':'')+text; }
+    }, undefined, LANG);
+  };
+  function mkAfter(ok, fix, tip){
+    mk.results[mk.i]=ok; mkPills();
+    $('#mkFb').innerHTML=
+      '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
+      (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">可以這樣說：'+JD.esc(fix)+'</div>')+
+      '<div style="margin-top:10px">'+(ok?'':'<span class="hint" style="display:block;margin-bottom:6px">改一改上面的句子，再按「檢查」試試！</span>')+
+      '<button class="big-btn teal" onclick="mkNext()">下一個詞 →</button></div>';
+  }
+  function mkSelfCheck(msg){
+    $('#mkFb').innerHTML='<div class="acc-badge">'+JD.esc(msg)+'</div>'+
+      '<p style="margin:10px 0 6px;font-size:.88rem;color:var(--muted)">自己讀一遍，覺得這個詞用對了嗎？</p>'+
+      '<button class="big-btn teal" onclick="mkSelf(true)">✅ 用對了</button>'+
+      '<button class="big-btn ghost" onclick="mkSelf(false)">🤔 沒把握</button>';
+  }
+  window.mkSelf=function(ok){ mkAfter(ok, '', ok?'自評通過！':'下次找大人一起看看'); };
+  window.mkCheck=async function(){
+    const v=mkWords[mk.i];
+    const s=($('#mkInput')&&$('#mkInput').value||'').trim();
+    if(!s){ $('#mkFb').innerHTML='<div class="acc-badge bad">先寫一句話（或按 🎤 用說的）</div>'; return; }
+    if(!window.JDGen || !JDGen.getKey()){ mkSelfCheck('沒設定 AI Key，這關改用自評'); return; }
+    $('#mkFb').innerHTML='<div class="acc-badge">⏳ AI 老師看句子中…</div>';
+    try{
+      const r=await JDGen.judgeSentence('jp', mkPlain(v.w), s);
+      mkAfter(r.ok, r.fix, r.tip);
+    }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
+  };
+  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=true; mk.i++; mkRender(); };
+  mkRender();
+
   /* ========== 6 打卡 ========== */
-  const SEC_LABEL={listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',build:'🧩 連詞成句',speak:'🗣️ 口語跟讀',quiz:'🎯 聽力題',recite:'🧠 背句挑戰'};
+  const SEC_LABEL={listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',build:'🧩 連詞成句',speak:'🗣️ 口語跟讀',quiz:'🎯 聽力題',recite:'🧠 背句挑戰',make:'🖊️ 造句挑戰'};
   function renderDone(){
     const p=JD.getProgress(L.id);
     $('#doneList').innerHTML=Object.keys(SEC_LABEL).map(k=>'<li><span class="ck '+(p[k]?'done':'')+'">'+(p[k]?'✓':'')+'</span>'+SEC_LABEL[k]+'</li>').join('');
@@ -396,4 +464,8 @@
     refreshDots();
   }
   refreshDots();
+
+  /* ?tab= 深連結：今日學習流可直達某環節 */
+  const t0 = new URLSearchParams(location.search).get('tab');
+  if(t0 && document.getElementById('p-'+t0)) switchTab(t0);
 })();

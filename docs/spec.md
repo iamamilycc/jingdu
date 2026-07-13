@@ -45,3 +45,8 @@
 
 ## 設計語言
 暖紙閃卡風：奶油紙 #FBF6EC / 墨 #2B2320 / 深青 #0F7B6C / 芒果 #F5A623 / 珊瑚(錯) #E85D3D / 綠(對) #3E8E5A。字體 Fredoka(標題)+Atkinson Hyperlegible(英文正文)，中文 PingFang。觸屏大按鈕，圓角卡片，虛線裝訂線細節。
+
+## 造句挑戰（2026-07-14 加，第 10 個環節 make）
+- 取本課 vocab 前 3 個詞，孩子打字/語音造句，JDGen.judgeSentence 判（結構校驗，失敗走自評兜底）
+- 加環節同步點：view.html + 靜態課頁 + build_lessons.py 模板 + index.html SECS_KEYS/secs + lesson.js SEC_LABEL（jp 同構）
+- index 今日學習流：到期復盤→第一個未完課(?tab=深連結)→全完成推新課
