@@ -283,7 +283,7 @@
       '<div style="font-family:var(--font-head);color:var(--muted);font-size:.9rem;margin-bottom:8px">第 '+(qz.i+1)+' / '+L.listening.length+' 題</div>'+
       '<button class="big-btn teal" onclick="qzPlay()">🔊 播放錄音</button>'+
       '<div style="font-weight:700;font-size:1.05rem;margin:14px 0 10px">'+JD.esc(it.q)+'</div>'+
-      '<div id="qzOpts">'+it.opts.map((o,k)=>'<button class="qz-opt" data-k="'+k+'">'+String.fromCharCode(65+k)+'. '+JD.esc(o)+'</button>').join('')+'</div>'+
+      '<div id="qzOpts">'+it.opts.map((o,k)=>'<button class="qz-opt" data-k="'+k+'">'+String.fromCharCode(65+k)+'. '+JD.esc(String(o).replace(/^[A-DＡ-Ｄ][.、．)）]\s*/,''))+'</button>').join('')+'</div>'+
       '<div id="qzFb" style="margin-top:10px"></div></div>';
     $$('#qzOpts .qz-opt').forEach(b=>b.onclick=()=>qzAnswer(parseInt(b.dataset.k)));
     qzPlaySeq(it.play);

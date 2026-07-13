@@ -59,7 +59,7 @@
 2. 講解（ana / grammar）一律用**繁體中文**，語氣親切、給小學生看，白話講清楚，重點前加 ⭐。
 3. sentences 要把課文**逐句拆開**，每句一個對象；listening 的 play/srcIdx 是句子在 sentences 陣列裡的下標（從0開始），務必對應正確。
 4. vocab 挑本課 6-12 個重點詞；grammar 挑 2-4 個核心語法點。
-5. listening 出 4-6 題，中文提問+四選一，考查聽力理解，答案下標 ans 必須正確。
+5. listening 出 4-6 題，中文提問+四選一，考查聽力理解。**ans 必須是能從 srcIdx 那句話直接驗證的唯一正確選項的下標（從0開始）**，寫完每題後自己核對一遍 ans 是否指向正確選項；opts 內容不要帶「A. 」等字母前綴。
 ${lang==='jp' ? '6. 日文漢字必須標振假名 漢字[かな]（只標漢字，假名/片假名/數字不標）；romaji 提供羅馬音；chunks 用文節切分。' : '6. 每個 vocab 給準確音標。'}
 
 JSON 結構：
@@ -78,6 +78,60 @@ ${schema}`;
     const d = JSON.parse(t);
     if(!d.sentences || !d.sentences.length) throw new Error('生成結果沒有句子');
     d.vocab = d.vocab || []; d.listening = d.listening || []; d.grammar = d.grammar || [];
+    sanitizeListening(d);
+    return d;
+  }
+
+  /* 聽力題數據清洗：模型輸出的下標不可信，先過一遍合法性 */
+  function sanitizeListening(d){
+    const n = d.sentences.length;
+    let qs = (d.listening||[]).filter(it=>it && it.q && Array.isArray(it.opts) && it.opts.length>=2);
+    /* 1-based 偵測：所有句子下標最小值≥1 且最大值正好==句數 → 整體減 1 */
+    const idxs=[];
+    qs.forEach(it=>{ (Array.isArray(it.play)?it.play:[]).concat([it.srcIdx]).forEach(x=>{ if(typeof x==='number') idxs.push(x); }); });
+    if(idxs.length && Math.min.apply(null,idxs)>=1 && Math.max.apply(null,idxs)===n){
+      qs.forEach(it=>{ if(Array.isArray(it.play)) it.play=it.play.map(x=>x-1); if(typeof it.srcIdx==='number') it.srcIdx-=1; });
+    }
+    qs = qs.filter(it=>{
+      it.play = (Array.isArray(it.play)?it.play:[it.srcIdx]).filter(x=>Number.isInteger(x)&&x>=0&&x<n);
+      if(!Number.isInteger(it.srcIdx)||it.srcIdx<0||it.srcIdx>=n) it.srcIdx = it.play.length?it.play[0]:-1;
+      if(!it.play.length && it.srcIdx>=0) it.play=[it.srcIdx];
+      /* 模型常在選項裡自帶「A. 」前綴，頁面會再加一遍字母，剝掉 */
+      it.opts = it.opts.map(o=>String(o).replace(/^[A-DＡ-Ｄ][.、．)）]\s*/,'').trim());
+      return it.play.length && it.srcIdx>=0 && Number.isInteger(it.ans) && it.ans>=0 && it.ans<it.opts.length;
+    });
+    d.listening = qs;
+    return d;
+  }
+
+  /* 聽力題答案二次核對：一次生成整課時模型常標錯 ans（實測 10 題錯 4 題）。
+     單獨給一個「只看依據句選答案」的簡單任務可靠得多；仍核不出的題直接丟棄。 */
+  async function verifyListening(lang, d, onProgress){
+    if(!d.listening.length) return d;
+    if(onProgress) onProgress('正在逐題核對聽力題答案…');
+    const field = lang==='jp' ? 'jp' : 'en';
+    const qtext = d.listening.map((it,i)=>
+      '第'+i+'題\n依據句子：'+((d.sentences[it.srcIdx]||{})[field]||'')+
+      '\n問題：'+it.q+'\n選項：'+it.opts.map((o,j)=>j+'. '+o).join('　')).join('\n\n');
+    try{
+      const content = await callApi(getTextModel(), [
+        { role:'user', content:
+          '下面是若干道聽力理解題，每題附「依據句子」。請只根據依據句子判斷每題的正確選項下標（從0開始）。'+
+          '如果四個選項都不對、或題目與句子無關，該題給 -1。\n'+
+          '只輸出 JSON 陣列（長度必須等於題數），如 [1,0,2,-1]，不要任何解釋。\n\n'+qtext }
+      ]);
+      let t = stripFences(content);
+      const a=t.indexOf('['), b=t.lastIndexOf(']');
+      if(a>=0 && b>a) t=t.slice(a,b+1);
+      const arr = JSON.parse(t);
+      if(Array.isArray(arr) && arr.length===d.listening.length){
+        d.listening = d.listening.filter((it,i)=>{
+          const v = arr[i];
+          if(Number.isInteger(v) && v>=0 && v<it.opts.length){ it.ans=v; return true; }
+          return false; /* -1 或非法 → 這題不可靠，丟棄 */
+        });
+      }
+    }catch(e){ /* 核對失敗不阻斷生成，保留原題 */ }
     return d;
   }
 
@@ -104,18 +158,20 @@ ${schema}`;
       { role:'user', content: '課文如下：\n\n'+text }
     ], onProgress);
     if(onProgress) onProgress('正在整理課文…');
-    return parseLesson(content);
+    const d = parseLesson(content);
+    return verifyListening(lang, d, onProgress);
   }
 
   async function fromImage(lang, dataUrl, onProgress){
     const content = await callApi(getVisionModel(), [
       { role:'user', content: [
-        { type:'text', text: systemPrompt(lang)+'\n\n請先讀出圖片裡的課文，再按上面規則輸出 JSON。' },
+        { type:'text', text: systemPrompt(lang)+'\n\n請先一字不漏地讀出圖片裡的課文（不要漏詞、不要改寫），再按上面規則輸出 JSON。' },
         { type:'image_url', image_url:{ url: dataUrl } }
       ]}
     ], onProgress);
     if(onProgress) onProgress('正在整理課文…');
-    return parseLesson(content);
+    const d = parseLesson(content);
+    return verifyListening(lang, d, onProgress);
   }
 
   /* ---- 用戶課文存儲（本機 + 隨雲同步；view.html 讀取渲染） ---- */
@@ -152,5 +208,6 @@ ${schema}`;
 
   window.JDGen = { getKey, setKey, getTextModel, getVisionModel, setModels,
                    fromText, fromImage, parseLesson, systemPrompt,
+                   sanitizeListening, verifyListening,
                    allUserLessons, saveLesson, deleteLesson };
 })();
