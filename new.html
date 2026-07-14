@@ -44,12 +44,13 @@
     <div class="gen-field">
       <label>② 智譜 API Key（只存這台設備，用來調 AI 生成）</label>
       <input type="password" id="apiKey" placeholder="貼上你的智譜 key（設過一次就會記住）">
-      <div class="key-hint">還沒有？去 <b>bigmodel.cn</b> 註冊 → 控制台領 API Key（智譜有免費額度，生成一課約幾分錢）。拍照識別需要視覺模型，key 通用。</div>
+      <div class="key-hint">還沒有？去 <b>bigmodel.cn</b> 註冊 → 控制台領 API Key，並確認帳戶已<b>充值</b>（文字用 glm-4-plus 是付費模型，一課約幾分錢；拍照識字用免費視覺模型）。key 通用。</div>
       <details class="adv">
         <summary>進階：自訂模型名稱</summary>
         <div style="margin-top:8px">
-          <input type="text" id="modelText" placeholder="文字模型（預設 glm-4-flash）" style="margin-bottom:6px">
+          <input type="text" id="modelText" placeholder="文字模型（預設 glm-4-plus，出題更好）" style="margin-bottom:6px">
           <input type="text" id="modelVision" placeholder="視覺模型（預設 glm-4v-flash）">
+          <div class="key-hint" style="margin-top:6px">想省錢可填 <b>glm-4-flash</b>（免費，但聽力題多走「聽句選意」保底）。</div>
         </div>
       </details>
     </div>

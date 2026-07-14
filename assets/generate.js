@@ -9,7 +9,9 @@
 
   function getKey(){ return localStorage.getItem(KEY) || ''; }
   function setKey(k){ if(k) localStorage.setItem(KEY, k.trim()); else localStorage.removeItem(KEY); }
-  function getTextModel(){ return localStorage.getItem(MODEL_TEXT_KEY) || 'glm-4-flash'; }
+  /* 文字模型預設 glm-4-plus：出閱讀理解題/講解質量明顯優於免費的 flash，一課約幾分錢（付費，需智譜帳戶有餘額）。
+     想省錢可在「新增課文→進階」改回 glm-4-flash（免費，但聽力題多走程序化保底）。 */
+  function getTextModel(){ return localStorage.getItem(MODEL_TEXT_KEY) || 'glm-4-plus'; }
   function getVisionModel(){ return localStorage.getItem(MODEL_VISION_KEY) || 'glm-4v-flash'; }
   function setModels(t, v){ if(t) localStorage.setItem(MODEL_TEXT_KEY,t); if(v) localStorage.setItem(MODEL_VISION_KEY,v); }
 
