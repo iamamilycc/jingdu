@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>朗讀聲音設定 · 精讀</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .vrow{display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid var(--line);border-radius:14px;margin-bottom:10px;background:#fff}
+  .vrow.on{border-color:var(--teal);background:var(--green-soft)}
+  .vrow .vn{flex:1;font-family:var(--font-head);font-weight:600}
+  .vrow .vq{font-size:.72rem;color:var(--teal-deep);background:var(--mango-soft);padding:2px 8px;border-radius:8px;margin-left:6px}
+  .vrow .vpick{flex:none}
+  .vrow .btn-try{flex:none;border:2px solid var(--line);background:#fff;border-radius:12px;width:44px;height:44px;font-size:1.1rem;cursor:pointer}
+  .vrow .btn-try:active{background:var(--mango-soft)}
+  .vpick{border:2px solid var(--teal);background:#fff;color:var(--teal-deep);border-radius:12px;padding:9px 14px;font-family:var(--font-head);font-weight:600;cursor:pointer;font-size:.85rem}
+  .vpick.on{background:var(--teal);color:#fff}
+  .vsec{margin:20px 0 10px}
+</style>
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="index.html">← 目錄</a>
+  <h1>🔊 朗讀聲音</h1>
+</div></header>
+<main>
+  <p class="hint" style="margin-top:4px">不同聲音「像不像真人」差很多。按 ▶️ 試聽，挑一個你最喜歡的按「選這個」。英語、日語各選一個，全站朗讀都會用它。</p>
+
+  <h2 class="sec vsec">📘 英語聲音</h2>
+  <div id="enList"></div>
+
+  <h2 class="sec vsec">🎌 日語聲音</h2>
+  <div id="jpList"></div>
+
+  <div class="card" style="margin-top:20px">
+    <b style="font-family:var(--font-head)">💡 想要更像真人的聲音？下載「增強版」語音（免費）</b>
+    <p style="margin-top:8px;line-height:1.7;color:var(--muted);font-size:.92rem">
+      系統自帶的是壓縮版，比較機械。iPhone / iPad 可以下載更自然的<b>增強版</b>：<br>
+      <b>設定 → 輔助功能 → 朗讀內容 → 聲音 → 英文（或日文）</b> → 找標示「增強版 / Enhanced」的聲音，點雲朵圖示下載。<br>
+      Mac：<b>系統設定 → 輔助功能 → 朗讀內容 → 系統語音 → 管理語音</b>，勾選增強版下載。<br>
+      下載後回到這一頁，新聲音就會出現在上面（標「較自然」），選它即可。<br>
+      <span style="color:var(--coral)">※ 若下載後這裡仍沒出現，代表這台設備的瀏覽器暫時只開放系統聲音，屬正常限制。</span>
+    </p>
+  </div>
+</main>
+<footer class="site">jingdu · 挑一個順耳的聲音陪你讀</footer>
+
+<script src="assets/core.js"></script>
+<script src="assets/sync.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+function renderList(lang, boxId){
+  const box=document.getElementById(boxId);
+  const list=JD.listVoices(lang);
+  const prefix=lang.split('-')[0];
+  const pref=JD.getVoicePref(prefix);
+  if(!list.length){ box.innerHTML='<p class="hint">這台設備還沒有'+(prefix==='ja'?'日語':'英語')+'聲音，或系統仍在載入。可先照下面說明下載增強版語音。</p>'; return; }
+  box.innerHTML='';
+  /* 未手動選過時，高亮引擎會實際採用的那個 */
+  const autoPick = pref || (JD.pickVoice(lang) ? JD.pickVoice(lang).voiceURI : '');
+  list.forEach(v=>{
+    const on = v.voiceURI===autoPick;
+    const row=document.createElement('div');
+    row.className='vrow'+(on?' on':'');
+    row.innerHTML='<button class="btn-try" title="試聽">▶️</button>'+
+      '<span class="vn">'+JD.esc(v.name)+(v.hiq?'<span class="vq">較自然</span>':'')+'</span>'+
+      '<button class="vpick'+(on?' on':'')+'">'+(on?'✓ 使用中':'選這個')+'</button>';
+    row.querySelector('.btn-try').onclick=()=>JD.previewVoice(lang, v.voiceURI);
+    row.querySelector('.vpick').onclick=()=>{
+      JD.setVoicePref(prefix, v.voiceURI);
+      localStorage.setItem('jingdu_updatedAt', String(Date.now()));
+      if(window.JDSYNC) window.JDSYNC.schedule();
+      renderList(lang, boxId);
+      JD.previewVoice(lang, v.voiceURI); /* 選中即試聽確認 */
+    };
+    box.appendChild(row);
+  });
+}
+function renderAll(){ renderList('en-US','enList'); renderList('ja-JP','jpList'); }
+renderAll();
+/* iOS/部分瀏覽器首次 getVoices() 為空，聲音列表就緒後重繪 */
+if('speechSynthesis' in window){
+  speechSynthesis.onvoiceschanged = renderAll;
+  setTimeout(renderAll, 400);
+}
+</script>
+</body>
+</html>

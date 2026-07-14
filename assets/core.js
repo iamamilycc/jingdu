@@ -83,23 +83,54 @@
   }
   function allItems(){ return Object.values(getBook()).sort((a,b)=>a.due-b.due); }
 
-  /* ---------- TTS（lang 預設 en-US，日語頁傳 'ja-JP'） ---------- */
-  const voiceCache = {};
-  function pickVoice(lang){
-    if(voiceCache[lang]) return voiceCache[lang];
-    const prefix = lang.split('-')[0];
-    const vs = speechSynthesis.getVoices().filter(v=>new RegExp('^'+prefix+'(-|_)','i').test(v.lang));
-    const v = vs.find(v=>/Samantha|Ava|Allison|Kyoko|O-ren/i.test(v.name)) || vs[0] || null;
-    voiceCache[lang]=v; return v;
+  /* ---------- TTS（lang 預設 en-US，日語頁傳 'ja-JP'） ----------
+     選聲優先序：①用戶在「聲音設定」頁選的偏好 ②高質量聲音（增強/Siri/neural 等關鍵詞）
+     ③已知較自然的具名聲音 ④該語言任一。壓縮版系統聲最機械，盡量避開。 */
+  function voicesFor(prefix){
+    if(!('speechSynthesis' in window)) return [];
+    return speechSynthesis.getVoices().filter(v=>new RegExp('^'+prefix+'(-|_)','i').test(v.lang));
   }
-  if('speechSynthesis' in window){ speechSynthesis.onvoiceschanged = ()=>{ for(const k in voiceCache) delete voiceCache[k]; }; }
+  /* 高質量關鍵詞（各家 neural/增強版聲音常見命名）；壓縮版通常無這些詞 */
+  const HIQ = /(enhanced|premium|neural|siri|natural|eloquence|\(enhanced\)|超清|增强|自然)/i;
+  const NICE = /Ava|Samantha|Allison|Evan|Joelle|Nathan|Serena|Kyoko|O-ren|Hattori|Kyui|Nanami|Sayaka/i;
+  function getVoicePref(prefix){ try{ return localStorage.getItem(NS+'voice_'+prefix)||''; }catch(e){ return ''; } }
+  function setVoicePref(prefix, uri){ try{ if(uri) localStorage.setItem(NS+'voice_'+prefix, uri); else localStorage.removeItem(NS+'voice_'+prefix); }catch(e){} }
+  function pickVoice(lang){
+    const prefix = lang.split('-')[0];
+    const vs = voicesFor(prefix);
+    if(!vs.length) return null;
+    const pref = getVoicePref(prefix);
+    if(pref){ const pv = vs.find(v=>v.voiceURI===pref); if(pv) return pv; }
+    return vs.find(v=>HIQ.test(v.name)) || vs.find(v=>NICE.test(v.name)) || vs[0];
+  }
+  /* 供「聲音設定」頁列出可選聲音（去重、把高質量的排前面） */
+  function listVoices(lang){
+    const prefix = lang.split('-')[0];
+    const seen = {};
+    return voicesFor(prefix).filter(v=>{ if(seen[v.voiceURI]) return false; seen[v.voiceURI]=1; return true; })
+      .map(v=>({ name:v.name, voiceURI:v.voiceURI, local:v.localService, hiq:HIQ.test(v.name) }))
+      .sort((a,b)=> (b.hiq?1:0)-(a.hiq?1:0) || a.name.localeCompare(b.name));
+  }
   function speak(text, slow, lang){
     if(!('speechSynthesis' in window)) return;
     lang = lang || 'en-US';
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang=lang; u.rate = slow?0.55:0.9;
+    u.lang=lang;
+    /* rate 0.92 比 0.9 略慢更清晰；慢速 0.6。pitch 稍降一點點更沉穩自然，別亂調免得怪 */
+    u.rate = slow?0.6:0.92; u.pitch = 1.0;
     const v = pickVoice(lang); if(v) u.voice=v;
+    speechSynthesis.speak(u);
+  }
+  /* 試聽指定聲音（聲音設定頁用）；voiceURI 為空則用當前偏好/優選 */
+  function previewVoice(lang, voiceURI){
+    if(!('speechSynthesis' in window)) return;
+    speechSynthesis.cancel();
+    const prefix = lang.split('-')[0];
+    const sample = prefix==='ja' ? 'こんにちは、いっしょに べんきょうしましょう。' : 'Hello! Let us read this together.';
+    const u = new SpeechSynthesisUtterance(sample);
+    u.lang=lang; u.rate=0.92;
+    const v = voicesFor(prefix).find(x=>x.voiceURI===voiceURI); if(v) u.voice=v;
     speechSynthesis.speak(u);
   }
 
@@ -201,6 +232,7 @@
   }
 
   window.JD = { getProgress, markDone, getBook, addError, reviewPass, reviewFail,
-                dueItems, allItems, streak, daysMap, touchDay, speak, pickVoice, listen, recSupported, compare, compareJP, kk2hh, esc, fmtDue,
+                dueItems, allItems, streak, daysMap, touchDay, speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
+                listen, recSupported, compare, compareJP, kk2hh, esc, fmtDue,
                 LEVEL_NAMES, PASS:85 };
 })();
