@@ -235,6 +235,25 @@ ${schema}`;
     return { title:String(r.title||'小故事'), text:String(r.text), zh:String(r.zh||'') };
   }
 
+  /* ---- 復盤側詞彙遷移：給錯題單詞造一個「新語境」例句（不同於原課例句），
+     讓學過的詞在新句子裡再現一次，強化遷移。結構校驗，快取進 localStorage 不重複花錢。 ---- */
+  async function exampleFor(lang, word, zh){
+    const langName = lang==='jp' ? '日語' : '英語';
+    const jpRule = lang==='jp' ? '，漢字標振假名 漢字[かな]（只標漢字）' : '';
+    const content = await callApi(getTextModel(), [
+      { role:'user', content:
+        '請為小學生用'+langName+'單詞「'+word+'」（中文意思：'+zh+'）造一個**新的、簡單的**例句'+
+        '（8-14 個詞以內，只用最基礎的常見詞'+jpRule+'），幫助孩子在新語境裡複習這個詞。\n'+
+        '只輸出 JSON，不要任何解釋：{"eg":"例句","zh":"繁體中文翻譯"}' }
+    ]);
+    let t = stripFences(content);
+    const a=t.indexOf('{'), b=t.lastIndexOf('}');
+    if(a>=0 && b>a) t=t.slice(a,b+1);
+    const r = JSON.parse(t);
+    if(!r.eg || typeof r.eg!=='string') throw new Error('AI 返回格式不對');
+    return { eg:String(r.eg), zh:String(r.zh||'') };
+  }
+
   /* ---- 用戶課文存儲（本機 + 隨雲同步；view.html 讀取渲染） ---- */
   function allUserLessons(){ try{ return JSON.parse(localStorage.getItem('jingdu_userlessons')||'{}'); }catch(e){ return {}; } }
   function saveLesson(lang, data){
@@ -271,6 +290,6 @@ ${schema}`;
 
   window.JDGen = { getKey, setKey, getTextModel, getVisionModel, setModels,
                    fromText, fromImage, parseLesson, systemPrompt,
-                   sanitizeListening, verifyListening, judgeSentence, knownWords, storyFromWords,
+                   sanitizeListening, verifyListening, judgeSentence, knownWords, storyFromWords, exampleFor,
                    allUserLessons, saveLesson, deleteLesson };
 })();

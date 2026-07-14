@@ -1,5 +1,22 @@
 /* 精讀 jingdu — 暖紙閃卡設計系統 */
-@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap');
+/* 字體自託管（2026-07-14）：改回本地 woff2，避免離線/弱網時 @import 阻塞首屏渲染。
+   只含拉丁子集（英文/日文羅馬音夠用）；中日文字走系統 PingFang SC 回退。 */
+@font-face{
+  font-family:'Fredoka';font-style:normal;font-weight:400 700;font-display:swap;
+  src:url('fonts/fredoka-var-latin.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Atkinson Hyperlegible';font-style:normal;font-weight:400;font-display:swap;
+  src:url('fonts/atkinson-400-latin.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Atkinson Hyperlegible';font-style:normal;font-weight:700;font-display:swap;
+  src:url('fonts/atkinson-700-latin.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Atkinson Hyperlegible';font-style:italic;font-weight:400;font-display:swap;
+  src:url('fonts/atkinson-400i-latin.woff2') format('woff2');
+}
 
 :root{
   --paper:#FBF6EC; --card:#FFFFFF; --ink:#2B2320; --muted:#8C7F70;

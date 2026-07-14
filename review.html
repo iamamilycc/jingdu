@@ -34,9 +34,52 @@
 
 <script src="assets/core.js"></script>
 <script src="assets/sync.js"></script>
+<script src="assets/generate.js"></script>
 <script>
 const $ = s=>document.querySelector(s);
 let cur=null, timer=null, recBusy=false;
+
+/* 判斷錯題屬哪種語言（決定造新例句時的提示詞） */
+function langOf(it){
+  if(it.kmap) return 'jp';                       /* 日語錯題背句時帶漢字讀音對照 */
+  if(/^jp-/.test(it.lessonId||'')) return 'jp';
+  try{ const u=JDGen.allUserLessons()[it.lessonId]; if(u&&u.lang) return u.lang; }catch(e){}
+  return 'en';
+}
+/* 復盤答對後：給單詞一個「新語境」例句，強化遷移；快取不重複花錢，無 key 不顯示 */
+function transferPrompt(it){
+  if(it.type!=='word') return '';
+  if(!window.JDGen || !JDGen.getKey()) return '';
+  return '<button class="big-btn ghost" id="exBtn" style="margin-top:8px" onclick="showExample()">💡 換個句子，再見這個詞一面</button>'+
+         '<div id="exBox" style="margin-top:8px"></div>';
+}
+window.showExample = async function(){
+  if(!cur || cur.type!=='word') return;
+  const box=$('#exBox'), btn=$('#exBtn'); if(!box) return;
+  const lang=langOf(cur);
+  const word=(cur.en||'').replace(/\[[^\]]+\]/g,'');   /* 日語去振假名再送 */
+  const cacheKey='jingdu_ex_'+lang+':'+word;
+  let cached=null; try{ cached=JSON.parse(localStorage.getItem(cacheKey)||'null'); }catch(e){}
+  if(cached){ renderExample(box, cached, lang); return; }
+  if(btn) btn.disabled=true;
+  box.innerHTML='<div class="acc-badge">⏳ AI 正在想一個新句子…</div>';
+  try{
+    const ex=await JDGen.exampleFor(lang, word, cur.zh||'');
+    localStorage.setItem(cacheKey, JSON.stringify(ex));
+    localStorage.setItem('jingdu_updatedAt', String(Date.now()));
+    if(window.JDSYNC) window.JDSYNC.schedule();
+    renderExample(box, ex, lang);
+  }catch(e){
+    box.innerHTML='<div class="acc-badge bad">沒生成成功（'+JD.esc(e.message||String(e))+'）</div>';
+    if(btn) btn.disabled=false;
+  }
+};
+function renderExample(box, ex, lang){
+  box.innerHTML='<div class="card" style="text-align:left;margin:0">'+
+    '<b>💡 '+JD.esc(ex.eg)+'</b>'+
+    ' <button class="btn-voice" onclick="'+(lang==='jp'?'JD.speak('+JSON.stringify(ex.eg)+',false,\'ja-JP\')':'JD.speak('+JSON.stringify(ex.eg)+',false)')+'">🔊</button>'+
+    '<p style="color:var(--muted);margin-top:4px;font-size:.9rem">'+JD.esc(ex.zh)+'</p></div>';
+}
 
 function levelBar(lv){
   let h='<span class="lv">';
@@ -142,8 +185,10 @@ window.qRec = function(){
   });
 };
 window.qPass = function(){
-  JD.reviewPass(cur.id);
-  $('#qBtns').innerHTML='<div class="acc-badge good">⬆️ 晉級成功！下次復盤：'+JD.fmtDue(JD.getBook()[cur.id].due)+'</div>'+
+  const it=cur; /* render() 不改 cur，但保險起見先抓住 */
+  JD.reviewPass(it.id);
+  $('#qBtns').innerHTML='<div class="acc-badge good">⬆️ 晉級成功！下次復盤：'+JD.fmtDue(JD.getBook()[it.id].due)+'</div>'+
+    transferPrompt(it)+
     '<div><button class="big-btn teal" onclick="closeQuiz()">繼續 →</button></div>';
   render();
 };
