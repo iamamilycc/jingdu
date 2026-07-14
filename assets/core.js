@@ -179,18 +179,25 @@
   function listen(cb, onstate, lang){
     if(!SR){ cb(null,'unsupported'); return null; }
     const r = new SR();
-    r.lang=lang||'en-US'; r.interimResults=false; r.maxAlternatives=3; r.continuous=false;
-    let got=false;
+    /* interimResults=true：邊說邊出臨時結果，說完不必再等引擎確認「最終結果」（那步常拖幾秒），
+       一拿到 final 立即返回；若引擎先觸發 onend 還沒 final，就用累積的臨時結果立即返回——省掉尾部等待。 */
+    r.lang=lang||'en-US'; r.interimResults=true; r.maxAlternatives=3; r.continuous=false;
+    let got=false, interim='';
     /* 安全超時：12 秒沒有任何結果就強制結束，避免卡在「正在聽」 */
     const guard = setTimeout(()=>{ if(!got){ try{ r.stop(); r.abort(); }catch(e){} if(!got){ got=true; cb(null,'timeout'); } } }, 12000);
     r.onresult = e=>{
-      got=true; clearTimeout(guard);
-      let best='';
-      for(const alt of e.results[0]){ if(alt.transcript.length>best.length) best=alt.transcript; }
-      cb(best.trim(), null);
+      let fin='', intr='';
+      for(let i=0;i<e.results.length;i++){
+        const res=e.results[i];
+        if(res.isFinal){ let best=''; for(const alt of res){ if(alt.transcript.length>best.length) best=alt.transcript; } fin+=best; }
+        else intr+=res[0].transcript;
+      }
+      if(intr) interim=intr;
+      if(fin){ got=true; clearTimeout(guard); cb(fin.trim(), null); }  /* 有最終結果立即返回 */
     };
     r.onerror = e=>{ clearTimeout(guard); if(!got){ got=true; cb(null, e.error||'error'); } };
-    r.onend = ()=>{ clearTimeout(guard); if(onstate) onstate('end'); if(!got){ got=true; cb(null,'silence'); } };
+    r.onend = ()=>{ clearTimeout(guard); if(onstate) onstate('end');
+      if(!got){ got=true; const t=interim.trim(); if(t) cb(t, null); else cb(null,'silence'); } };  /* 說完沒等到final就用臨時結果，不再空等 */
     try{ r.start(); if(onstate) onstate('start'); }catch(err){ clearTimeout(guard); if(!got){ got=true; cb(null,'start-failed'); } }
     return r;
   }

@@ -168,9 +168,12 @@ ${schema}`;
         d.listening = []; /* 沒核對成功 = 全部未驗證，不留坏題，交給保底 */
       }
     }
-    if(d.listening.length < 3){
-      const fb = buildFallbackListening(d, lang);
-      if(fb.length) d.listening = fb;   /* 靠譜理解題不足 → 用聽句選意保底(答案必對) */
+    /* 保留通過核對的理解題；不足 4 題時用「聽句選意」保底**補足缺口**——
+       好理解題留著，只補不夠的，不再整段換成保底(避免明明有靠譜理解題卻全變翻譯題)。 */
+    if(d.listening.length < 4){
+      const used = {}; d.listening.forEach(it=>{ used[it.srcIdx]=1; });
+      const fb = buildFallbackListening(d, lang).filter(q=>!used[q.srcIdx]);
+      d.listening = d.listening.concat(fb.slice(0, 4 - d.listening.length));
     }
     return d;
   }

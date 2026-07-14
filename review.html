@@ -168,8 +168,7 @@ window.qRec = function(){
   }
   recBusy=true;
   btn.disabled=true; btn.classList.add('listening'); btn.textContent='👂 正在聽…';
-  $('#qResult').innerHTML='<div class="acc-badge">👂 開始背吧！說完停一下，會自動結束打分，不用再按</div>';
-  JD.listen((text,err)=>{
+  const rec = JD.listen((text,err)=>{
     recBusy=false;
     btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次';
     if(err && !text){
@@ -183,6 +182,11 @@ window.qRec = function(){
     $('#qHeard').textContent='你說的是：'+text;
     if(r.accuracy>=JD.PASS) qPass(); else qFail();
   });
+  /* 說完主動點「我說完了」立即打分，不必等軟件盲目檢測靜音 */
+  $('#qResult').innerHTML='<div class="acc-badge">👂 開始背吧！背完就點「我說完了」馬上打分</div>'+
+    '<div style="margin-top:8px"><button class="big-btn teal recdone">✅ 我說完了</button></div>';
+  const _db=$('#qResult').querySelector('.recdone');
+  if(_db) _db.onclick=()=>{ _db.disabled=true; _db.textContent='⏳ 打分中…'; try{ rec && rec.stop(); }catch(e){} };
 };
 window.qPass = function(){
   const it=cur; /* render() 不改 cur，但保險起見先抓住 */

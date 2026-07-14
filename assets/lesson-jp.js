@@ -360,7 +360,7 @@
       $(resultSel)._ok = onAcc; return;
     }
     if(btn){ btn.classList.add('listening'); btn.textContent='👂 正在聽…'; }
-    JD.listen((text, err)=>{
+    const rec = JD.listen((text, err)=>{
       if(btn){ btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次'; }
       if(err && !text){
         /* 日語語音識別在 iPad Safari 上常不可用（未開日語聽寫 / 不支援日語），
@@ -384,6 +384,11 @@
       $(heardSel).textContent = '你說的是：'+text;
       onAcc(r.accuracy);
     }, undefined, LANG);
+    /* 說完主動點「我說完了」立即打分，不必等軟件盲目檢測靜音 */
+    $(resultSel).innerHTML='<div class="acc-badge">👂 開始讀吧！讀完就點「我說完了」馬上打分</div>'+
+      '<div style="margin-top:8px"><button class="big-btn teal recdone">✅ 我說完了</button></div>';
+    const _db=$(resultSel).querySelector('.recdone');
+    if(_db) _db.onclick=()=>{ _db.disabled=true; _db.textContent='⏳ 打分中…'; try{ rec && rec.stop(); }catch(e){} };
   }
 
   /* ========== 5.6 造句挑戰（用本課生詞說自己的話；AI 老師判，無 key/出錯走自評兜底） ========== */
@@ -498,8 +503,15 @@
   const SEC_LABEL={listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',build:'🧩 連詞成句',speak:'🗣️ 口語跟讀',quiz:'🎯 聽力題',recite:'🧠 背句挑戰',make:'🖊️ 造句挑戰'};
   function renderDone(){
     const p=JD.getProgress(L.id);
-    $('#doneList').innerHTML=Object.keys(SEC_LABEL).map(k=>'<li><span class="ck '+(p[k]?'done':'')+'">'+(p[k]?'✓':'')+'</span>'+SEC_LABEL[k]+'</li>').join('');
-    const all=Object.keys(SEC_LABEL).every(k=>p[k]);
+    const keys=Object.keys(SEC_LABEL);
+    const doneCnt=keys.filter(k=>p[k]).length;
+    const pct=Math.round(doneCnt/keys.length*100);
+    $('#doneList').innerHTML=
+      '<li class="done-summary"><span>本課完成 <b>'+doneCnt+'</b> / '+keys.length+'</span>'+
+      '<div class="done-bar big"><i style="width:'+pct+'%"></i></div></li>'+
+      keys.map(k=>'<li><span class="ck '+(p[k]?'done':'')+'">'+(p[k]?'✓':'')+'</span>'+SEC_LABEL[k]+
+        '<div class="done-bar'+(p[k]?' on':'')+'"><i></i></div></li>').join('');
+    const all=keys.every(k=>p[k]);
     if(all && !p.done) JD.markDone(L.id,'done');
     $('#celebrate').classList.toggle('show', all);
     if(all) storyUI();

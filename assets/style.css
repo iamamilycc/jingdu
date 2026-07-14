@@ -213,6 +213,12 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .check-list li:last-child{border-bottom:none}
 .ck{width:30px;height:30px;border-radius:50%;border:2.5px solid var(--line);flex:none;display:flex;align-items:center;justify-content:center;color:#fff;font-size:.95rem}
 .ck.done{background:var(--green);border-color:var(--green);animation:pop .35s ease}
+.done-bar{flex:1;height:9px;min-width:40px;border-radius:5px;background:var(--line);overflow:hidden}
+.done-bar>i{display:block;height:100%;width:0;background:var(--green);border-radius:5px;transition:width .6s ease}
+.done-bar.on>i{width:100%}
+.done-bar.big{height:13px}
+.check-list li.done-summary{font-family:var(--font-head);color:var(--teal-deep);border-bottom:2px solid var(--line)}
+.check-list li.done-summary b{font-size:1.15rem}
 .celebrate{text-align:center;padding:26px;display:none}
 .celebrate.show{display:block;animation:pop .5s ease}
 .celebrate .emoji{font-size:3.2rem}
