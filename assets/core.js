@@ -3,6 +3,19 @@
   'use strict';
   const NS = 'jingdu_';
 
+  /* 註冊 Service Worker（網絡優先）：裝一次後，普通刷新就能拿最新代碼，不必硬刷新；離線也能用。
+     用 core.js 自身路徑推導站點根，兼容本地測試與 GitHub Pages 的 /jingdu/ 子路徑；失敗靜默不影響功能。 */
+  if('serviceWorker' in navigator){
+    try{
+      var _sc = document.currentScript ||
+        Array.prototype.slice.call(document.getElementsByTagName('script')).filter(function(s){return /assets\/core\.js/.test(s.src);})[0];
+      if(_sc && _sc.src){
+        var _root = _sc.src.replace(/assets\/core\.js.*$/, '');
+        navigator.serviceWorker.register(_root+'sw.js', {scope:_root, updateViaCache:'none'}).catch(function(){});
+      }
+    }catch(e){}
+  }
+
   /* ---------- 存儲 ---------- */
   function load(key, def){ try{ const v = localStorage.getItem(NS+key); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
   function save(key, val){
