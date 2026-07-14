@@ -107,34 +107,69 @@ ${schema}`;
     return d;
   }
 
-  /* 聽力題答案二次核對：一次生成整課時模型常標錯 ans（實測 10 題錯 4 題）。
-     單獨給一個「只看依據句選答案」的簡單任務可靠得多；仍核不出的題直接丟棄。 */
-  async function verifyListening(lang, d, onProgress){
-    if(!d.listening.length) return d;
-    if(onProgress) onProgress('正在逐題核對聽力題答案…');
+  function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+
+  /* 程序化保底聽力題「聽句選意」：播一句 → 選它的中文意思。
+     正確答案＝該句翻譯，干擾項從其他句翻譯隨機取——答案 100% 正確，不依賴模型判斷。
+     用途：AI 理解題經核對後靠譜的不足時，用它兜底，保證有題且答案對。 */
+  function buildFallbackListening(d, lang){
     const field = lang==='jp' ? 'jp' : 'en';
-    const qtext = d.listening.map((it,i)=>
-      '第'+i+'題\n依據句子：'+((d.sentences[it.srcIdx]||{})[field]||'')+
-      '\n問題：'+it.q+'\n選項：'+it.opts.map((o,j)=>j+'. '+o).join('　')).join('\n\n');
-    try{
-      const content = await callApi(getTextModel(), [
-        { role:'user', content:
-          '下面是若干道聽力理解題，每題附「依據句子」。請只根據依據句子判斷每題的正確選項下標（從0開始）。'+
-          '如果四個選項都不對、或題目與句子無關，該題給 -1。\n'+
-          '只輸出 JSON 陣列（長度必須等於題數），如 [1,0,2,-1]，不要任何解釋。\n\n'+qtext }
-      ]);
-      let t = stripFences(content);
-      const a=t.indexOf('['), b=t.lastIndexOf(']');
-      if(a>=0 && b>a) t=t.slice(a,b+1);
-      const arr = JSON.parse(t);
-      if(Array.isArray(arr) && arr.length===d.listening.length){
+    const idx = d.sentences.map((s,i)=>i).filter(i=>d.sentences[i].zh && d.sentences[i][field]);
+    if(idx.length < 4) return [];   /* 少於4句湊不齊四選一 */
+    const allZh = Array.from(new Set(idx.map(i=>d.sentences[i].zh)));
+    if(allZh.length < 4) return [];
+    const out = [];
+    shuffle(idx.slice()).slice(0, 6).forEach(i=>{
+      const zh = d.sentences[i].zh;
+      const distract = shuffle(allZh.filter(z=>z!==zh)).slice(0,3);
+      if(distract.length < 3) return;
+      const opts = shuffle([zh, ...distract]);
+      out.push({ play:[i], srcIdx:i, q:'🔊 這句話的意思是？', ans:opts.indexOf(zh), opts:opts });
+    });
+    return out;
+  }
+
+  /* 聽力題答案把關：一次生成整課時弱模型常標錯 ans，甚至題目與依據句錯位、選項全不沾邊。
+     策略：①二次核對只保留能確認正確的理解題（-1/非法/核對失敗一律丟棄，不保留未驗證的坏題）
+           ②若靠譜理解題 < 3，整段改用程序化「聽句選意」保底，保證答案 100% 正確。 */
+  async function verifyListening(lang, d, onProgress){
+    const field = lang==='jp' ? 'jp' : 'en';
+    if(d.listening.length){
+      if(onProgress) onProgress('正在逐題核對聽力題答案…');
+      const qtext = d.listening.map((it,i)=>
+        '第'+i+'題\n依據句子：'+((d.sentences[it.srcIdx]||{})[field]||'')+
+        '\n問題：'+it.q+'\n選項：'+it.opts.map((o,j)=>j+'. '+o).join('　')).join('\n\n');
+      let verified = null;
+      try{
+        const content = await callApi(getTextModel(), [
+          { role:'user', content:
+            '下面是若干道聽力理解題，每題附「依據句子」。請嚴格逐題判斷：\n'+
+            '· 只根據「依據句子」本身能不能答出這題？\n'+
+            '· 四個選項裡有沒有**唯一一個**明確正確的？\n'+
+            '答得出且有唯一正確選項 → 給該選項下標（從0開始）；'+
+            '只要題目與依據句無關、選項沒有明確正確的、或正確答案不唯一 → 一律給 -1。\n'+
+            '只輸出 JSON 陣列（長度必須等於題數），如 [1,-1,2,-1]，不要任何解釋。\n\n'+qtext }
+        ]);
+        let t = stripFences(content);
+        const a=t.indexOf('['), b=t.lastIndexOf(']');
+        if(a>=0 && b>a) t=t.slice(a,b+1);
+        const arr = JSON.parse(t);
+        if(Array.isArray(arr) && arr.length===d.listening.length) verified = arr;
+      }catch(e){ /* 核對失敗 → verified 保持 null，下面整段丟棄後走保底 */ }
+      if(verified){
         d.listening = d.listening.filter((it,i)=>{
-          const v = arr[i];
+          const v = verified[i];
           if(Number.isInteger(v) && v>=0 && v<it.opts.length){ it.ans=v; return true; }
-          return false; /* -1 或非法 → 這題不可靠，丟棄 */
+          return false;
         });
+      }else{
+        d.listening = []; /* 沒核對成功 = 全部未驗證，不留坏題，交給保底 */
       }
-    }catch(e){ /* 核對失敗不阻斷生成，保留原題 */ }
+    }
+    if(d.listening.length < 3){
+      const fb = buildFallbackListening(d, lang);
+      if(fb.length) d.listening = fb;   /* 靠譜理解題不足 → 用聽句選意保底(答案必對) */
+    }
     return d;
   }
 
@@ -290,6 +325,6 @@ ${schema}`;
 
   window.JDGen = { getKey, setKey, getTextModel, getVisionModel, setModels,
                    fromText, fromImage, parseLesson, systemPrompt,
-                   sanitizeListening, verifyListening, judgeSentence, knownWords, storyFromWords, exampleFor,
+                   sanitizeListening, verifyListening, buildFallbackListening, judgeSentence, knownWords, storyFromWords, exampleFor,
                    allUserLessons, saveLesson, deleteLesson };
 })();
