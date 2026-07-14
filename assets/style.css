@@ -236,6 +236,9 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .lesson-item .t .en{font-weight:700;font-size:1.02rem}
 .lesson-item .t .zh{color:var(--muted);font-size:.85rem;margin-top:2px}
 .lesson-item .pct{font-family:var(--font-head);font-weight:600;color:var(--teal-deep);font-size:.95rem}
+.mic-tip{border-left:5px solid var(--mango)}
+.mic-tip summary{list-style:none}
+.mic-tip summary::-webkit-details-marker{display:none}
 .streak-chip{display:block;text-align:center;font-family:var(--font-head);font-weight:600;color:var(--teal-deep);
   background:var(--green-soft);border-radius:14px;padding:9px 14px;margin-bottom:12px;text-decoration:none;font-size:.92rem}
 .streak-chip b{font-size:1.15rem}

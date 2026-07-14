@@ -259,6 +259,7 @@
     spk.i=Math.min(Math.max(spk.i+d,0), L.sentences.length-1); spkRender();
     if(spk.results.filter(x=>x!=null).length>=L.sentences.length) done('speak');
   };
+  JD.injectMicTip('#p-speak');
   spkRender();
 
   /* ========== 4.5 聽力題 ========== */

@@ -134,6 +134,31 @@
     speechSynthesis.speak(u);
   }
 
+  /* ---------- 首次用麥克風的教程提示（跟讀/背句等，看過一次就不再顯示） ---------- */
+  function micTipSeen(){ try{ return localStorage.getItem(NS+'mic_tip_seen')==='1'; }catch(e){ return false; } }
+  function markMicTip(){ try{ localStorage.setItem(NS+'mic_tip_seen','1'); }catch(e){} }
+  /* 在 panelSel 頂部插入麥克風權限教程卡；看過就不插 */
+  function injectMicTip(panelSel){
+    if(micTipSeen()) return;
+    const panel = document.querySelector(panelSel);
+    if(!panel || panel.querySelector('.mic-tip')) return;
+    const div = document.createElement('div');
+    div.className = 'card mic-tip';
+    div.innerHTML =
+      '<b style="font-family:var(--font-head)">🎙️ 這一關要用麥克風</b>'+
+      '<p style="margin-top:6px;line-height:1.6">第一次按「跟讀 / 開始說」時，瀏覽器會問要不要用麥克風——請點 <b>「允許」</b>。'+
+      '每次重新打開網頁會再問一次，這是瀏覽器的規定，不是壞掉了。</p>'+
+      '<details style="margin-top:8px"><summary style="cursor:pointer;color:var(--teal-deep);font-family:var(--font-head)">👉 想以後不再每次問？點這裡看設置方法</summary>'+
+      '<div style="margin-top:8px;line-height:1.8;font-size:.9rem">'+
+      '<b>📱 iPhone / iPad</b>：設定 → 通用 → 鍵盤 → 打開「<b>啟用聽寫</b>」（沒開語音識別會用不了）；再 設定 → Safari → 麥克風 → 改「允許」；建議把網站「<b>加入主畫面</b>」，權限記得更牢。<br>'+
+      '<b>💻 Mac Safari</b>：Safari 選單 → 設定 → 網站 → 麥克風 → 把本站設為「允許」。<br>'+
+      '<b>💻 Mac Chrome</b>：點網址列左邊的 🔒 → 麥克風 → 「允許」（設一次基本不再問）。'+
+      '</div></details>'+
+      '<div style="margin-top:10px;text-align:right"><button class="big-btn teal mic-tip-ok" style="padding:8px 18px">知道了，不再提示</button></div>';
+    panel.insertBefore(div, panel.firstChild);
+    div.querySelector('.mic-tip-ok').onclick = ()=>{ markMicTip(); div.remove(); };
+  }
+
   /* ---------- 語音識別（iPad Safari: webkitSpeechRecognition，需開啟 Siri 與聽寫） ---------- */
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition || null;
   function recSupported(){ return !!SR; }
@@ -233,6 +258,6 @@
 
   window.JD = { getProgress, markDone, getBook, addError, reviewPass, reviewFail,
                 dueItems, allItems, streak, daysMap, touchDay, speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
-                listen, recSupported, compare, compareJP, kk2hh, esc, fmtDue,
+                listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
                 LEVEL_NAMES, PASS:85 };
 })();

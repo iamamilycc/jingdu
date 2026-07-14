@@ -265,6 +265,7 @@
     spkRender();
     if(spk.results.filter(x=>x!=null).length >= L.sentences.length) done('speak');
   };
+  JD.injectMicTip('#p-speak');
   spkRender();
 
   /* ========== 4.5 聽力題（純聽音答題，答錯的句子進錯題本） ========== */
