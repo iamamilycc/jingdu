@@ -99,9 +99,16 @@
   /* ---------- TTS（lang 預設 en-US，日語頁傳 'ja-JP'） ----------
      選聲優先序：①用戶在「聲音設定」頁選的偏好 ②高質量聲音（增強/Siri/neural 等關鍵詞）
      ③已知較自然的具名聲音 ④該語言任一。壓縮版系統聲最機械，盡量避開。 */
+  /* 排除清單:①macOS 玩笑/音效聲(Jester/Organ/Trinoids/Whisper/Wobble/Zarvox/Good News/Bells…本就不是讀正常句子用的)
+     ②Eloquence 機械聲(Sandy/Reed/Rocko/Flo… 英日都會冒出來,音質差)。名字比對,英日通吃。 */
+  const BAD_VOICE = /^(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Deranged|Eddy|Flo|Good News|Grandma|Grandpa|Hysterical|Jester|Junior|Kathy|Organ|Pipe Organ|Princess|Ralph|Reed|Rocko|Sandy|Shelley|Superstar|Trinoids|Whisper|Wobble|Zarvox)\b/i;
   function voicesFor(prefix){
     if(!('speechSynthesis' in window)) return [];
-    return speechSynthesis.getVoices().filter(v=>new RegExp('^'+prefix+'(-|_)','i').test(v.lang));
+    return speechSynthesis.getVoices().filter(v=>
+      new RegExp('^'+prefix+'(-|_)','i').test(v.lang)
+      && !BAD_VOICE.test(v.name)
+      && !/google/i.test(v.name)   /* Google 是網絡聲,首次播放要連網很慢,排除 */
+    );
   }
   /* 高質量關鍵詞（各家 neural/增強版聲音常見命名）；壓縮版通常無這些詞 */
   const HIQ = /(enhanced|premium|neural|siri|natural|eloquence|\(enhanced\)|超清|增强|自然)/i;
