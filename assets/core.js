@@ -35,6 +35,22 @@
     return p;
   }
 
+  /* 每個環節的細粒度進度/續做位置：secpos_<lessonId> = { sec:{done, n} }
+     done=已完成的項數(只增不減，回看不倒退)，n=總項數；續做位置=第一個沒做的項=min(done,n-1)。 */
+  function getSecPos(lessonId){ return load('secpos_'+lessonId, {}); }
+  function setSecPos(lessonId, sec, done, n){
+    const m = getSecPos(lessonId); const cur = m[sec]||{};
+    const nd = Math.max(done|0, cur.done||0);         /* 只增不減 */
+    if(cur.done===nd && cur.n===(n|0)) return;         /* 沒變化就不寫，省同步 */
+    m[sec] = { done: nd, n: n|0 };
+    save('secpos_'+lessonId, m);
+  }
+  /* 續做索引：第一個還沒做的項（夾在 0..n-1） */
+  function resumeIdx(lessonId, sec, n){
+    const sp = getSecPos(lessonId)[sec]; const d = sp? (sp.done||0) : 0;
+    return Math.max(0, Math.min(d, Math.max(0,(n|0)-1)));
+  }
+
   /* ---------- 學習日曆 + 連續天數（streak）----------
      days: {'2026-07-14': 動作次數,...}；任何學習動作(完成環節/復盤/錯題)都記一筆 */
   function dstr(d){ const x=d||new Date(); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
@@ -297,7 +313,7 @@
     return Math.ceil(diff/(24*3600e3))+' 天後';
   }
 
-  window.JD = { getProgress, markDone, getBook, addError, reviewPass, reviewFail,
+  window.JD = { getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, reviewPass, reviewFail,
                 dueItems, allItems, streak, daysMap, touchDay, speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
                 listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
                 LEVEL_NAMES, PASS:85 };
