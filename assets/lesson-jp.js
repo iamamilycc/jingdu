@@ -35,13 +35,22 @@
     $$('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===name));
     $$('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='p-'+name));
     window.scrollTo({top:0});
+    const act=document.querySelector('.tab-btn.active');
+    if(act && act.scrollIntoView) act.scrollIntoView({inline:'center', block:'nearest', behavior:'smooth'});
     if(name==='done') renderDone();
+    else resumeScroll(name);
   };
+  function resumeScroll(name){
+    if(name==='read'){ const el=$$('#readList .sent')[resume('read', L.sentences.length)]; if(el) setTimeout(()=>el.scrollIntoView({block:'center'}),60); }
+    if(name==='vocab'){ const el=$$('#vocabGrid .vcard')[resume('vocab', (L.vocab||[]).length)]; if(el) setTimeout(()=>el.scrollIntoView({block:'center'}),60); }
+  }
   function refreshDots(){
     const p = JD.getProgress(L.id);
     $$('.tab-btn .dot').forEach(d=>d.classList.toggle('done', !!p[d.dataset.s]));
   }
   function done(sec){ JD.markDone(L.id, sec); refreshDots(); }
+  function pos(sec, doneCnt, n){ JD.setSecPos(L.id, sec, doneCnt, n); }
+  function resume(sec, n){ return JD.resumeIdx(L.id, sec, n); }
 
   /* ========== 0 聽全文 ========== */
   const lt = { playing:false, slow:false, blind:false, loop:false };
@@ -119,6 +128,7 @@
   const opened=new Set();
   function checkReadDone(){
     $$('#readList .sent').forEach((d,i)=>{ if(d.classList.contains('open')) opened.add(i); });
+    pos('read', opened.size, L.sentences.length);
     if(opened.size>=L.sentences.length) done('read');
   }
 
@@ -144,6 +154,7 @@
       const got = JD.kk2hh(typed).replace(/\s/g,'');
       const ok = got===want;
       judged.add(i);
+      pos('vocab', judged.size, L.vocab.length);
       c.classList.remove('known','unknown'); c.classList.add(ok?'known':'unknown');
       if(ok){ fb.innerHTML='<span class="vok">✓ 讀對了！</span>'; JD.speak(R.toKana(v.w),false,LANG); setTimeout(()=>c.classList.remove('flip'),900); }
       else{
@@ -190,6 +201,7 @@
   function bdChip(c,where){ return '<button class="bd-chip jp-text" onclick="'+(where==='pool'?'bdPlace':'bdUnplace')+'('+c.cid+')">'+R.toRubyHTML(JD.esc(c.w))+'</button>'; }
   function bdRender(fb){
     bdPills();
+    pos('build', bd.results.filter(x=>x!=null).length, bdItems.length);
     const box=$('#buildBox'); if(!box) return;
     if(bd.i>=bdItems.length){
       const right=bd.results.filter(Boolean).length;
@@ -232,7 +244,7 @@
   window.bdNav=function(d){ bd.i=Math.min(Math.max(bd.i+(d||1),0), bdItems.length); if(bd.i>=bdItems.length) bdRender(); else bdLoad(); };
   window.bdRestart=function(){ bd.i=0; bd.results=[]; bdLoad(); };
   function bdMaybeDone(){ if(bd.results.filter(x=>x!=null).length>=bdItems.length) done('build'); }
-  if(bdItems.length) bdLoad();
+  if(bdItems.length){ bd.i = resume('build', bdItems.length); bdLoad(); }
   else { const bb=$('#buildBox'); if(bb) bb.innerHTML='<p class="empty">本課沒有連詞成句練習～</p>'; done('build'); }
 
   /* ========== 4 口語跟讀 ========== */
@@ -249,6 +261,7 @@
     const i=spk.i, s=L.sentences[i];
     startRec($('#spkRecBtn'), s, '#spkResult', '#spkHeard', acc=>{
       spk.results[i]=acc; spkRenderPills();
+      pos('speak', spk.results.filter(x=>x!=null).length, L.sentences.length);
       if(acc<JD.PASS) JD.addError({id:L.id+'#'+i, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
     });
   };
@@ -260,6 +273,7 @@
     if(spk.results.filter(x=>x!=null).length>=L.sentences.length) done('speak');
   };
   JD.injectMicTip('#p-speak');
+  spk.i = resume('speak', L.sentences.length);
   spkRender();
 
   /* ========== 4.5 聽力題 ========== */
@@ -302,9 +316,9 @@
     }
     $('#qzFb').innerHTML += '<div style="margin-top:8px"><button class="big-btn teal" onclick="qzNext()">下一題 →</button></div>';
   }
-  window.qzNext=function(){ qz.i++; qzRender(); };
+  window.qzNext=function(){ qz.i++; pos('quiz', qz.i, L.listening.length); qzRender(); };
   window.qzRestart=function(){ qz.i=0; qz.score=0; qzRender(); };
-  if(L.listening) qzRender();
+  if(L.listening){ qz.i = resume('quiz', L.listening.length); qzRender(); }
 
   /* ========== 5 背句挑戰 ========== */
   const rc={ i:0, timer:null, results:[] };
@@ -351,6 +365,7 @@
   window.rcRec=function(){ startRec($('#rcRecBtn'), L.sentences[rc.i], '#rcResult', '#rcHeard', acc=>rcFinish(acc,true)); };
   function rcFinish(acc, showedResult){
     const s=L.sentences[rc.i]; rc.results[rc.i]=acc;
+    pos('recite', rc.results.filter(x=>x!=null).length, L.sentences.length);
     if(acc<JD.PASS) JD.addError({id:L.id+'#'+rc.i, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
     if(!showedResult) $('#rcResult').innerHTML='<div class="acc-badge bad">進錯題本，等會再戰 💪</div>';
     $('#rcTarget').innerHTML='<span class="jp-target jp-text">'+R.toRubyHTML(JD.esc(s.jp))+'</span>';
@@ -361,6 +376,7 @@
     if(rc.results.filter(x=>x!=null).length>=L.sentences.length) done('recite');
   }
   window.rcRender2=()=>rcRender('idle');
+  rc.i = resume('recite', L.sentences.length);
   rcRender('idle');
 
   /* ========== 共用：錄音 + 比對展示（用 JD.compareJP，語音 ja-JP） ========== */
@@ -468,7 +484,8 @@
       mkAfter(r.ok, r.fix, r.tip);
     }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
   };
-  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=true; mk.i++; mkRender(); };
+  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=true; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length); mkRender(); };
+  mk.i = resume('make', mkWords.length);
   mkRender();
 
   /* ========== 5.7 課後彩蛋：AI 用學過的詞寫小故事（泛讀甜點；快取進 localStorage 不重複花錢） ========== */
@@ -515,14 +532,24 @@
   const SEC_LABEL={listen:'🎧 聽全文',read:'📖 逐句精讀',vocab:'🃏 生詞卡',grammar:'📝 語法點',build:'🧩 連詞成句',speak:'🗣️ 口語跟讀',quiz:'🎯 聽力題',recite:'🧠 背句挑戰',make:'🖊️ 造句挑戰'};
   function renderDone(){
     const p=JD.getProgress(L.id);
+    const sp=JD.getSecPos(L.id);
     const keys=Object.keys(SEC_LABEL);
     const doneCnt=keys.filter(k=>p[k]).length;
     const pct=Math.round(doneCnt/keys.length*100);
+    function frac(k){ if(p[k]) return 1; const s=sp[k]; return (s&&s.n)? Math.max(0,Math.min(1,(s.done||0)/s.n)) : 0; }
     $('#doneList').innerHTML=
       '<li class="done-summary"><span>本課完成 <b>'+doneCnt+'</b> / '+keys.length+'</span>'+
       '<div class="done-bar big"><i style="width:'+pct+'%"></i></div></li>'+
-      keys.map(k=>'<li><span class="ck '+(p[k]?'done':'')+'">'+(p[k]?'✓':'')+'</span>'+SEC_LABEL[k]+
-        '<div class="done-bar'+(p[k]?' on':'')+'"><i></i></div></li>').join('');
+      keys.map(k=>{
+        const s=sp[k]||{}; const w=Math.round(frac(k)*100);
+        const tag = p[k] ? '完成' : ((s.done||0)>0 ? s.done+'/'+s.n : '未開始');
+        return '<li class="done-item"><button class="done-row" onclick="switchTab(\''+k+'\')">'+
+          '<span class="ck '+(p[k]?'done':'')+'">'+(p[k]?'✓':'')+'</span>'+
+          '<span class="done-label">'+SEC_LABEL[k]+'</span>'+
+          '<span class="done-frac">'+tag+'</span>'+
+          '<div class="done-bar'+(p[k]?' on':'')+'"><i style="width:'+w+'%"></i></div>'+
+          '<span class="done-go">›</span></button></li>';
+      }).join('');
     const all=keys.every(k=>p[k]);
     if(all && !p.done) JD.markDone(L.id,'done');
     $('#celebrate').classList.toggle('show', all);
