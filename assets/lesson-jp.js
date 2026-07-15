@@ -308,14 +308,21 @@
 
   /* ========== 5 背句挑戰 ========== */
   const rc={ i:0, timer:null, results:[] };
+  /* 看題秒數（5/10/15，記在本機，英日共用）*/
+  function rcSec(){ const v=parseInt(localStorage.getItem('jingdu_recite_sec'),10); return (v===5||v===10||v===15)?v:10; }
+  window.rcSetSec = function(v){ localStorage.setItem('jingdu_recite_sec', String(v)); rcRender('idle'); };
   function rcRender(stage){
     const s=L.sentences[rc.i];
     $('#rcPills').innerHTML=L.sentences.map((_,k)=>'<span class="pill '+(k===rc.i?'now':'')+' '+(rc.results[k]==null?'':(rc.results[k]>=JD.PASS?'ok':'bad'))+'"></span>').join('');
     const tgt=$('#rcTarget'), ring=$('#rcRing'), btns=$('#rcBtns');
     if(stage==='idle'){
       ring.style.display='none';
-      tgt.innerHTML='<div class="mask-box">第 '+(rc.i+1)+' 句 · 準備好了就開始<br>先看 10 秒，然後句子會蓋住，開口把它背出來！</div>';
-      btns.innerHTML='<button class="big-btn mango" onclick="rcStart()">👀 開始看題（10 秒）</button>'+
+      const sec=rcSec();
+      tgt.innerHTML='<div class="mask-box">第 '+(rc.i+1)+' 句 · 準備好了就開始<br>先看幾秒，句子會蓋住，開口把它背出來！</div>';
+      const seg='<div class="rc-secsel">看幾秒：'+[5,10,15].map(n=>'<button class="rc-secbtn'+(n===sec?' on':'')+'" onclick="rcSetSec('+n+')">'+n+'秒</button>').join('')+'</div>';
+      btns.innerHTML=seg+
+        '<button class="big-btn mango" onclick="rcStart()">👀 開始看題（'+sec+' 秒）</button>'+
+        '<button class="big-btn ghost" onclick="rcMask()">🎤 不看，直接背</button>'+
         '<div><button class="big-btn ghost" onclick="rcNav(-1)">上一句</button><button class="big-btn ghost" onclick="rcNav(1)">下一句</button></div>';
       $('#rcResult').innerHTML=''; $('#rcHeard').textContent='';
     }
@@ -326,12 +333,15 @@
     const tgt=$('#rcTarget'), ring=$('#rcRing'), btns=$('#rcBtns');
     tgt.innerHTML='<span class="jp-target jp-text">'+R.toRubyHTML(JD.esc(s.jp))+'</span>';
     JD.speak(R.toKana(s.jp),false,LANG);
-    ring.style.display='flex'; btns.innerHTML='';
-    let left=10; const C=2*Math.PI*30;
-    ring.innerHTML='<svg width="66" height="66"><circle class="bg" cx="33" cy="33" r="30"/><circle class="fg" cx="33" cy="33" r="30" stroke-dasharray="'+C+'" stroke-dashoffset="0"/></svg><span id="rcSec">10</span>';
+    ring.style.display='flex';
+    btns.innerHTML='<button class="big-btn ghost" onclick="rcSkipPeek()">看夠了，開始背 →</button>';
+    const total=rcSec(); let left=total; const C=2*Math.PI*30;
+    ring.innerHTML='<svg width="66" height="66"><circle class="bg" cx="33" cy="33" r="30"/><circle class="fg" cx="33" cy="33" r="30" stroke-dasharray="'+C+'" stroke-dashoffset="0"/></svg><span id="rcSec">'+total+'</span>';
     const fg=ring.querySelector('.fg');
-    rc.timer=setInterval(()=>{ left--; $('#rcSec').textContent=left; fg.style.strokeDashoffset=C*(10-left)/10; if(left<=0){ clearInterval(rc.timer); rcMask(); } },1000);
+    rc.timer=setInterval(()=>{ left--; $('#rcSec').textContent=left; fg.style.strokeDashoffset=C*(total-left)/total; if(left<=0){ clearInterval(rc.timer); rcMask(); } },1000);
   };
+  window.rcSkipPeek = function(){ clearInterval(rc.timer); rcMask(); };
+  window.rcMask = rcMask;
   function rcMask(){
     $('#rcRing').style.display='none';
     $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>按下麥克風，大聲把它背出來</div>';
@@ -344,7 +354,9 @@
     if(acc<JD.PASS) JD.addError({id:L.id+'#'+rc.i, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
     if(!showedResult) $('#rcResult').innerHTML='<div class="acc-badge bad">進錯題本，等會再戰 💪</div>';
     $('#rcTarget').innerHTML='<span class="jp-target jp-text">'+R.toRubyHTML(JD.esc(s.jp))+'</span>';
-    $('#rcBtns').innerHTML='<button class="big-btn teal" onclick="rcNav(1)">下一句 →</button><button class="big-btn ghost" onclick="rcRender2()">再背一次</button>';
+    $('#rcBtns').innerHTML='<button class="big-btn teal" onclick="rcNav(1)">下一句 →</button>'+
+      '<div style="margin-top:8px"><button class="big-btn mango" onclick="rcStart()">🔁 再看一遍</button>'+
+      '<button class="big-btn ghost" onclick="rcMask()">🎤 直接背，不看</button></div>';
     $('#rcPills').innerHTML=L.sentences.map((_,k)=>'<span class="pill '+(k===rc.i?'now':'')+' '+(rc.results[k]==null?'':(rc.results[k]>=JD.PASS?'ok':'bad'))+'"></span>').join('');
     if(rc.results.filter(x=>x!=null).length>=L.sentences.length) done('recite');
   }

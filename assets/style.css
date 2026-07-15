@@ -147,6 +147,10 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
   border-radius:12px;color:var(--muted);font-family:var(--font-head);font-size:1rem!important;font-weight:500;
   padding:22px;width:100%;
 }
+/* 背句「看幾秒」選擇器 */
+.rc-secsel{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin:0 0 12px;font-size:.9rem;color:var(--muted);font-family:var(--font-head)}
+.rc-secbtn{border:2px solid var(--line);background:var(--card);border-radius:10px;padding:6px 14px;font-family:var(--font-head);cursor:pointer;color:var(--ink)}
+.rc-secbtn.on{border-color:var(--mango);background:var(--mango-soft);color:var(--teal-deep);font-weight:600}
 .big-btn{
   font-family:var(--font-head);border:none;border-radius:999px;padding:15px 34px;font-size:1.05rem;font-weight:600;
   cursor:pointer;transition:.15s;margin:6px 5px;
