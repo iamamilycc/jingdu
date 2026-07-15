@@ -189,9 +189,23 @@
     /* interimResults=true：邊說邊出臨時結果，說完不必再等引擎確認「最終結果」（那步常拖幾秒），
        一拿到 final 立即返回；若引擎先觸發 onend 還沒 final，就用累積的臨時結果立即返回——省掉尾部等待。 */
     r.lang=lang||'en-US'; r.interimResults=true; r.maxAlternatives=3; r.continuous=false;
-    let got=false, interim='';
-    /* 安全超時：12 秒沒有任何結果就強制結束，避免卡在「正在聽」 */
-    const guard = setTimeout(()=>{ if(!got){ try{ r.stop(); r.abort(); }catch(e){} if(!got){ got=true; cb(null,'timeout'); } } }, 12000);
+    let got=false, interim='', silenceT=null, hardT=null;
+    function clearT(){ clearTimeout(silenceT); clearTimeout(hardT); }
+    /* 統一收尾：只要聽到過任何內容（哪怕只是臨時結果）就用它打分，
+       絕不因為引擎沒吐「最終結果」就把用戶說的話丟掉。 */
+    function done(){
+      if(got) return; got=true; clearT();
+      try{ r.stop(); }catch(e){}
+      const t=interim.trim();
+      if(t) cb(t, null); else cb(null, 'silence');
+    }
+    /* 自己做靜音偵測：說完約 3 秒沒有新內容就當結束。
+       引擎的 onend 在背景有雜音時常常不觸發（會一直以為你還在說），
+       只靠它就會撐到硬上限才動 → 用戶感覺「等了好久」，而且內容還被丟掉。 */
+    function armSilence(){ clearTimeout(silenceT); silenceT=setTimeout(()=>{ if(interim.trim()) done(); }, 3000); }
+    /* 硬上限 18 秒兜底：噪音環境下引擎可能永遠不結束。到點也是「有內容就用，沒有才報 timeout」 */
+    hardT = setTimeout(()=>{ if(got) return; got=true; clearT(); try{ r.stop(); r.abort(); }catch(e){}
+      const t=interim.trim(); cb(t? t : null, t? null : 'timeout'); }, 18000);
     r.onresult = e=>{
       let fin='', intr='';
       for(let i=0;i<e.results.length;i++){
@@ -199,13 +213,13 @@
         if(res.isFinal){ let best=''; for(const alt of res){ if(alt.transcript.length>best.length) best=alt.transcript; } fin+=best; }
         else intr+=res[0].transcript;
       }
-      if(intr) interim=intr;
-      if(fin){ got=true; clearTimeout(guard); cb(fin.trim(), null); }  /* 有最終結果立即返回 */
+      if(fin){ interim=fin; got=true; clearT(); cb(fin.trim(), null); return; }  /* 有最終結果立即返回 */
+      if(intr){ interim=intr; armSilence(); }  /* 有新語音就重置靜音計時，別在用戶還在說時掐斷 */
     };
-    r.onerror = e=>{ clearTimeout(guard); if(!got){ got=true; cb(null, e.error||'error'); } };
-    r.onend = ()=>{ clearTimeout(guard); if(onstate) onstate('end');
-      if(!got){ got=true; const t=interim.trim(); if(t) cb(t, null); else cb(null,'silence'); } };  /* 說完沒等到final就用臨時結果，不再空等 */
-    try{ r.start(); if(onstate) onstate('start'); }catch(err){ clearTimeout(guard); if(!got){ got=true; cb(null,'start-failed'); } }
+    r.onerror = e=>{ if(got) return; got=true; clearT(); cb(null, e.error||'error'); };
+    r.onend = ()=>{ if(onstate) onstate('end'); if(got) return;
+      got=true; clearT(); const t=interim.trim(); cb(t? t : null, t? null : 'silence'); };  /* 引擎自己結束時也優先用臨時結果 */
+    try{ r.start(); if(onstate) onstate('start'); }catch(err){ clearT(); if(!got){ got=true; cb(null,'start-failed'); } }
     return r;
   }
 
