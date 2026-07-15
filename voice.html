@@ -16,6 +16,14 @@
   .vpick{border:2px solid var(--teal);background:#fff;color:var(--teal-deep);border-radius:12px;padding:9px 14px;font-family:var(--font-head);font-weight:600;cursor:pointer;font-size:.85rem}
   .vpick.on{background:var(--teal);color:#fff}
   .vsec{margin:20px 0 10px}
+  .morevox{margin:2px 0 6px;border:2px dashed var(--teal);border-radius:14px;overflow:hidden;background:var(--green-soft)}
+  .morevox>summary{list-style:none;cursor:pointer;padding:13px 14px;font-family:var(--font-head);font-weight:700;color:var(--teal-deep);font-size:.98rem;text-align:center}
+  .morevox>summary::-webkit-details-marker{display:none}
+  .morevox[open]>summary{border-bottom:1px dashed var(--teal)}
+  .morevox .mv-steps{padding:12px 16px 14px;line-height:1.8}
+  .morevox .mv-steps ol{margin:6px 0 0;padding-left:22px}
+  .morevox .mv-steps li{margin-bottom:5px}
+  .morevox .mv-steps b{color:var(--ink,#333)}
 </style>
 </head>
 <body>
@@ -32,16 +40,8 @@
   <h2 class="sec vsec">🎌 日語聲音</h2>
   <div id="jpList"></div>
 
-  <div class="card" style="margin-top:20px">
-    <b style="font-family:var(--font-head)">💡 想要更像真人的聲音？下載「增強版」語音（免費）</b>
-    <p style="margin-top:8px;line-height:1.7;color:var(--muted);font-size:.92rem">
-      系統自帶的是壓縮版，比較機械。iPhone / iPad 可以下載更自然的<b>增強版</b>：<br>
-      <b>設定 → 輔助功能 → 朗讀內容 → 聲音 → 英文（或日文）</b> → 找標示「增強版 / Enhanced」的聲音，點雲朵圖示下載。<br>
-      Mac：<b>系統設定 → 輔助功能 → 朗讀內容 → 系統語音 → 管理語音</b>，勾選增強版下載。<br>
-      下載後回到這一頁，新聲音就會出現在上面（標「較自然」），選它即可。<br>
-      <span style="color:var(--coral)">※ 若下載後這裡仍沒出現，代表這台設備的瀏覽器暫時只開放系統聲音，屬正常限制。</span>
-    </p>
-  </div>
+  <p class="hint" style="margin-top:14px">下載的都是系統原生聲音：一次下載，之後<b>離線也能用、不花錢、朗讀不卡</b>。<br>
+  <span style="color:var(--coral)">※ 若下載後這裡仍沒出現，代表這台瀏覽器暫時只開放系統聲音，屬正常限制。</span></p>
 </main>
 <footer class="site">jingdu · 挑一個順耳的聲音陪你讀</footer>
 
@@ -49,12 +49,59 @@
 <script src="assets/sync.js"></script>
 <script>
 const $=s=>document.querySelector(s);
+
+/* 偵測設備,好給「照著點」的下載步驟。iPadOS Safari 會自稱 Macintosh,用 maxTouchPoints 區分。 */
+function device(){
+  const ua=navigator.userAgent||'';
+  if(/iPhone|iPad|iPod/.test(ua) || (/Macintosh/.test(ua) && (navigator.maxTouchPoints||0)>1)) return 'ios';
+  if(/Macintosh|Mac OS X/.test(ua)) return 'mac';
+  if(/Android/.test(ua)) return 'android';
+  if(/Windows/.test(ua)) return 'win';
+  return 'other';
+}
+/* 某語言聲音太少 / 沒有較自然的 → 給一個大按鈕,點開是照當前設備一步步的下載步驟 */
+function moreVoicesHTML(label){
+  const d=device(); let steps;
+  if(d==='ios'){
+    steps='<b>iPhone / iPad 照著點：</b><ol>'+
+      '<li>打開「<b>設定</b>」App</li>'+
+      '<li>輔助功能</li>'+
+      '<li>朗讀內容</li>'+
+      '<li>聲音 → <b>'+label+'</b></li>'+
+      '<li>找標「<b>增強版 / Enhanced</b>」或「<b>Siri</b>」的聲音，點右邊<b>雲朵 ☁️</b>下載</li>'+
+      '<li>下載完回到這頁，下拉刷新，新聲音就出現在上面（標「較自然」）</li></ol>';
+  } else if(d==='mac'){
+    steps='<b>Mac 照著點：</b><ol>'+
+      '<li>左上角  → <b>系統設定</b></li>'+
+      '<li>輔助功能</li>'+
+      '<li>朗讀內容</li>'+
+      '<li>「系統語音」右邊點 <b>ⓘ</b> 或下拉選「<b>管理語音…</b>」</li>'+
+      '<li>展開 <b>'+label+'</b>，勾選標「<b>增強版</b>」的聲音 → 下載</li>'+
+      '<li>回到這頁按 <b>Cmd+R</b> 刷新，新聲音就出現在上面（標「較自然」）</li></ol>';
+  } else if(d==='android'){
+    steps='<b>Android 照著點：</b><ol>'+
+      '<li>設定 → 系統 → 語言與輸入</li>'+
+      '<li>文字轉語音輸出 → 選 <b>Google 語音服務</b></li>'+
+      '<li>點齒輪 → 安裝語音資料 → 選 <b>'+label+'</b> 下載</li>'+
+      '<li>回到這頁刷新即可</li></ol>';
+  } else {
+    steps='<b>Windows / 其他：</b>系統設定裡搜「<b>語音</b>」或「文字轉語音」，新增 <b>'+label+'</b> 的語音包後，回本頁刷新。';
+  }
+  return '<details class="morevox"><summary>👉 聲音太少？點我加更多（免費，一次搞定）</summary>'+
+    '<div class="mv-steps">'+steps+
+    '<p style="color:var(--muted);font-size:.86rem;margin:9px 0 0">下載的是系統原生聲音，一次下載，之後離線也能用、不花錢、朗讀不卡。</p></div></details>';
+}
+
 function renderList(lang, boxId){
   const box=document.getElementById(boxId);
   const list=JD.listVoices(lang);
   const prefix=lang.split('-')[0];
+  const label=prefix==='ja'?'日文':'英文';
   const pref=JD.getVoicePref(prefix);
-  if(!list.length){ box.innerHTML='<p class="hint">這台設備還沒有'+(prefix==='ja'?'日語':'英語')+'聲音，或系統仍在載入。可先照下面說明下載增強版語音。</p>'; return; }
+  if(!list.length){
+    box.innerHTML='<p class="hint">這台設備還沒有'+label+'聲音，或系統仍在載入。點下面加一個：</p>'+moreVoicesHTML(label);
+    return;
+  }
   box.innerHTML='';
   /* 未手動選過時，高亮引擎會實際採用的那個 */
   const autoPick = pref || (JD.pickVoice(lang) ? JD.pickVoice(lang).voiceURI : '');
@@ -75,6 +122,11 @@ function renderList(lang, boxId){
     };
     box.appendChild(row);
   });
+  /* 聲音只有一個、或都沒有「較自然」的 → 引導下載更好的 */
+  if(list.length<=1 || !list.some(v=>v.hiq)){
+    const wrap=document.createElement('div'); wrap.innerHTML=moreVoicesHTML(label);
+    box.appendChild(wrap.firstChild);
+  }
 }
 function renderAll(){ renderList('en-US','enList'); renderList('ja-JP','jpList'); }
 renderAll();
