@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>使用教程 · 說明書 · 精讀</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .hp-step{display:flex;gap:12px;align-items:flex-start;margin:0 0 14px}
+  .hp-step .num{flex:0 0 30px;width:30px;height:30px;border-radius:50%;background:var(--teal);color:#fff;
+    font-family:var(--font-head);display:flex;align-items:center;justify-content:center;font-size:1rem}
+  .hp-step .tx{line-height:1.65}
+  .hp-step .tx b{font-family:var(--font-head)}
+  .hp-manual{line-height:1.7}
+  .hp-manual .item{padding:12px 0;border-bottom:1px dashed var(--line,#e6ddd0)}
+  .hp-manual .item:last-child{border-bottom:0}
+  .hp-manual .item h3{margin:0 0 4px;font-size:1.02rem;font-family:var(--font-head)}
+  .hp-manual .item p{margin:0;color:var(--ink,#333)}
+  .hp-manual .item .why{color:var(--muted);font-size:.9rem;margin-top:3px}
+  details.faq{border-bottom:1px dashed var(--line,#e6ddd0);padding:11px 0}
+  details.faq:last-child{border-bottom:0}
+  details.faq>summary{cursor:pointer;font-family:var(--font-head);font-size:1rem;list-style:none;
+    display:flex;gap:8px;align-items:baseline}
+  details.faq>summary::-webkit-details-marker{display:none}
+  details.faq>summary::before{content:"❓";flex:0 0 auto}
+  details.faq[open]>summary::before{content:"💡"}
+  details.faq .a{margin:8px 0 0 26px;line-height:1.75;color:var(--ink,#333)}
+  details.faq .a b{color:var(--teal-deep,#0a6)}
+</style>
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="index.html">← 目錄</a>
+  <h1>📖 使用教程 · 說明書</h1>
+</div></header>
+<main>
+  <p class="hint" style="margin-top:4px">給第一次用的家長與孩子：上面是「三步就上手」，中間是每個功能在做什麼，最下面是常見問題（麥克風、聲音、費用、更新）。</p>
+
+  <!-- ============ 快速上手教程 ============ -->
+  <h2 class="sec">🚀 三步就上手</h2>
+  <div class="card">
+    <div class="hp-step"><div class="num">1</div><div class="tx">
+      <b>打開首頁，點最上面那條橫幅。</b><br>
+      軟體會自動安排「今天該學什麼」——先復盤到期的句子，沒有的話就接著上次沒學完的地方。孩子<b>不用自己選</b>，跟著橫幅走就對了。
+    </div></div>
+    <div class="hp-step"><div class="num">2</div><div class="tx">
+      <b>一課分 9 關，從上往下做。</b><br>
+      聽全文 → 逐句精讀 → 生詞卡 → 語法點 → 連詞成句 → 跟讀 → 聽力題 → 背句 → 造句。每做完一關會亮一格進度條，<b>9 格全亮＝這課完成</b>。一次做不完沒關係，下次自動接著上次那關。
+    </div></div>
+    <div class="hp-step"><div class="num">3</div><div class="tx">
+      <b>要用嘴巴的關卡（跟讀、背句），第一次會問麥克風——點「允許」。</b><br>
+      說完可以直接按「<b>✅ 我說完了</b>」，不用乾等。想以後不再每次問，看下面〈常見問題〉第一條。
+    </div></div>
+    <p class="hint" style="margin:6px 0 0">💡 每天一點點比一次背很久更有效。首頁的 🔥 連續天數就是給孩子的鼓勵。</p>
+  </div>
+
+  <!-- ============ 完整說明書 ============ -->
+  <h2 class="sec">📘 每個功能在做什麼</h2>
+  <div class="card hp-manual">
+    <div class="item"><h3>🏠 首頁「今日學習流」</h3>
+      <p>最上面那條橫幅＝軟體幫孩子排好的今天任務，點一下直達該做的關卡。</p>
+      <p class="why">為什麼：孩子零選擇、不糾結，家長不用盯著安排。</p></div>
+    <div class="item"><h3>📅 復盤（艾賓浩斯）</h3>
+      <p>學過的句子會按遺忘曲線在對的時間跳出來讓你再背一次；背對了間隔拉長，背錯了明天再來。首頁 📅 橫幅會顯示今天到期幾句。</p>
+      <p class="why">為什麼：背了不復習等於白背，這關保證學過的東西留得住。</p></div>
+    <div class="item"><h3>🎙️ 跟讀 / 背句（語音）</h3>
+      <p>對著麥克風念，軟體聽你念得對不對、打分。念完按「✅ 我說完了」立刻出結果。</p>
+      <p class="why">為什麼：讀出來才會說；分數只是提示，重點是敢開口。</p></div>
+    <div class="item"><h3>🎧 聽力題</h3>
+      <p>播一句英文，選它的意思或答一個理解問題。答案由軟體嚴格把關過，<b>不會出現「正確答案卻算你錯」</b>的情況。</p>
+      <p class="why">為什麼：先聽懂再開口；把關機制專門修過之前答案對不上的老問題。</p></div>
+    <div class="item"><h3>✍️ 造句</h3>
+      <p>用當課學到的詞自己造一句，AI 幫你看通不通、給建議。</p>
+      <p class="why">為什麼：會用才算真的學會，不只是認得。</p></div>
+    <div class="item"><h3>➕ 加一課（拍照 / 貼課文）</h3>
+      <p>首頁綠色橫幅 → 拍課本照片或貼一段文字 → AI 自動做成完整 9 關精讀頁。需要填一次智譜 API Key（見〈常見問題〉費用那條）。</p>
+      <p class="why">為什麼：課本、繪本、任何你有版權的材料都能變成精讀課，不受內建課文限制。自己加的課可以隨時 🗑 刪掉。</p></div>
+    <div class="item"><h3>🔊 聲音</h3>
+      <p>頂部「🔊 聲音」頁可以試聽、挑一個最像真人的朗讀嗓音（英語、日語各選一個）。想更自然可下載系統「增強版」語音。</p>
+      <p class="why">為什麼：預設嗓音偏機械，換一個好聽的孩子更願意聽。</p></div>
+    <div class="item"><h3>📊 學習週報（給家長）</h3>
+      <p>首頁 🔥 連續天數點進去，看孩子最近 7 天學習量、課程進度、最常錯的 5 個地方。英語＋日語合在一起。</p>
+      <p class="why">為什麼：家長一眼知道學得怎樣、卡在哪，不用盯著問。</p></div>
+    <div class="item"><h3>🎌 日語版</h3>
+      <p>頂部可切換到日語精讀（假名標音、日語朗讀）。用法一樣。</p></div>
+  </div>
+
+  <!-- ============ 常見問題 ============ -->
+  <h2 class="sec">🙋 常見問題</h2>
+  <div class="card">
+    <details class="faq" open><summary>每次打開都要重新允許麥克風，能不能一勞永逸？</summary>
+      <div class="a">
+        每次重開網頁瀏覽器都會再問一次，這是<b>瀏覽器的安全規定，不是壞掉</b>。想設成基本不再問，照你的設備做一次：<br><br>
+        <b>📱 iPhone / iPad</b>：設定 → 通用 → 鍵盤 → 打開「<b>啟用聽寫</b>」；再 設定 → Safari → 麥克風 → 改「<b>允許</b>」。強烈建議把本站「<b>加入主畫面</b>」（Safari 分享鈕 → 加入主畫面），從主畫面圖示打開，權限記得最牢。<br>
+        <b>💻 Mac Safari</b>：Safari 選單 → 設定 → 網站 → 麥克風 → 把本站設為「<b>允許</b>」。<br>
+        <b>💻 Mac Chrome</b>：點網址列左邊的 🔒 → 麥克風 → 「<b>允許</b>」，設一次基本不再問。
+      </div></details>
+
+    <details class="faq"><summary>朗讀的聲音很機械 / 不像真人，怎麼辦？</summary>
+      <div class="a">
+        兩步：<br>
+        <b>① 換嗓音</b>：頂部「🔊 聲音」頁，按 ▶️ 試聽，挑一個順耳的按「選這個」。<br>
+        <b>② 下載增強版語音（免費、更自然）</b>：<br>
+        &nbsp;&nbsp;iPhone / iPad：設定 → 輔助功能 → 朗讀內容 → 聲音 → 英文（或日文）→ 找標「<b>增強版 / Enhanced</b>」的點雲朵下載。<br>
+        &nbsp;&nbsp;Mac：系統設定 → 輔助功能 → 朗讀內容 → 系統語音 → 管理語音，勾選增強版下載。<br>
+        下載後回「🔊 聲音」頁，新聲音會標「較自然」，選它即可。<br>
+        <span style="color:var(--coral)">※ 若下載後仍沒出現，代表這台設備瀏覽器暫時只開放系統聲音，屬正常限制。</span>
+      </div></details>
+
+    <details class="faq"><summary>加一課要花錢嗎？怎麼準備 API Key？</summary>
+      <div class="a">
+        內建課文<b>免費</b>；自己「加一課」用 AI 生成才需要智譜（bigmodel.cn）的 API Key。<br>
+        <b>準備</b>：到 <b>bigmodel.cn</b> 註冊 → 控制台領 API Key → 確認帳戶已<b>充值</b>。Key 只存在你這台設備，不會外傳。<br>
+        <b>費用</b>：文字用 <b>glm-4-plus</b>（付費，出題／講解質量好），一課<b>大約幾分錢人民幣</b>；拍照識字用免費視覺模型。想省錢可在「進階」把文字模型改成 <b>glm-4-flash</b>（免費，但聽力題會多走保底題）。
+      </div></details>
+
+    <details class="faq"><summary>更新了但頁面沒變 / 拿不到新版怎麼辦？</summary>
+      <div class="a">
+        正常情況<b>普通刷新就會拿到最新版</b>（已內建網絡優先機制）。若還是舊的，按一次<b>硬刷新</b>：<br>
+        <b>Mac</b>：Cmd + Shift + R。<b>iPhone / iPad</b>：關掉 Safari 分頁重開，或設定 → Safari → 清除歷史紀錄與網站資料。<br>
+        硬刷新一次之後，之後普通刷新即可。
+      </div></details>
+
+    <details class="faq"><summary>自己加的課想刪掉？</summary>
+      <div class="a">
+        首頁「我的課文」區，每課右邊有 🗑 刪除鈕。刪除會<b>一併清掉該課的學習進度和錯題</b>，內建課文不受影響。
+      </div></details>
+
+    <details class="faq"><summary>換一台設備，學習紀錄還在嗎？</summary>
+      <div class="a">
+        紀錄預設存在<b>當前這台設備</b>上。開啟<b>雲端備份</b>（首頁同步卡）後，換設備登入同一份就能接著學、週報也同步。沒開雲端就只在本機。
+      </div></details>
+
+    <details class="faq"><summary>沒網路能用嗎？</summary>
+      <div class="a">
+        已學過、打開過的課文<b>可以離線複習</b>（跟讀評分、聽力播放靠系統，通常也能用）。但「加一課」要連 AI、雲端備份要連網，這兩項需要網路。
+      </div></details>
+
+    <details class="faq"><summary>聽力題答案還是覺得不對？</summary>
+      <div class="a">
+        如果是<b>硬刷新前生成的舊課</b>，可能還帶著舊版毛病。請先按上面〈更新〉硬刷新一次，把那課<b>刪掉重新生成一門</b>，新版的把關機制會保證答案正確。
+      </div></details>
+  </div>
+
+  <a class="due-banner" href="new.html" style="background:var(--teal);color:#fff;margin-top:18px">
+    <span class="n">➕</span><span>看完了？拍照 / 貼一段課文，加一課試試</span></a>
+</main>
+<footer class="site">jingdu · 使用教程與說明書 📖</footer>
+</body>
+</html>
