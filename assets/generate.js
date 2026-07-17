@@ -37,7 +37,7 @@
     {"w": "單詞", "ipa": "/音標/", "pos": "n. 名詞 / v. 動詞 等", "zh": "中文意思", "eg": "含這個單詞的例句（用課文裡的句子）"}
   ],
   "listening": [
-    {"play": [句子索引], "srcIdx": 對應句子索引, "q": "中文提問", "ans": 正確選項下標(從0), "opts": ["選項1","選項2","選項3","選項4"]}
+    {"play": [句子索引], "srcIdx": 對應句子索引, "q": "英文提問（如 What did the boy buy?，仿真實英語聽力考試格式）", "ans": 正確選項下標(從0), "opts": ["英文選項1","英文選項2","英文選項3","英文選項4"]}
   ],
   "grammar": [
     {"t": "語法點標題", "body": "<p>白話講解</p><div class=\\"eg\\">例句</div>"}
@@ -57,7 +57,7 @@
     {"w": "單詞（漢字標振假名 漢字[かな]）", "romaji": "羅馬音", "pos": "名詞/動詞/形容詞 等", "zh": "中文意思", "eg": "含這個詞的例句（同樣標振假名）"}
   ],
   "listening": [
-    {"play": [句子索引], "srcIdx": 對應句子索引, "q": "中文提問", "ans": 正確選項下標(從0), "opts": ["選項1","選項2","選項3","選項4"]}
+    {"play": [句子索引], "srcIdx": 對應句子索引, "q": "日文提問（漢字標振假名 漢字[かな]，仿真實日語聽力考試格式）", "ans": 正確選項下標(從0), "opts": ["日文選項1（同樣標振假名）","日文選項2","日文選項3","日文選項4"]}
   ],
   "grammar": [
     {"t": "語法點標題", "body": "<p>白話講解</p><div class=\\"eg\\">例句（標振假名）</div>"}
@@ -75,7 +75,7 @@
 2. 講解（ana / grammar）一律用**繁體中文**，語氣親切、給小學生看，白話講清楚，重點前加 ⭐。
 3. sentences 要把課文**逐句拆開**，每句一個對象；listening 的 play/srcIdx 是句子在 sentences 陣列裡的下標（從0開始），務必對應正確。
 4. vocab 挑本課 6-12 個重點詞；grammar 挑 2-4 個核心語法點。
-5. listening 出 4-6 題，中文提問+四選一，考查聽力理解。**ans 必須是能從 srcIdx 那句話直接驗證的唯一正確選項的下標（從0開始）**，寫完每題後自己核對一遍 ans 是否指向正確選項；opts 內容不要帶「A. 」等字母前綴。
+5. listening 出 4-6 題，**q（提問）和 opts（選項）都必須用${langName}原文，不可用中文**——比照中國大陸英語/日語聽力考試的真實格式（考卷上問題和選項都是外語，不是翻成中文），四選一考查聽力理解。**ans 必須是能從 srcIdx 那句話直接驗證的唯一正確選項的下標（從0開始）**，寫完每題後自己核對一遍 ans 是否指向正確選項；opts 內容不要帶「A. 」等字母前綴。
 ${lang==='jp' ? '6. 日文漢字必須標振假名 漢字[かな]（只標漢字，假名/片假名/數字不標）；romaji 提供羅馬音；chunks 用文節切分。' : '6. 每個 vocab 給準確音標。'}
 
 JSON 結構：
@@ -129,22 +129,24 @@ ${schema}`;
 
   function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-  /* 程序化保底聽力題「聽句選意」：播一句 → 選它的中文意思。
-     正確答案＝該句翻譯，干擾項從其他句翻譯隨機取——答案 100% 正確，不依賴模型判斷。
+  /* 程序化保底聽力題「聽音辨句」：播一句 → 從四句外語原句裡選出剛剛聽到的那句。
+     選項全部是外語原文（不用中文翻譯），比照真實聽力考試格式；
+     正確答案＝該句原文，干擾項從其他句原文隨機取——答案 100% 正確，不依賴模型判斷。
      用途：AI 理解題經核對後靠譜的不足時，用它兜底，保證有題且答案對。 */
   function buildFallbackListening(d, lang){
     const field = lang==='jp' ? 'jp' : 'en';
-    const idx = d.sentences.map((s,i)=>i).filter(i=>d.sentences[i].zh && d.sentences[i][field]);
+    const idx = d.sentences.map((s,i)=>i).filter(i=>d.sentences[i][field]);
     if(idx.length < 4) return [];   /* 少於4句湊不齊四選一 */
-    const allZh = Array.from(new Set(idx.map(i=>d.sentences[i].zh)));
-    if(allZh.length < 4) return [];
+    const allTxt = Array.from(new Set(idx.map(i=>d.sentences[i][field])));
+    if(allTxt.length < 4) return [];
+    const qWord = lang==='jp' ? '🔊 今聞[きこ]えたのはどれ？' : '🔊 Which sentence did you just hear?';
     const out = [];
     shuffle(idx.slice()).slice(0, 6).forEach(i=>{
-      const zh = d.sentences[i].zh;
-      const distract = shuffle(allZh.filter(z=>z!==zh)).slice(0,3);
+      const txt = d.sentences[i][field];
+      const distract = shuffle(allTxt.filter(z=>z!==txt)).slice(0,3);
       if(distract.length < 3) return;
-      const opts = shuffle([zh, ...distract]);
-      out.push({ play:[i], srcIdx:i, q:'🔊 這句話的意思是？', ans:opts.indexOf(zh), opts:opts });
+      const opts = shuffle([txt, ...distract]);
+      out.push({ play:[i], srcIdx:i, q:qWord, ans:opts.indexOf(txt), opts:opts });
     });
     return out;
   }

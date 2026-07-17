@@ -21,9 +21,15 @@
 
   <a class="due-banner" href="new.html" style="background:var(--teal);color:#fff"><span class="n">➕</span><span>拍照 / 粘貼一段課文，AI 自動做成精讀頁</span></a>
 
+  <div id="searchBox" style="display:none;margin:14px 0 6px">
+    <input type="text" id="lessonSearch" placeholder="🔍 搜尋課文（課名／中文意思）" autocomplete="off"
+      style="width:100%;box-sizing:border-box;border:2px solid var(--line);border-radius:12px;padding:11px 14px;font-size:1rem;background:#fff;color:var(--ink);outline:none">
+  </div>
+
   <h2 class="sec">課文列表</h2>
   <div id="lessonList"></div>
   <div id="userLessonList"></div>
+  <p class="hint" id="searchEmpty" style="display:none">沒有符合的課文，換個關鍵字試試？</p>
 </main>
 <footer class="site">每天一點點，越背越輕鬆 🌱</footer>
 
@@ -100,6 +106,7 @@ function renderUserLessons(){
       if(!confirm('確定刪除「'+(l.title||'未命名')+'」嗎？\n這課的進度和錯題復盤會一併清除，刪除後無法復原。')) return;
       JDGen.deleteLesson(l.id);
       renderUserLessons();
+      refreshSearchVisibility();
     });
     a.appendChild(del);
     ubox.appendChild(a);
@@ -111,10 +118,29 @@ function renderStreak(){
   el.innerHTML = st.todayDone ? '🔥 連續學習 <b>'+st.n+'</b> 天 · 看週報 →'
     : (st.n>0 ? '🌱 已連續 '+st.n+' 天，今天學一點就續上！ · 看週報 →' : '🌱 今天還沒開始學 · 看週報 →');
 }
+/* 課文搜尋：課多了才顯示搜尋框，即時過濾內建課+自建課（比對課名英文/中文/難度徽章文字） */
+function refreshSearchVisibility(){
+  const n = document.querySelectorAll('#lessonList .lesson-item, #userLessonList .lesson-item').length;
+  document.getElementById('searchBox').style.display = n > 4 ? 'block' : 'none';
+}
+function applySearch(){
+  const q = (document.getElementById('lessonSearch').value||'').trim().toLowerCase();
+  const items = document.querySelectorAll('#lessonList .lesson-item, #userLessonList .lesson-item');
+  let shown = 0;
+  items.forEach(el=>{
+    const hit = !q || el.textContent.toLowerCase().includes(q);
+    el.style.display = hit ? '' : 'none';
+    if(hit) shown++;
+  });
+  document.getElementById('searchEmpty').style.display = (q && shown===0) ? 'block' : 'none';
+}
+document.getElementById('lessonSearch').addEventListener('input', applySearch);
+
 renderUserLessons();
 renderToday();
 renderStreak();
-window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderStreak(); }; /* 雲端同步回來後刷新 */
+refreshSearchVisibility();
+window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderStreak(); refreshSearchVisibility(); }; /* 雲端同步回來後刷新 */
 </script>
 </body>
 </html>
