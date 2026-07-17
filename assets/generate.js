@@ -178,6 +178,8 @@ ${schema}`;
       }).join('\n\n');
       let verified = null;
       try{
+        /* 這裡曾漏加 {json:true}，AI 核對回應格式不穩時 JSON.parse 就失敗，
+           一失敗整批理解題全丟棄變成清一色保底題——跟其他呼叫一樣強制合法 JSON。 */
         const content = await callApi(getTextModel(), [
           { role:'user', content:
             '下面是若干道聽力理解題，每題附「依據句子」。請嚴格逐題判斷：\n'+
@@ -185,12 +187,17 @@ ${schema}`;
             '· 四個選項裡有沒有**唯一一個**明確正確的？\n'+
             '答得出且有唯一正確選項 → 給該選項下標（從0開始）；'+
             '只要題目與依據句無關、選項沒有明確正確的、或正確答案不唯一 → 一律給 -1。\n'+
-            '只輸出 JSON 陣列（長度必須等於題數），如 [1,-1,2,-1]，不要任何解釋。\n\n'+qtext }
-        ]);
+            '只輸出 JSON 物件 {"ans":[數字陣列]}，長度必須等於題數，如 {"ans":[1,-1,2,-1]}，不要任何解釋。\n\n'+qtext }
+        ], null, { json:true, max_tokens:512 });
         let t = stripFences(content);
-        const a=t.indexOf('['), b=t.lastIndexOf(']');
-        if(a>=0 && b>a) t=t.slice(a,b+1);
-        const arr = JSON.parse(t);
+        let parsed;
+        try{ parsed = JSON.parse(t); }
+        catch(e2){
+          /* 容錯：json_object 模式偶爾仍會夾帶前後文字，退一步截取花括號範圍重試 */
+          const a=t.indexOf('{'), b=t.lastIndexOf('}');
+          if(a>=0 && b>a) parsed = JSON.parse(t.slice(a,b+1));
+        }
+        const arr = Array.isArray(parsed) ? parsed : (parsed && Array.isArray(parsed.ans) ? parsed.ans : null);
         if(Array.isArray(arr) && arr.length===d.listening.length) verified = arr;
       }catch(e){ /* 核對失敗 → verified 保持 null，下面整段丟棄後走保底 */ }
       if(verified){
