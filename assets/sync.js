@@ -128,22 +128,62 @@
       '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.setup()">設定</button></span></div>';
   }
 
-  function setup(){
+  /* 通用彈窗：取代原生 prompt()。原生彈窗在部分手機瀏覽器貼長字串（同步碼常有 40+ 字）
+     會撐爆頁面寬度、彈窗殘留畫面上——排版完全由系統控制，這裡改成自己畫的 HTML 彈窗，
+     input/textarea 一律 box-sizing:border-box，保證絕不超出螢幕寬度。 */
+  function esc(s){ return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function openModal(opts){
+    return new Promise(resolve=>{
+      const mask=document.createElement('div'); mask.className='jd-modal-mask';
+      const box=document.createElement('div'); box.className='jd-modal';
+      box.innerHTML = '<h3>'+esc(opts.title)+'</h3>'+
+        opts.fields.map(f=>'<div class="jd-field"><label>'+esc(f.label)+'</label>'+
+          (f.type==='textarea'
+            ? '<textarea data-k="'+f.key+'" placeholder="'+esc(f.placeholder||'')+'">'+esc(f.value||'')+'</textarea>'
+            : '<input type="text" data-k="'+f.key+'" placeholder="'+esc(f.placeholder||'')+'" value="'+esc(f.value||'')+'">')+
+          '</div>').join('') +
+        (opts.hint ? '<div class="jd-hint">'+esc(opts.hint)+'</div>' : '') +
+        '<div class="jd-btns"><button type="button" class="big-btn ghost" data-act="cancel">取消</button>'+
+        '<button type="button" class="big-btn teal" data-act="ok">確定</button></div>';
+      mask.appendChild(box); document.body.appendChild(mask);
+      function close(v){ mask.remove(); resolve(v); }
+      box.querySelector('[data-act=cancel]').onclick=()=>close(null);
+      mask.addEventListener('click', e=>{ if(e.target===mask) close(null); });
+      box.querySelector('[data-act=ok]').onclick=()=>{
+        const vals={};
+        opts.fields.forEach(f=>{ vals[f.key]=box.querySelector('[data-k="'+f.key+'"]').value.trim(); });
+        close(vals);
+      };
+      const firstInput=box.querySelector('input,textarea');
+      if(firstInput) setTimeout(()=>firstInput.focus(), 50);
+    });
+  }
+
+  async function setup(){
     const c=cfg()||{};
-    const user=prompt('這台設備上是誰在學？輸入暱稱（同一暱稱=同一份進度）：', c.user||'');
-    if(!user) return;
-    const token=prompt('貼上「同步碼」（家長保存的那串 github_pat_ 開頭代碼；之前設過可留空不改）：', '');
-    const newCfg={ user:user.trim(), token:(token&&token.trim())||c.token||'' };
+    const vals = await openModal({
+      title:'☁️ 設定雲端備份',
+      fields:[
+        {key:'user', label:'這台設備上是誰在學？', type:'text', placeholder:'輸入暱稱（同一暱稱=同一份進度）', value:c.user||''},
+        {key:'token', label:'同步碼', type:'textarea', placeholder:'貼上「同步碼」（github_pat_ 開頭；之前設過可留空不改）'}
+      ],
+      hint:'同步碼只存在這台設備，不會外傳。'
+    });
+    if(!vals || !vals.user) return;
+    const newCfg={ user:vals.user, token:vals.token||c.token||'' };
     if(!newCfg.token){ alert('沒有同步碼，先不開啟雲端備份。'); return; }
     setCfg(newCfg); sha=null;
     init();
   }
-  function switchUser(){
+  async function switchUser(){
     const c=cfg(); if(!c) return setup();
     push(); /* 先把當前使用者推上雲 */
-    const user=prompt('切換到哪位使用者？輸入暱稱：', '');
-    if(!user || user.trim()===c.user) return;
-    setCfg({user:user.trim(), token:c.token}); sha=null;
+    const vals = await openModal({
+      title:'切換使用者',
+      fields:[{key:'user', label:'切換到哪位使用者？', type:'text', placeholder:'輸入暱稱'}]
+    });
+    if(!vals || !vals.user || vals.user===c.user) return;
+    setCfg({user:vals.user, token:c.token}); sha=null;
     /* 清掉本機資料，改拉新使用者的 */
     applySnapshot({data:{}});
     localStorage.removeItem(UPD_KEY);
