@@ -22,6 +22,14 @@
   details.adv{margin-top:8px}
   details.adv summary{font-size:.85rem;color:var(--muted);cursor:pointer}
   .photo-name{font-size:.85rem;color:var(--teal-deep);margin-top:6px}
+  .queue-list{margin:10px 0 0}
+  .queue-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border:2px solid var(--line);border-radius:12px;margin-bottom:8px;background:#fff}
+  .queue-item .qbadge{flex:none;font-family:var(--font-head);font-size:.72rem;font-weight:700;color:#fff;background:var(--teal);padding:3px 8px;border-radius:8px}
+  .queue-item .qtxt{flex:1;font-size:.88rem;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .queue-item .qdel{flex:none;border:none;background:none;color:var(--coral);font-size:1.1rem;cursor:pointer;padding:2px 6px}
+  .batch-result{margin:8px 0;padding:9px 12px;border-radius:10px;font-size:.9rem;display:flex;align-items:center;gap:8px}
+  .batch-result.ok{background:var(--green-soft);color:var(--teal-deep)}
+  .batch-result.err{background:#fde9e5;color:var(--coral)}
 </style>
 </head>
 <body>
@@ -78,12 +86,18 @@
       <div class="photo-name" id="photoName"></div>
       <textarea id="pasteText" placeholder="打字或粘貼課文；也可按上面的按鈕語音輸入 / 上傳圖片 / 選 Word 檔…"></textarea>
       <div class="key-hint">💡 圖片走「看圖識字」，文字/Word 走文字理解。手機鍵盤上的麥克風也能直接口述。</div>
+      <div class="key-hint">📚 一次要加好幾課？填完一段按「加入清單」，清空後繼續填下一課，最後一次性「生成全部」。</div>
+      <div style="text-align:center;margin-top:10px">
+        <button type="button" class="big-btn ghost" onclick="addToQueue()">➕ 加入清單，繼續下一課</button>
+      </div>
+      <div class="queue-list" id="queueList"></div>
     </div>
 
     <div style="text-align:center">
       <button id="genBtn" class="big-btn teal" onclick="doGenerate()" style="min-width:180px">✨ 生成精讀</button>
     </div>
     <div class="genfb" id="genFb"></div>
+    <div id="batchResults"></div>
   </div>
 </main>
 <footer class="site">jingdu · 拍照即成課</footer>
@@ -112,6 +126,39 @@ $('#apiKey').value = JDGen.getKey();
 let photoDataUrl = null;
 function fb(msg, bad){ $('#genFb').innerHTML='<div class="acc-badge '+(bad?'bad':'good')+'">'+JD.esc(msg)+'</div>'; }
 
+/* 批量加課：先把已填好的一段「加入清單」再清空輸入框填下一課，最後一次性生成全部。
+   每項記住自己當時選的語言，同一批可以英日混著加。 */
+let queue = [];
+function currentLabel(){
+  if(photoDataUrl) return '🖼️ 圖片';
+  const t=$('#pasteText').value.trim();
+  return t ? (t.length>24 ? t.slice(0,24)+'…' : t) : '';
+}
+function renderQueue(){
+  const box=$('#queueList');
+  box.innerHTML = queue.map((it,i)=>
+    '<div class="queue-item"><span class="qbadge">'+(it.lang==='jp'?'日語':'英語')+'</span>'+
+    '<span class="qtxt">'+JD.esc(it.label)+'</span>'+
+    '<button type="button" class="qdel" onclick="removeQueue('+i+')">🗑</button></div>').join('');
+  updateGenBtnLabel();
+}
+window.removeQueue = function(i){ queue.splice(i,1); renderQueue(); };
+function updateGenBtnLabel(){
+  const hasCurrent = !!(photoDataUrl || $('#pasteText').value.trim());
+  const total = queue.length + (hasCurrent?1:0);
+  $('#genBtn').textContent = total>1 ? ('✨ 生成全部 '+total+' 課') : '✨ 生成精讀';
+}
+window.addToQueue = function(){
+  const text = $('#pasteText').value.trim();
+  if(!photoDataUrl && !text){ fb('先填這一課的內容，再加入清單', true); return; }
+  queue.push({ lang, text, photoDataUrl, label: currentLabel() });
+  photoDataUrl = null; $('#pasteText').value=''; $('#photoName').textContent='';
+  $('#photo').value=''; $('#docfile').value='';
+  renderQueue();
+  fb('已加入清單，共 '+queue.length+' 課待生成。可以繼續填下一課。');
+};
+$('#pasteText').addEventListener('input', updateGenBtnLabel);
+
 /* 一鍵配置鏈接：#k= 走 hash 不進服務器日誌；generate.js 打開時自動存 key 並抹掉地址欄 */
 function makeShareLink(){
   const k=($('#shareKey').value||'').trim();
@@ -131,6 +178,7 @@ $('#photo').addEventListener('change', async e=>{
     const r = await JDFile.read(f);
     photoDataUrl = r.dataUrl;
     $('#photoName').textContent = '已選圖片：'+f.name+' ✓（生成時走看圖識字）';
+    updateGenBtnLabel();
   }catch(err){ $('#photoName').textContent = '圖片讀取失敗：'+(err.message||err); }
 });
 
@@ -142,6 +190,7 @@ $('#docfile').addEventListener('change', async e=>{
     const r = await JDFile.read(f);
     if(r.kind==='text'){ $('#pasteText').value = r.text; photoDataUrl=null; $('#photoName').textContent = '已讀取「'+f.name+'」的文字 ✓（可在下面修改）'; }
     else { photoDataUrl = r.dataUrl; $('#photoName').textContent = '已選圖片：'+f.name+' ✓'; }
+    updateGenBtnLabel();
   }catch(err){ $('#photoName').textContent = '讀取失敗：'+(err.message||err); }
 });
 
@@ -170,21 +219,60 @@ async function doGenerate(){
   JDGen.setModels(quality==='free' ? 'glm-4-flash' : 'glm-4-plus', 'glm-4v-flash');
 
   const text = $('#pasteText').value.trim();
-  if(!photoDataUrl && !text){ fb('請先輸入課文：打字／語音／上傳圖片／選 Word·txt 檔', true); return; }
+  const hasCurrent = !!(photoDataUrl || text);
+  if(!hasCurrent && !queue.length){ fb('請先輸入課文：打字／語音／上傳圖片／選 Word·txt 檔', true); return; }
 
-  const btn=$('#genBtn'); btn.disabled=true; const old=btn.textContent; btn.textContent='⏳ 生成中…';
-  try{
-    const onP = m=>fb(m);
-    const data = photoDataUrl ? await JDGen.fromImage(lang, photoDataUrl, onP)
-                              : await JDGen.fromText(lang, text, onP);
-    fb('生成成功，正在保存…');
-    const id = JDGen.saveLesson(lang, data);
-    const viewer = lang==='jp' ? 'jp/lessons/view.html' : 'lessons/view.html';
-    location.href = viewer + '?id=' + encodeURIComponent(id);
-  }catch(e){
-    fb('生成失敗：'+(e.message||e), true);
-    btn.disabled=false; btn.textContent=old;
+  /* 把清單裡的 + 當前這一課 合成最終要生成的列表 */
+  const list = queue.slice();
+  if(hasCurrent) list.push({ lang, text, photoDataUrl, label: currentLabel() });
+
+  if(list.length===1){
+    /* 單課：跟原本一樣，成功直接跳去看這一課 */
+    const one = list[0];
+    const btn=$('#genBtn'); btn.disabled=true; const old=btn.textContent; btn.textContent='⏳ 生成中…';
+    try{
+      const onP = m=>fb(m);
+      const data = one.photoDataUrl ? await JDGen.fromImage(one.lang, one.photoDataUrl, onP)
+                                    : await JDGen.fromText(one.lang, one.text, onP);
+      fb('生成成功，正在保存…');
+      const id = JDGen.saveLesson(one.lang, data);
+      const viewer = one.lang==='jp' ? 'jp/lessons/view.html' : 'lessons/view.html';
+      location.href = viewer + '?id=' + encodeURIComponent(id);
+    }catch(e){
+      fb('生成失敗：'+(e.message||e), true);
+      btn.disabled=false; btn.textContent=old;
+    }
+    return;
   }
+
+  /* 多課：依序生成（不並發，避免用戶對花費失控），每課成功/失敗即時顯示，失敗不影響其他課 */
+  const btn=$('#genBtn'); btn.disabled=true; const old=btn.textContent;
+  $('#batchResults').innerHTML=''; queue=[]; renderQueue();
+  let okN=0, langsDone={};
+  for(let i=0;i<list.length;i++){
+    const it=list[i];
+    btn.textContent='⏳ 第 '+(i+1)+'/'+list.length+' 課生成中…';
+    fb('（'+(i+1)+'/'+list.length+'）'+it.label+' 生成中…');
+    try{
+      const onP = m=>fb('（'+(i+1)+'/'+list.length+'）'+m);
+      const data = it.photoDataUrl ? await JDGen.fromImage(it.lang, it.photoDataUrl, onP)
+                                   : await JDGen.fromText(it.lang, it.text, onP);
+      JDGen.saveLesson(it.lang, data);
+      okN++; langsDone[it.lang]=1;
+      $('#batchResults').insertAdjacentHTML('beforeend',
+        '<div class="batch-result ok">✅ '+JD.esc(data.title||it.label)+'</div>');
+    }catch(e){
+      $('#batchResults').insertAdjacentHTML('beforeend',
+        '<div class="batch-result err">❌ '+JD.esc(it.label)+'：'+JD.esc(e.message||String(e))+'</div>');
+    }
+  }
+  btn.disabled=false; btn.textContent=old;
+  fb('全部完成：成功 '+okN+' / '+list.length+' 課');
+  photoDataUrl=null; $('#pasteText').value=''; $('#photoName').textContent=''; $('#photo').value=''; $('#docfile').value='';
+  updateGenBtnLabel();
+  const links=[]; if(langsDone.en) links.push('<a href="index.html">📘 看英語課文列表</a>');
+  if(langsDone.jp) links.push('<a href="jp/index.html">🎌 看日語課文列表</a>');
+  if(links.length) $('#batchResults').insertAdjacentHTML('beforeend', '<p class="hint" style="margin-top:8px">'+links.join('　')+'</p>');
 }
 </script>
 </body>
