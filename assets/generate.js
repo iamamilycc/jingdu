@@ -78,7 +78,7 @@ ${schema}`;
     return s.replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
   }
 
-  function parseLesson(raw){
+  function parseLesson(raw, lang){
     let t = stripFences(raw);
     /* 容錯：截取第一個 { 到最後一個 } */
     const a=t.indexOf('{'), b=t.lastIndexOf('}');
@@ -94,7 +94,27 @@ ${schema}`;
     d.vocab = d.vocab || []; d.listening = d.listening || []; d.grammar = d.grammar || [];
     d.level = (Number.isInteger(d.level) && d.level>=1 && d.level<=5) ? d.level : 0; /* 0=未知,不顯示 */
     sanitizeListening(d);
+    sanitizeSpeakers(d, lang);
     return d;
+  }
+
+  /* 對話人名清洗：提示詞要求 AI 把「Jack: I want a coffee.」的人名拆進獨立 speaker 欄位，
+     但 LLM 對格式指令遵從率不是100%——常常人名還是黏在 en/jp 正文裡，導致跟讀/背句/連詞成句
+     這些只讀 sentences[i].en 的環節，孩子被迫連名字一起讀/排/背。這裡不管 AI 有沒有聽話，
+     一律強制掃一遍：正文開頭是「XX: 」或「XX：」就拆出來，蓋掉/補上 speaker，正文只留說話內容。
+     name 只認短的字母/CJK 開頭片段，避免誤傷正常句子（如 "Note: ..." 極罕見，可接受）。 */
+  function sanitizeSpeakers(d, lang){
+    const field = lang==='jp' ? 'jp' : 'en';
+    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ]{1,10})[：:]\s*/;
+    (d.sentences||[]).forEach(s=>{
+      const raw = s && s[field];
+      if(typeof raw!=='string') return;
+      const m = raw.match(RE);
+      if(m){
+        s.speaker = m[1].trim();
+        s[field] = raw.slice(m[0].length).trim();
+      }
+    });
   }
 
   /* 聽力題數據清洗：模型輸出的下標不可信，先過一遍合法性 */
@@ -241,7 +261,7 @@ ${schema}`;
       { role:'user', content: '課文如下：\n\n'+text+reuseHint(lang) }
     ], onProgress, { json:true, max_tokens:4096 });
     if(onProgress) onProgress('正在整理課文…');
-    const d = parseLesson(content);
+    const d = parseLesson(content, lang);
     return verifyListening(lang, d, onProgress);
   }
 
