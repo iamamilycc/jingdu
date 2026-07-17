@@ -155,7 +155,7 @@
       const got = JD.kk2hh(typed).replace(/\s/g,'');
       const ok = got===want;
       judged.add(i);
-      if(ok) vright.add(i); else vright.delete(i);
+      if(ok) vright.add(i);   /* 取最好：讀對過就算會，重做讀錯不抹掉 */
       pos('vocab', judged.size, L.vocab.length, vright.size);
       c.classList.remove('known','unknown'); c.classList.add(ok?'known':'unknown');
       if(ok){ fb.innerHTML='<span class="vok">✓ 讀對了！</span>'; JD.speak(R.toKana(v.w),false,LANG); setTimeout(()=>c.classList.remove('flip'),900); }
@@ -239,7 +239,7 @@
     else{ bdRender('<div class="acc-badge bad">順序還不對，再試試～</div>'); }
   };
   window.bdReveal=function(){
-    const it=bdItems[bd.i]; bd.results[bd.i]=false;
+    const it=bdItems[bd.i]; if(bd.results[bd.i]!==true) bd.results[bd.i]=false;  /* 解對過就保留對 */
     JD.addError({id:L.id+'#'+it.idx, lessonId:L.id, en:it.jp, zh:it.zh, kmap:KANJI_MAP});
     bdRender('<div class="acc-badge bad">正確順序是：<br>'+JD.esc(it.jp)+'<br><span style="font-size:.8rem">（已放進錯題本）</span></div>'); bdMaybeDone();
   };
@@ -262,7 +262,7 @@
   window.spkRec=function(){
     const i=spk.i, s=L.sentences[i];
     startRec($('#spkRecBtn'), s, '#spkResult', '#spkHeard', acc=>{
-      spk.results[i]=acc; spkRenderPills();
+      spk.results[i]=Math.max(spk.results[i]||0, acc); spkRenderPills();  /* 取最高準確率 */
       pos('speak', spk.results.filter(x=>x!=null).length, L.sentences.length, spk.results.filter(x=>x!=null&&x>=JD.PASS).length);
       if(acc<JD.PASS) JD.addError({id:L.id+'#'+i, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
     });
@@ -366,7 +366,7 @@
   window.rcPeek=function(){ const s=L.sentences[rc.i]; $('#rcTarget').innerHTML='<span class="jp-target jp-text">'+R.toRubyHTML(JD.esc(s.jp))+'</span>'; rcFinish(0,null); };
   window.rcRec=function(){ startRec($('#rcRecBtn'), L.sentences[rc.i], '#rcResult', '#rcHeard', acc=>rcFinish(acc,true)); };
   function rcFinish(acc, showedResult){
-    const s=L.sentences[rc.i]; rc.results[rc.i]=acc;
+    const s=L.sentences[rc.i]; rc.results[rc.i]=Math.max(rc.results[rc.i]||0, acc);  /* 取最高準確率 */
     pos('recite', rc.results.filter(x=>x!=null).length, L.sentences.length, rc.results.filter(x=>x!=null&&x>=JD.PASS).length);
     if(acc<JD.PASS) JD.addError({id:L.id+'#'+rc.i, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
     if(!showedResult) $('#rcResult').innerHTML='<div class="acc-badge bad">進錯題本，等會再戰 💪</div>';
@@ -473,7 +473,7 @@
     if(db) db.onclick=()=>{ db.disabled=true; db.textContent='⏳ …'; try{ rec && rec.stop(); }catch(e){} };
   };
   function mkAfter(ok, fix, tip){
-    mk.results[mk.i]=ok; mkPills();
+    mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */
     $('#mkFb').innerHTML=
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
       (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">可以這樣說：'+JD.esc(fix)+'</div>')+
@@ -498,7 +498,7 @@
       mkAfter(r.ok, r.fix, r.tip);
     }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
   };
-  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=true; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };
+  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=false; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };  /* 跳過沒檢查=不算造對 */
   mk.i = resume('make', mkWords.length);
   mkRender();
 

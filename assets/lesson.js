@@ -147,7 +147,7 @@
       if(!typed){ input.focus(); return; }
       const ok = typed === v.w.toLowerCase().replace(/\s+/g,'');
       judged.add(i);
-      if(ok) vright.add(i); else vright.delete(i);
+      if(ok) vright.add(i);   /* 取最好：拼對過就算會，重做拼錯不抹掉 */
       pos('vocab', judged.size, L.vocab.length, vright.size);
       c.classList.remove('known','unknown');
       c.classList.add(ok?'known':'unknown');
@@ -243,7 +243,7 @@
     }
   };
   window.bdReveal=function(){
-    const it=bdItems[bd.i]; bd.results[bd.i]=false;
+    const it=bdItems[bd.i]; if(bd.results[bd.i]!==true) bd.results[bd.i]=false;  /* 解對過就保留對，看答案不覆蓋已對 */
     JD.addError({id:L.id+'#'+it.idx, lessonId:L.id, en:it.en, zh:it.zh});
     bdRender('<div class="acc-badge bad">正確順序是：<br>'+JD.esc(it.en)+'<br><span style="font-size:.8rem">（已放進錯題本，之後復盤）</span></div>'); bdMaybeDone();
   };
@@ -268,7 +268,7 @@
   window.spkRec = function(){
     const i = spk.i, s = L.sentences[i];
     startRec($('#spkRecBtn'), s, '#spkResult', '#spkHeard', acc=>{
-      spk.results[i]=acc; spkRender0nly();
+      spk.results[i]=Math.max(spk.results[i]||0, acc); spkRender0nly();  /* 取最高準確率 */
       pos('speak', spk.results.filter(x=>x!=null).length, L.sentences.length, spk.results.filter(x=>x!=null&&x>=JD.PASS).length);
       /* 跟讀不達標也進錯題本（與背句同 id，自動合併） */
       if(acc < JD.PASS) JD.addError({id:L.id+'#'+i, lessonId:L.id, en:s.en, zh:s.zh});
@@ -403,7 +403,7 @@
   };
   function rcFinish(acc, showedResult){
     const s = L.sentences[rc.i];
-    rc.results[rc.i]=acc;
+    rc.results[rc.i]=Math.max(rc.results[rc.i]||0, acc);  /* 取最高準確率；看答案的0分不會抹掉已有好分 */
     pos('recite', rc.results.filter(x=>x!=null).length, L.sentences.length, rc.results.filter(x=>x!=null&&x>=JD.PASS).length);
     if(acc < JD.PASS){
       JD.addError({id:L.id+'#'+rc.i, lessonId:L.id, en:s.en, zh:s.zh});
@@ -514,7 +514,7 @@
     if(db) db.onclick=()=>{ db.disabled=true; db.textContent='⏳ …'; try{ rec && rec.stop(); }catch(e){} };
   };
   function mkAfter(ok, fix, tip){
-    mk.results[mk.i]=ok; mkPills();
+    mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */
     $('#mkFb').innerHTML=
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
       (ok||!fix?'':'<div class="eg" style="margin-top:8px">可以這樣說：'+JD.esc(fix)+'</div>')+
@@ -539,7 +539,7 @@
       mkAfter(r.ok, r.fix, r.tip);
     }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
   };
-  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=true; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };
+  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=false; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };  /* 跳過沒檢查=不算造對 */
   mk.i = resume('make', mkWords.length);
   mkRender();
 
