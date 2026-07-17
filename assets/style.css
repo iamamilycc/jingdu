@@ -37,8 +37,10 @@ header.site{
   background:var(--teal); color:#fff; padding:16px 20px 12px; position:sticky; top:0; z-index:50;
   border-bottom:4px solid var(--mango);
 }
-header.site .row{display:flex;align-items:center;gap:10px;max-width:860px;margin:0 auto}
-header.site h1{font-family:var(--font-head);font-size:1.25rem;font-weight:600;flex:1}
+header.site .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;max-width:860px;margin:0 auto}
+/* min-width 防止窄屏把標題壓成逐字換行（中文字間本可斷行，flex 預設 min-width:auto 會把它壓到只剩一字寬）；
+   放不下時靠 flex-wrap 讓導航鏈接掉到下一行，標題本身永遠保持整行寬度 */
+header.site h1{font-family:var(--font-head);font-size:1.25rem;font-weight:600;flex:1 1 auto;min-width:180px;margin:2px 0}
 header.site a{color:#fff;text-decoration:none;font-size:.9rem;opacity:.9;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.14)}
 main{max-width:860px;margin:0 auto;padding:22px 16px 90px}
 
