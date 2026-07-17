@@ -38,11 +38,13 @@
   /* 每個環節的細粒度進度/續做位置：secpos_<lessonId> = { sec:{done, n} }
      done=已完成的項數(只增不減，回看不倒退)，n=總項數；續做位置=第一個沒做的項=min(done,n-1)。 */
   function getSecPos(lessonId){ return load('secpos_'+lessonId, {}); }
-  function setSecPos(lessonId, sec, done, n){
+  /* done=已完成項數, n=總項數, score=答對數(可選,取歷來最好)；都只增不減 */
+  function setSecPos(lessonId, sec, done, n, score){
     const m = getSecPos(lessonId); const cur = m[sec]||{};
-    const nd = Math.max(done|0, cur.done||0);         /* 只增不減 */
-    if(cur.done===nd && cur.n===(n|0)) return;         /* 沒變化就不寫，省同步 */
-    m[sec] = { done: nd, n: n|0 };
+    const nd = Math.max(done|0, cur.done||0);
+    const ns = (score==null) ? (cur.score||0) : Math.max(score|0, cur.score||0);
+    if(cur.done===nd && cur.n===(n|0) && (cur.score||0)===ns) return;  /* 沒變化就不寫，省同步 */
+    m[sec] = { done: nd, n: n|0, score: ns };
     save('secpos_'+lessonId, m);
   }
   /* 續做索引：第一個還沒做的項（夾在 0..n-1） */

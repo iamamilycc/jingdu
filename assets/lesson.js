@@ -30,8 +30,8 @@
     $$('.tab-btn .dot').forEach(d=>d.classList.toggle('done', !!p[d.dataset.s]));
   }
   function done(sec){ JD.markDone(L.id, sec); refreshDots(); }
-  /* 細粒度進度：已完成項數/總項數 → 打卡進度條 + 續做定位 */
-  function pos(sec, doneCnt, n){ JD.setSecPos(L.id, sec, doneCnt, n); }
+  /* 細粒度進度：已完成項數/總項數(+可選答對數) → 打卡進度條/得分 + 續做定位 */
+  function pos(sec, doneCnt, n, score){ JD.setSecPos(L.id, sec, doneCnt, n, score); }
   function resume(sec, n){ return JD.resumeIdx(L.id, sec, n); }
 
   /* ========== 0 聽全文（連播 + 高亮 + 盲聽 + 循環） ========== */
@@ -123,6 +123,7 @@
   /* ========== 2 生詞卡（look-cover-write-check：正面看單詞 → 翻面拼寫 → 對✓錯入錯題本） ========== */
   const vg = $('#vocabGrid');
   const judged = new Set();
+  const vright = new Set();   /* 拼對的卡片，供打卡得分 */
   function maskWord(text, w){
     /* 例句裡把單詞挖空，避免洩露拼寫（含首字母大寫變形） */
     return text.replace(new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi'), '____');
@@ -146,7 +147,8 @@
       if(!typed){ input.focus(); return; }
       const ok = typed === v.w.toLowerCase().replace(/\s+/g,'');
       judged.add(i);
-      pos('vocab', judged.size, L.vocab.length);
+      if(ok) vright.add(i); else vright.delete(i);
+      pos('vocab', judged.size, L.vocab.length, vright.size);
       c.classList.remove('known','unknown');
       c.classList.add(ok?'known':'unknown');
       if(ok){
@@ -200,7 +202,7 @@
   function bdChip(c, where){ return '<button class="bd-chip" onclick="'+(where==='pool'?'bdPlace':'bdUnplace')+'('+c.cid+')">'+JD.esc(c.w)+'</button>'; }
   function bdRender(fb){
     bdPills();
-    pos('build', bd.results.filter(x=>x!=null).length, bdItems.length);
+    pos('build', bd.results.filter(x=>x!=null).length, bdItems.length, bd.results.filter(Boolean).length);
     const box=$('#buildBox'); if(!box) return;
     if(bd.i>=bdItems.length){
       const right=bd.results.filter(Boolean).length;
@@ -267,7 +269,7 @@
     const i = spk.i, s = L.sentences[i];
     startRec($('#spkRecBtn'), s, '#spkResult', '#spkHeard', acc=>{
       spk.results[i]=acc; spkRender0nly();
-      pos('speak', spk.results.filter(x=>x!=null).length, L.sentences.length);
+      pos('speak', spk.results.filter(x=>x!=null).length, L.sentences.length, spk.results.filter(x=>x!=null&&x>=JD.PASS).length);
       /* 跟讀不達標也進錯題本（與背句同 id，自動合併） */
       if(acc < JD.PASS) JD.addError({id:L.id+'#'+i, lessonId:L.id, en:s.en, zh:s.zh});
     });
@@ -332,7 +334,7 @@
     }
     $('#qzFb').innerHTML += '<div style="margin-top:8px"><button class="big-btn teal" onclick="qzNext()">下一題 →</button></div>';
   }
-  window.qzNext = function(){ qz.i++; pos('quiz', qz.i, L.listening.length); qzRender(true); };
+  window.qzNext = function(){ qz.i++; pos('quiz', qz.i, L.listening.length, qz.score); qzRender(true); };
   window.qzRestart = function(){ qz.i=0; qz.score=0; qzRender(true); };
   if(L.listening){ qz.i = resume('quiz', L.listening.length); qzRender(false); }
 
@@ -402,7 +404,7 @@
   function rcFinish(acc, showedResult){
     const s = L.sentences[rc.i];
     rc.results[rc.i]=acc;
-    pos('recite', rc.results.filter(x=>x!=null).length, L.sentences.length);
+    pos('recite', rc.results.filter(x=>x!=null).length, L.sentences.length, rc.results.filter(x=>x!=null&&x>=JD.PASS).length);
     if(acc < JD.PASS){
       JD.addError({id:L.id+'#'+rc.i, lessonId:L.id, en:s.en, zh:s.zh});
     }
@@ -494,11 +496,22 @@
   window.mkMic=function(){
     const btn=$('#mkMicBtn');
     if(!JD.recSupported()){ $('#mkFb').innerHTML='<div class="acc-badge bad">此設備不支援語音輸入，用打字吧</div>'; return; }
-    btn.classList.add('listening'); btn.textContent='👂 正在聽…';
-    JD.listen(text=>{
-      btn.classList.remove('listening'); btn.textContent='🎤 用說的';
-      if(text){ const t=$('#mkInput'); t.value=(t.value?t.value+' ':'')+text; }
-    });
+    btn.classList.add('listening'); btn.textContent='👂 正在聽…'; btn.disabled=true;
+    $('#mkFb').innerHTML='<div class="acc-badge">👂 說完就點「我說完了」，或停一下自動結束</div>'+
+      '<div style="margin-top:6px"><button class="big-btn teal" id="mkDoneBtn">✅ 我說完了</button></div>';
+    const rec = JD.listen((text, err)=>{
+      btn.classList.remove('listening'); btn.textContent='🎤 用說的'; btn.disabled=false;
+      if(text){ const t=$('#mkInput'); t.value=(t.value?t.value+' ':'')+text; $('#mkFb').innerHTML=''; }
+      else {
+        const msg = err==='not-allowed' ? '麥克風權限被拒絕：請在 設定→Safari→麥克風 允許'
+                  : err==='silence' ? '沒聽到聲音，再說一次（或直接打字）'
+                  : err==='unsupported' ? '此設備不支援語音輸入，用打字吧'
+                  : '沒聽清，再試一次（或直接打字）';
+        $('#mkFb').innerHTML='<div class="acc-badge bad">'+msg+'</div>';
+      }
+    }, null, 'en-US');
+    const db=$('#mkDoneBtn');
+    if(db) db.onclick=()=>{ db.disabled=true; db.textContent='⏳ …'; try{ rec && rec.stop(); }catch(e){} };
   };
   function mkAfter(ok, fix, tip){
     mk.results[mk.i]=ok; mkPills();
@@ -526,7 +539,7 @@
       mkAfter(r.ok, r.fix, r.tip);
     }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
   };
-  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=true; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length); mkRender(); };
+  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=true; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };
   mk.i = resume('make', mkWords.length);
   mkRender();
 
@@ -580,12 +593,18 @@
     const pct = Math.round(doneCnt/keys.length*100);
     /* 每節完成比例：整節做完=100%，否則 已完成項/總項 */
     function frac(k){ if(p[k]) return 1; const s=sp[k]; return (s&&s.n)? Math.max(0,Math.min(1,(s.done||0)/s.n)) : 0; }
+    /* 可打分的環節：顯示「答對幾題」當學習成果；聽全文/逐句/語法只算讀過，無分 */
+    const SCORE_VERB = {vocab:'拼對', build:'排對', speak:'讀對', quiz:'答對', recite:'背對', make:'造對'};
     $('#doneList').innerHTML =
       '<li class="done-summary"><span>本課完成 <b>'+doneCnt+'</b> / '+keys.length+'</span>'+
       '<div class="done-bar big"><i style="width:'+pct+'%"></i></div></li>'+
       keys.map(k=>{
         const s=sp[k]||{}; const f=frac(k); const w=Math.round(f*100);
-        const tag = p[k] ? '完成' : ((s.done||0)>0 ? s.done+'/'+s.n : '未開始');
+        const verb = SCORE_VERB[k];
+        let tag;
+        if(!(s.done||0) && !p[k]) tag='未開始';
+        else if(verb) tag = verb+' '+(s.score||0)+'/'+(s.n||s.done||0);   /* 答對 4/6 */
+        else tag = p[k] ? '完成' : (s.done+'/'+s.n);                       /* 讀完型只顯示進度 */
         return '<li class="done-item"><button class="done-row" onclick="switchTab(\''+k+'\')">'+
           '<span class="ck '+(p[k]?'done':'')+'">'+(p[k]?'✓':'')+'</span>'+
           '<span class="done-label">'+SEC_LABEL[k]+'</span>'+
