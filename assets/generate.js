@@ -79,7 +79,13 @@ ${schema}`;
     /* 容錯：截取第一個 { 到最後一個 } */
     const a=t.indexOf('{'), b=t.lastIndexOf('}');
     if(a>=0 && b>a) t=t.slice(a,b+1);
-    const d = JSON.parse(t);
+    let d;
+    try{ d = JSON.parse(t); }
+    catch(e){
+      /* 二次容錯：去掉物件/陣列的尾逗號（模型常見瑕疵）再試一次 */
+      try{ d = JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); }
+      catch(e2){ throw new Error('AI 輸出的內容格式有誤（多半是課文太長被截斷）。試試：①把課文分成短一點的幾段分別生成 ②或在「進階」把文字模型換成 glm-4-plus（比 flash 更穩）。'); }
+    }
     if(!d.sentences || !d.sentences.length) throw new Error('生成結果沒有句子');
     d.vocab = d.vocab || []; d.listening = d.listening || []; d.grammar = d.grammar || [];
     d.level = (Number.isInteger(d.level) && d.level>=1 && d.level<=5) ? d.level : 0; /* 0=未知,不顯示 */
@@ -178,14 +184,20 @@ ${schema}`;
     return d;
   }
 
-  async function callApi(model, messages, onProgress){
+  async function callApi(model, messages, onProgress, opts){
+    opts = opts || {};
     const key = getKey();
     if(!key) throw new Error('還沒設定智譜 API Key');
     if(onProgress) onProgress('正在請求智譜 AI…');
+    const body = { model, messages, temperature:0.3 };
+    /* 生成整課的 JSON 很長，不設上限會被截斷成半截 JSON → 解析失敗。給足額度。 */
+    if(opts.max_tokens) body.max_tokens = opts.max_tokens;
+    /* 智譜 GLM-4 支援強制輸出合法 JSON，杜絕「多一句解釋 / 尾逗號」導致 parse 失敗 */
+    if(opts.json) body.response_format = { type:'json_object' };
     const resp = await fetch(ENDPOINT, {
       method:'POST',
       headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' },
-      body: JSON.stringify({ model, messages, temperature:0.3 })
+      body: JSON.stringify(body)
     });
     if(resp.status===401) throw new Error('API Key 無效或已過期');
     if(!resp.ok){ const t=await resp.text().catch(()=>''); throw new Error('智譜回應錯誤 '+resp.status+' '+t.slice(0,120)); }
@@ -218,7 +230,7 @@ ${schema}`;
     const content = await callApi(getTextModel(), [
       { role:'system', content: systemPrompt(lang) },
       { role:'user', content: '課文如下：\n\n'+text+reuseHint(lang) }
-    ], onProgress);
+    ], onProgress, { json:true, max_tokens:4096 });
     if(onProgress) onProgress('正在整理課文…');
     const d = parseLesson(content);
     return verifyListening(lang, d, onProgress);
@@ -230,7 +242,7 @@ ${schema}`;
         { type:'text', text: systemPrompt(lang)+'\n\n請先一字不漏地讀出圖片裡的課文（不要漏詞、不要改寫），再按上面規則輸出 JSON。'+reuseHint(lang) },
         { type:'image_url', image_url:{ url: dataUrl } }
       ]}
-    ], onProgress);
+    ], onProgress, { max_tokens:4096 });
     if(onProgress) onProgress('正在整理課文…');
     const d = parseLesson(content);
     return verifyListening(lang, d, onProgress);
@@ -246,7 +258,7 @@ ${schema}`;
         '2. 句子語法是否基本正確（輕微拼寫、大小寫、標點問題不扣）\n'+
         '只輸出 JSON，不要任何解釋：{"ok":true或false,"fix":"若不對，給一句修正後的句子；對則留空","tip":"一句繁體中文的鼓勵或提示，30字內"}\n\n'+
         '指定單詞：'+word+'\n孩子的句子：'+sentence }
-    ]);
+    ], null, { json:true, max_tokens:512 });
     let t = stripFences(content);
     const a=t.indexOf('{'), b=t.lastIndexOf('}');
     if(a>=0 && b>a) t=t.slice(a,b+1);
@@ -266,7 +278,7 @@ ${schema}`;
         '**只能用下面這些學過的詞**，加上最基礎的功能詞（'+(lang==='jp'?'助詞、です/ます等':'冠詞、代詞、be 動詞、介詞等')+'）'+jpRule+'。故事要有趣、完整。\n'+
         '只輸出 JSON，不要任何解釋：{"title":"故事標題（'+langName+'）","text":"故事全文","zh":"繁體中文翻譯"}\n\n'+
         '學過的詞：'+words.join(', ') }
-    ]);
+    ], null, { json:true, max_tokens:1024 });
     let t = stripFences(content);
     const a=t.indexOf('{'), b=t.lastIndexOf('}');
     if(a>=0 && b>a) t=t.slice(a,b+1);
