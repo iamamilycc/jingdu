@@ -10,25 +10,6 @@
 
   function cfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY))||null; }catch(e){ return null; } }
   function setCfg(c){ if(c) localStorage.setItem(CFG_KEY, JSON.stringify(c)); else localStorage.removeItem(CFG_KEY); sha=null; }
-
-  /* 一鍵配置鏈接：#sy=<同步碼>，家人朋友點開一次只需輸入自己的暱稱即可開通雲端備份，
-     不必知道「同步碼」是什麼、不必自己去 GitHub 申請 token。
-     暱稱仍由本人輸入（不放進鏈接）：同一份鏈接可分給多人，各自輸入不同暱稱互不覆蓋。
-     hash 不進服務器日誌；讀取後立即用 history.replaceState 抹掉地址欄，不留痕跡。 */
-  let _pendingToken = null;
-  try{
-    const m = location.hash.match(/^#sy=([A-Za-z0-9._-]{16,})$/);
-    if(m){ _pendingToken = m[1]; history.replaceState(null, '', location.pathname + location.search); }
-  }catch(e){}
-  function applyShareLink(){
-    if(!_pendingToken) return false;
-    const token = _pendingToken; _pendingToken = null;
-    const user = prompt('這台設備上是誰在學？輸入暱稱（同一暱稱=同一份進度）：', '');
-    if(!user) return true; /* 用户取消也算已處理，不再重複彈 */
-    setCfg({ user:user.trim(), token:token });
-    init();
-    return true;
-  }
   function b64e(s){ return btoa(unescape(encodeURIComponent(s))); }
   function b64d(s){ return decodeURIComponent(escape(atob(s.replace(/\n/g,'')))); }
   function setStatus(t, ok){
@@ -142,19 +123,9 @@
       '<span style="font-family:var(--font-head);font-weight:600">👤 '+c.user+'</span>'+
       '<span id="syncStatus" class="hint" style="margin:0">☁️</span>'+
       '<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">'+
-      '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.shareLink()">🔗 分享給家人</button>'+
       '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.switchUser()">切換使用者</button>'+
-      '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.setup()">設定</button></span></div>'+
-      '<input type="text" id="syncShareOut" readonly style="display:none;margin-top:8px;width:100%;box-sizing:border-box">';
+      '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.setup()">設定</button></span></div>';
     push_status_refresh();
-  }
-  /* 生成「一鍵配置鏈接」給家人朋友：他們點開只需輸入自己暱稱，不必知道同步碼是什麼 */
-  function shareLink(){
-    const c=cfg(); if(!c || !c.token) return;
-    const url=location.origin+location.pathname+'#sy='+c.token;
-    const out=document.getElementById('syncShareOut');
-    if(out){ out.style.display='block'; out.value=url; out.select && out.select(); }
-    try{ navigator.clipboard.writeText(url); }catch(e){}
   }
   function push_status_refresh(){ const c=cfg(); if(c) setStatus('☁️ 同步已開啟'); }
 
@@ -181,10 +152,9 @@
     setTimeout(()=>location.reload(), 800);
   }
 
-  window.JDSYNC={ schedule:schedule, setup:setup, switchUser:switchUser, init:init, shareLink:shareLink,
+  window.JDSYNC={ schedule:schedule, setup:setup, switchUser:switchUser, init:init,
                   _cfg:cfg, _pull:pull, _push:push, _snapshot:snapshot };
-  function boot(){ if(!applyShareLink()) init(); }
-  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
+  else init();
   window.addEventListener('online', ()=>schedule(2000));
 })();

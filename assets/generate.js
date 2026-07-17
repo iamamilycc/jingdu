@@ -10,17 +10,6 @@
   function getKey(){ return localStorage.getItem(KEY) || ''; }
   function setKey(k){ if(k) localStorage.setItem(KEY, k.trim()); else localStorage.removeItem(KEY); }
 
-  /* 一鍵配置鏈接：站長把 key 做成 #k=xxx 鏈接發給家人朋友，對方點開一次 AI 就配置好，
-     不必每人自己去智譜申請。用 hash 而非 ?query：hash 不會被送到服務器/寫進訪問日誌。
-     存好後立即從地址欄抹掉，並提示成功。（智譜控制台可為每人建一把 key、隨時可刪） */
-  try{
-    const _mk = location.hash.match(/^#k=([A-Za-z0-9._-]{16,})$/);
-    if(_mk){
-      localStorage.setItem(KEY, _mk[1]);
-      history.replaceState(null, '', location.pathname + location.search);
-      setTimeout(function(){ alert('✅ AI 已配置完成！現在可以直接「加一課」了。'); }, 200);
-    }
-  }catch(e){}
   /* 文字模型預設 glm-4-plus：出閱讀理解題/講解質量明顯優於免費的 flash，一課約幾分錢（付費，需智譜帳戶有餘額）。
      想省錢可在「新增課文→進階」改回 glm-4-flash（免費，但聽力題多走程序化保底）。 */
   function getTextModel(){ return localStorage.getItem(MODEL_TEXT_KEY) || 'glm-4-plus'; }

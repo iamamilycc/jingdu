@@ -61,15 +61,6 @@
         </div>
         <div class="key-hint" style="margin-top:6px">拍照走看圖識字（免費），生成文字理解和出題走上面選的模型——不用管模型叫什麼名字，選好直接按最下面「生成」即可。</div>
       </div>
-      <details class="adv">
-        <summary>分享給家人朋友：生成「一鍵配置鏈接」（對方不用申請 key）</summary>
-        <div style="margin-top:8px">
-          <input type="text" id="shareKey" placeholder="貼上要分享的 key（建議在智譜控制台為每人另建一把，隨時可刪）" style="margin-bottom:6px">
-          <button type="button" class="big-btn teal" style="padding:9px 18px" onclick="makeShareLink()">🔗 生成鏈接並複製</button>
-          <input type="text" id="shareOut" readonly placeholder="鏈接會出現在這裡，長按可手動複製" style="margin-top:6px;display:none">
-          <div class="key-hint" style="margin-top:6px">對方點開鏈接一次，AI 就自動配置好，之後正常使用。費用走 key 所屬的智譜帳戶（一課約幾分錢）；想停掉就到智譜控制台刪那把 key。</div>
-        </div>
-      </details>
     </div>
 
     <div class="gen-field">
@@ -158,17 +149,6 @@ window.addToQueue = function(){
   fb('已加入清單，共 '+queue.length+' 課待生成。可以繼續填下一課。');
 };
 $('#pasteText').addEventListener('input', updateGenBtnLabel);
-
-/* 一鍵配置鏈接：#k= 走 hash 不進服務器日誌；generate.js 打開時自動存 key 並抹掉地址欄 */
-function makeShareLink(){
-  const k=($('#shareKey').value||'').trim();
-  const out=$('#shareOut');
-  if(!/^[A-Za-z0-9._-]{16,}$/.test(k)){ out.style.display='block'; out.value='⚠️ 先貼上一把有效的 key（太短或含空格都不行）'; return; }
-  const url=location.origin+location.pathname+'#k='+k;
-  out.style.display='block'; out.value=url;
-  try{ navigator.clipboard.writeText(url); }catch(e){}
-  out.select && out.select();
-}
 
 /* 圖片上傳（相簿或拍照）→ 走看圖識字 */
 $('#photo').addEventListener('change', async e=>{
