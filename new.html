@@ -53,6 +53,15 @@
           <div class="key-hint" style="margin-top:6px">想省錢可填 <b>glm-4-flash</b>（免費，但聽力題多走「聽句選意」保底）。</div>
         </div>
       </details>
+      <details class="adv">
+        <summary>分享給家人朋友：生成「一鍵配置鏈接」（對方不用申請 key）</summary>
+        <div style="margin-top:8px">
+          <input type="text" id="shareKey" placeholder="貼上要分享的 key（建議在智譜控制台為每人另建一把，隨時可刪）" style="margin-bottom:6px">
+          <button type="button" class="big-btn teal" style="padding:9px 18px" onclick="makeShareLink()">🔗 生成鏈接並複製</button>
+          <input type="text" id="shareOut" readonly placeholder="鏈接會出現在這裡，長按可手動複製" style="margin-top:6px;display:none">
+          <div class="key-hint" style="margin-top:6px">對方點開鏈接一次，AI 就自動配置好，之後正常使用。費用走 key 所屬的智譜帳戶（一課約幾分錢）；想停掉就到智譜控制台刪那把 key。</div>
+        </div>
+      </details>
     </div>
 
     <div class="gen-field">
@@ -95,6 +104,17 @@ if(localStorage.getItem('jingdu_zhipu_model_vision')) $('#modelVision').value = 
 
 let photoDataUrl = null;
 function fb(msg, bad){ $('#genFb').innerHTML='<div class="acc-badge '+(bad?'bad':'good')+'">'+JD.esc(msg)+'</div>'; }
+
+/* 一鍵配置鏈接：#k= 走 hash 不進服務器日誌；generate.js 打開時自動存 key 並抹掉地址欄 */
+function makeShareLink(){
+  const k=($('#shareKey').value||'').trim();
+  const out=$('#shareOut');
+  if(!/^[A-Za-z0-9._-]{16,}$/.test(k)){ out.style.display='block'; out.value='⚠️ 先貼上一把有效的 key（太短或含空格都不行）'; return; }
+  const url=location.origin+location.pathname+'#k='+k;
+  out.style.display='block'; out.value=url;
+  try{ navigator.clipboard.writeText(url); }catch(e){}
+  out.select && out.select();
+}
 
 /* 圖片上傳（相簿或拍照）→ 走看圖識字 */
 $('#photo').addEventListener('change', async e=>{
