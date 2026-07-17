@@ -245,16 +245,22 @@ ${schema}`;
     return verifyListening(lang, d, onProgress);
   }
 
+  /* 圖片建課分兩步：①視覺模型只做「照抄圖片文字」（輸出短，遠低於視覺模型 1024 token 硬上限）
+     ②抄出的原文交給 fromText 走文字模型（glm-4-plus，4096 上限）生成完整精讀 JSON。
+     不能一次叫視覺模型「讀圖+輸出整課JSON」——整課JSON很長，視覺模型 max_tokens 硬上限只有
+     1024（實測 API 400：「max_tokens参数非法：限制数值范围[1,1024]」），會被截斷。 */
   async function fromImage(lang, dataUrl, onProgress){
-    const content = await callApi(getVisionModel(), [
+    if(onProgress) onProgress('正在看圖識字…');
+    const langName = lang==='jp' ? '日文' : '英文';
+    const ocr = await callApi(getVisionModel(), [
       { role:'user', content: [
-        { type:'text', text: systemPrompt(lang)+'\n\n請先一字不漏地讀出圖片裡的課文（不要漏詞、不要改寫），再按上面規則輸出 JSON。'+reuseHint(lang) },
+        { type:'text', text: '請把圖片裡的'+langName+'課文一字不漏地照抄出來（不要漏詞、不要改寫、不要翻譯、不要加任何說明或標點以外的文字），只輸出課文原文本身。' },
         { type:'image_url', image_url:{ url: dataUrl } }
       ]}
-    ], onProgress, { max_tokens:4096 });
-    if(onProgress) onProgress('正在整理課文…');
-    const d = parseLesson(content);
-    return verifyListening(lang, d, onProgress);
+    ], onProgress, { max_tokens:1024 });
+    const text = stripFences(ocr).trim();
+    if(!text) throw new Error('沒能從圖片讀出文字，換張更清楚的照片試試');
+    return fromText(lang, text, onProgress);
   }
 
   /* ---- 造句判分（造句挑戰環節用；返回結構經校驗，格式不對直接拋錯讓 UI 走自評兜底） ---- */
