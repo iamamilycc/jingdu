@@ -57,7 +57,7 @@
   const ltBox = $('#ltText');
   if(ltBox){
     ltBox.classList.add('jp-text');
-    ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+R.toRubyHTML(JD.esc(s.jp))+'</span>').join('　');
+    ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+(s.speaker?'<b class="spk">'+JD.esc(s.speaker)+':</b> ':'')+R.toRubyHTML(JD.esc(s.jp))+'</span>').join('　');
     insertZhCard(ltBox, L.sentences);
   }
   function insertZhCard(box, sentences){
@@ -115,7 +115,7 @@
     const div=document.createElement('div');
     div.className='card sent';
     div.innerHTML=
-      '<div class="en jp-en jp-text"><span class="idx">'+(i+1)+'</span><span style="flex:1">'+R.toRubyHTML(JD.esc(s.jp))+'</span>'+
+      '<div class="en jp-en jp-text"><span class="idx">'+(i+1)+'</span><span style="flex:1">'+(s.speaker?'<b class="spk">'+JD.esc(s.speaker)+':</b> ':'')+R.toRubyHTML(JD.esc(s.jp))+'</span>'+
       '<button class="btn-voice" aria-label="播放">🔊</button>'+
       '<button class="btn-voice slow" aria-label="慢速">慢</button></div>'+
       '<div style="margin:4px 0 0 40px" class="jp-romaji">'+JD.esc(s.romaji||'')+'</div>'+

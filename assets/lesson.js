@@ -38,7 +38,7 @@
   const lt = { playing:false, idx:-1, slow:false, blind:false, loop:false };
   const ltBox = $('#ltText');
   if(ltBox){
-    ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+JD.esc(s.en)+'</span>').join(' ');
+    ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+(s.speaker?'<b class="spk">'+JD.esc(s.speaker)+':</b> ':'')+JD.esc(s.en)+'</span>').join(' ');
     insertZhCard(ltBox, L.sentences);
   }
   function ltHighlight(i){
@@ -103,7 +103,7 @@
     const div = document.createElement('div');
     div.className='card sent';
     div.innerHTML =
-      '<div class="en"><span class="idx">'+(i+1)+'</span><span style="flex:1">'+JD.esc(s.en)+'</span>'+
+      '<div class="en"><span class="idx">'+(i+1)+'</span><span style="flex:1">'+(s.speaker?'<b class="spk">'+JD.esc(s.speaker)+':</b> ':'')+JD.esc(s.en)+'</span>'+
       '<button class="btn-voice" aria-label="播放">🔊</button>'+
       '<button class="btn-voice slow" aria-label="慢速">慢</button></div>'+
       '<div class="body"><div class="zh">🀄 '+JD.esc(s.zh)+'</div>'+
