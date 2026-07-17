@@ -84,9 +84,12 @@
     timer=setTimeout(push, delay||4000);
   }
 
-  /* 首次載入：雲端較新 → 還原到本機；本機較新 → 推上雲端 */
+  /* 首次載入：雲端較新 → 還原到本機；本機較新 → 推上雲端
+     注意：renderCard() 先渲染卡片外殼，#syncStatus 節點才存在，之後 setStatus() 才寫得進去；
+     pull() 結果出來後只更新狀態文字，不再重渲染整張卡（否則會把剛設好的真實狀態文字蓋掉）。 */
   function init(){
     const c=cfg(); if(!c){ setStatus(''); renderCard(); return; }
+    renderCard();
     setStatus('☁️ 連線中…');
     pull().then(remote=>{
       const localUpd=parseInt(localStorage.getItem(UPD_KEY)||'0',10);
@@ -100,10 +103,8 @@
       }else{
         setStatus('☁️ 已同步', true);
       }
-      renderCard();
     }).catch(e=>{
       setStatus(e==='auth' ? '⚠️ 同步碼失效，請重新設定' : '📴 離線，資料先存本機', e!=='auth' ? undefined : false);
-      renderCard();
     });
   }
 
@@ -125,9 +126,7 @@
       '<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">'+
       '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.switchUser()">切換使用者</button>'+
       '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.setup()">設定</button></span></div>';
-    push_status_refresh();
   }
-  function push_status_refresh(){ const c=cfg(); if(c) setStatus('☁️ 同步已開啟'); }
 
   function setup(){
     const c=cfg()||{};
