@@ -16,6 +16,35 @@
     }catch(e){}
   }
 
+  /* ---------- 微信內建瀏覽器偵測：跟讀/背句要用的麥克風錄音，iOS 微信內建瀏覽器（WKWebView）
+     系統性不支援（蘋果只把語音辨識權限開給獨立 Safari，不開給第三方 App 內建瀏覽器）。
+     這不是能用代碼修的 bug，也沒辦法自動跳出微信（微信會攔截，實測過）——
+     唯一可靠辦法是用戶自己點右上角「⋯」選「在瀏覽器打開」。這裡主動偵測+引導，
+     不讓用戶像之前那樣卡在錄音沒反應才發現。聽全文/聽力題播放不受影響，不擋整站。 */
+  function isWeChatBrowser(){ return /MicroMessenger/i.test(navigator.userAgent||''); }
+  function wechatTipDismissed(){ try{ return sessionStorage.getItem(NS+'wx_tip_dismissed')==='1'; }catch(e){ return false; } }
+  function injectWeChatTip(){
+    if(!isWeChatBrowser() || wechatTipDismissed()) return;
+    if(document.getElementById('jdWxTip')) return;
+    const bar = document.createElement('div');
+    bar.id = 'jdWxTip';
+    bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:999;background:#F5A623;color:#2B2320;'+
+      'padding:10px 14px;font-size:.86rem;line-height:1.5;box-shadow:0 2px 8px rgba(0,0,0,.15);'+
+      'display:flex;align-items:center;gap:8px;font-family:-apple-system,sans-serif';
+    bar.innerHTML =
+      '<span style="flex:1">↗️ 跟讀／背句要用麥克風，微信內建瀏覽器不支援。點右上角 <b>⋯</b> → 選「<b>在瀏覽器打開</b>」才能用</span>'+
+      '<button type="button" style="flex:none;border:none;background:none;font-size:1.1rem;cursor:pointer;color:#2B2320;padding:0 4px" aria-label="關閉">✕</button>';
+    document.documentElement.style.setProperty('--jd-wx-tip-h','0px');
+    function place(){ document.body.style.paddingTop = bar.offsetHeight+'px'; }
+    bar.querySelector('button').onclick = ()=>{
+      try{ sessionStorage.setItem(NS+'wx_tip_dismissed','1'); }catch(e){}
+      bar.remove(); document.body.style.paddingTop='';
+    };
+    if(document.body){ document.body.appendChild(bar); place(); }
+    else document.addEventListener('DOMContentLoaded', ()=>{ document.body.appendChild(bar); place(); });
+  }
+  injectWeChatTip();
+
   /* ---------- 存儲 ---------- */
   function load(key, def){ try{ const v = localStorage.getItem(NS+key); return v ? JSON.parse(v) : def; }catch(e){ return def; } }
   function save(key, val){
