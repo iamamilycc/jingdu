@@ -463,7 +463,8 @@
   }
 
   /* ========== 5.6 造句挑戰（用本課生詞說自己的話；AI 老師判，無 key/出錯走自評兜底） ========== */
-  const mkWords = (L.vocab||[]).slice(0,3);
+  /* 用上本課全部生詞（判分成本極低），一次做不完可續做 */
+  const mkWords = (L.vocab||[]).slice();
   const mk = { i:0, results:[] };
   function mkPills(){
     const el=$('#mkPills'); if(!el) return;
