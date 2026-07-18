@@ -8,8 +8,8 @@
   const LANG = 'ja-JP';
   const R = window.JDRuby;
 
-  document.title = L.id.toUpperCase()+' · '+L.title+' · 日語精讀';
-  $('#hTitle').textContent = L.badge+' · '+L.title;
+  document.title = (L.title||'未命名')+' · 日語精讀';
+  $('#hTitle').textContent = (L.badge ? L.badge+' · ' : '') + (L.title||'未命名');
 
   /* ---------- 漢字→讀音對照表（從本課 sentences/vocab 的 base[かな] 標記自動收集） ----------
      用途：iPad 語音識別對日語通常輸出「標準漢字假名混寫」而非純假名，

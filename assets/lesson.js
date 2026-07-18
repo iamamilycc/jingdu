@@ -5,8 +5,8 @@
   if(!L){ return; }
   const $ = s=>document.querySelector(s), $$ = s=>Array.from(document.querySelectorAll(s));
 
-  document.title = L.id.toUpperCase()+' · '+L.title+' · 精讀';
-  $('#hTitle').textContent = L.badge+' · '+L.title;
+  document.title = (L.title||'未命名')+' · 精讀';
+  $('#hTitle').textContent = (L.badge ? L.badge+' · ' : '') + (L.title||'未命名');
 
   /* ========== Tab 切換 ========== */
   window.switchTab = function(name){

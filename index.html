@@ -121,7 +121,7 @@ function renderUserLessons(){
     const a=document.createElement('a'); a.className='card lesson-item'; a.href='lessons/view.html?id='+encodeURIComponent(l.id);
     a.innerHTML='<span class="badge" style="background:var(--mango);color:var(--ink)">自建<small>ENG</small></span>'+
       '<span class="t"><span class="en">'+JD.esc(l.title||'未命名')+'</span>'+
-      (l.level?'<br><span class="zh">'+'★'.repeat(l.level)+'☆'.repeat(5-l.level)+' 難度</span>':'')+scoreChip(l.id)+'</span>'+
+      (l.level?'<br><span class="zh nowrap">'+'★'.repeat(l.level)+'☆'.repeat(5-l.level)+' 難度</span>':'')+scoreChip(l.id)+'</span>'+
       '<span class="pct">'+(pct>=100?'✅':pct+'%')+'</span>';
     applyGate(a, SECS_KEYS.filter(k=>p[k]).length>0);
     const del=document.createElement('button');
