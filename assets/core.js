@@ -1,4 +1,6 @@
-/* 精讀 jingdu 核心引擎：存儲 / 艾賓浩斯 / TTS / 語音識別 / 逐詞比對 */
+/* 精讀 jingdu 核心引擎：存儲 / 艾賓浩斯 / TTS / 語音識別 / 逐詞比對
+   版權所有 © 2026 iamamilycc · 保留一切權利 All Rights Reserved.
+   官方唯一網址 https://iamamilycc.github.io/jingdu ——未經書面同意禁止複製/鏡像/改作/商用。 */
 (function(){
   'use strict';
   const NS = 'jingdu_';
@@ -60,7 +62,7 @@
   function markDone(lessonId, sec){
     const p = getProgress(lessonId); if(p[sec]) return p;
     p[sec] = true; save('prog_'+lessonId, p);
-    touchDay();
+    touchDay(langOf(lessonId));
     return p;
   }
 
@@ -206,14 +208,32 @@
   /* ---------- 學習日曆 + 連續天數（streak）----------
      days: {'2026-07-14': 動作次數,...}；任何學習動作(完成環節/復盤/錯題)都記一筆 */
   function dstr(d){ const x=d||new Date(); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
-  function touchDay(){
-    const m = load('days', {});
+  /* 從課程 ID 判斷語言：nce2-*=英語、jp-*=日語、u-*(自建課)查 userlessons 的 lang。
+     供學習量分語言統計與月/年報過濾用。 */
+  function langOf(lessonId){
+    if(!lessonId) return '';
+    if(lessonId.indexOf('nce2-')===0) return 'en';
+    if(lessonId.indexOf('jp-')===0) return 'jp';
+    if(lessonId.indexOf('u-')===0){
+      try{ const u=JSON.parse(localStorage.getItem(NS+'userlessons')||'{}')[lessonId]; return (u&&u.lang)||''; }catch(e){ return ''; }
+    }
+    return '';
+  }
+  function bumpDay(key){
+    const m = load(key, {});
     m[dstr()] = (m[dstr()]||0)+1;
     const keys = Object.keys(m).sort();
     while(keys.length>400) delete m[keys.shift()];
-    save('days', m);
+    save(key, m);
+  }
+  /* 記一筆學習動作。lang 已知(en/jp)時同時記到分語言日曆，供英/日分開的月報年報用。
+     全站 days 仍合記(連續天數 streak 不分語言：學任一語言都算今天有學)。 */
+  function touchDay(lang){
+    bumpDay('days');
+    if(lang==='en'||lang==='jp') bumpDay('days_'+lang);
   }
   function daysMap(){ return load('days', {}); }
+  function daysMapLang(lang){ return (lang==='en'||lang==='jp') ? load('days_'+lang, {}) : load('days', {}); }
   function streak(){
     const m = daysMap();
     const todayDone = !!m[dstr()];
@@ -225,18 +245,20 @@
 
   /* ---------- 錯題本 + 艾賓浩斯 ----------
      item: {id, lessonId, en, zh, level, due, fails, ts}
-     level 0..5 → 通過後 due = now + INTERVALS[level]；level 到 6 = 牢固 */
-  const INTERVALS = [30*60e3, 24*3600e3, 2*24*3600e3, 4*24*3600e3, 7*24*3600e3, 15*24*3600e3];
-  const LEVEL_NAMES = ['新錯題','30分鐘','1天','2天','4天','7天','15天‧牢固'];
+     level 0..7 → 通過後 due = now + INTERVALS[level]；level 到 8(=INTERVALS.length) = 牢固。
+     間隔遞增(30分→90天)貼近艾賓浩斯遺忘曲線+長期記憶鞏固，答錯即打回 level 0 重來。 */
+  const INTERVALS = [30*60e3, 24*3600e3, 2*24*3600e3, 4*24*3600e3, 7*24*3600e3, 15*24*3600e3, 30*24*3600e3, 90*24*3600e3];
+  const LEVEL_NAMES = ['新錯題','30分鐘','1天','2天','4天','7天','15天','30天','90天‧牢固'];
 
   function getBook(){ return load('errbook', {}); }
   function setBook(b){ save('errbook', b); }
   function addError(item){
-    touchDay();
+    const lang = langOf(item.lessonId);
+    touchDay(lang);
     const b = getBook();
     const old = b[item.id];
     b[item.id] = {
-      id:item.id, lessonId:item.lessonId, en:item.en, zh:item.zh||'',
+      id:item.id, lessonId:item.lessonId, lang:lang, en:item.en, zh:item.zh||'',
       type:item.type||'sent', pos:item.pos||'',
       kmap:item.kmap||undefined, /* 日語課專用：漢字→讀音對照，供 review 頁把識別結果的漢字換成讀音再比對 */
       level:0, due:Date.now()+INTERVALS[0],
@@ -245,15 +267,15 @@
     setBook(b);
   }
   function reviewPass(id){
-    touchDay();
+    const b0 = getBook(); touchDay(b0[id]?langOf(b0[id].lessonId):'');
     const b = getBook(); const it = b[id]; if(!it) return;
     it.level += 1;
-    if(it.level >= 6){ it.due = Number.MAX_SAFE_INTEGER; it.solid = true; }
+    if(it.level >= INTERVALS.length){ it.due = Number.MAX_SAFE_INTEGER; it.solid = true; }
     else{ it.due = Date.now()+INTERVALS[it.level]; }
     setBook(b);
   }
   function reviewFail(id){
-    touchDay();
+    const b0 = getBook(); touchDay(b0[id]?langOf(b0[id].lessonId):'');
     const b = getBook(); const it = b[id]; if(!it) return;
     it.level = 0; it.due = Date.now()+INTERVALS[0]; it.fails += 1; delete it.solid;
     setBook(b);
@@ -263,6 +285,24 @@
     return Object.values(getBook()).filter(it=>!it.solid && it.due<=now).sort((a,b)=>a.due-b.due);
   }
   function allItems(){ return Object.values(getBook()).sort((a,b)=>a.due-b.due); }
+
+  /* ---------- 家長控制鎖 ----------
+     gate: 'free'(預設,可直接上新課) / 'strict'(必須複習完到期錯題才能上新課)。
+     用密碼保護避免孩子自己改。PIN 不明文存：用簡單雜湊(這是本機兒童 App，非高安全場景，
+     目的只是擋孩子隨手改設定，非防破解)。 */
+  function hashPin(s){ let h=5381; s=String(s); for(let i=0;i<s.length;i++){ h=(((h<<5)+h)^s.charCodeAt(i))>>>0; } return h.toString(36); }
+  function parentHasPin(){ return !!load('parent_pin',''); }
+  function setParentPin(pin){ save('parent_pin', hashPin(pin)); }
+  function checkParentPin(pin){ return !!load('parent_pin','') && load('parent_pin','')===hashPin(pin); }
+  function getGate(){ return load('parent_gate','free')==='strict' ? 'strict' : 'free'; }
+  function setGate(g){ save('parent_gate', g==='strict'?'strict':'free'); }
+  /* 是否該擋住「上新課」：strict 模式且該語言有到期複習沒清完，回傳該語言到期數(0=不擋)。
+     分語言判斷，避免用英語版時被日語到期題擋住卻被送去看不到題的複習頁。 */
+  function newLessonBlockedBy(lang){
+    if(getGate()!=='strict') return 0;
+    const now=Date.now();
+    return Object.values(getBook()).filter(it=>!it.solid && it.due<=now && (it.lang||langOf(it.lessonId))===lang).length;
+  }
 
   /* ---------- TTS（lang 預設 en-US，日語頁傳 'ja-JP'） ----------
      選聲優先序：①用戶在「聲音設定」頁選的偏好 ②高質量聲音（增強/Siri/neural 等關鍵詞）
@@ -466,7 +506,9 @@
   }
 
   window.JD = { getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, reviewPass, reviewFail,
-                dueItems, allItems, streak, daysMap, touchDay, speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
+                dueItems, allItems, streak, daysMap, daysMapLang, langOf, touchDay,
+                parentHasPin, setParentPin, checkParentPin, getGate, setGate, newLessonBlockedBy,
+                speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
                 listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
                 lessonScore, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
                 celebrate, praiseKind, sfxEnabled, setSfx,

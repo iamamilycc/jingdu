@@ -20,7 +20,7 @@
   <a class="due-banner" id="dueBanner" href="review.html"></a>
   <div class="card" id="syncCard" style="display:none"></div>
 
-  <a class="due-banner" href="../new.html" style="background:var(--teal);color:#fff"><span class="n">➕</span><span>拍照 / 粘貼一段日語課文，AI 自動做成精讀頁</span></a>
+  <a class="due-banner" id="addBanner" href="../new.html" style="background:var(--teal);color:#fff"><span class="n">➕</span><span>拍照 / 粘貼一段日語課文，AI 自動做成精讀頁</span></a>
 
   <div id="searchBox" style="display:none;margin:14px 0 6px">
     <input type="text" id="lessonSearch" placeholder="🔍 搜尋課文（課名）" autocomplete="off"
@@ -32,7 +32,7 @@
   <div id="userLessonList"></div>
   <p class="hint" id="searchEmpty" style="display:none">沒有符合的課文，換個關鍵字試試？</p>
 </main>
-<footer class="site">日語加油！頑張って！ 🌱</footer>
+<footer class="site">日語加油！頑張って！ 🌱<br><span style="font-size:.78rem;opacity:.7">© 2026 iamamilycc · 精讀 jingdu · 保留一切權利</span></footer>
 
 <script src="../assets/core.js"></script>
 <script src="../assets/sync.js"></script>
@@ -77,6 +77,21 @@ function scoreChip(id){
   const col = sc.accuracy>=85?'var(--teal-deep)':sc.accuracy>=60?'var(--mango)':'var(--coral)';
   return '<br><span class="zh" style="color:'+col+'">🎯 正確率 '+sc.accuracy+'% · 完成 '+sc.completion+'%</span>';
 }
+/* 家長鎖：strict 模式且日語有到期複習沒清完時，鎖住「加新課」與沒開始的新課 */
+function gateDue(){ return JD.newLessonBlockedBy('jp'); }
+function applyGate(a, started){
+  if(started || gateDue()<=0) return;
+  a.href='review.html'; a.classList.add('locked');
+  const pct=a.querySelector('.pct'); if(pct) pct.innerHTML='🔒 先複習';
+}
+function renderAddGate(){
+  const b=document.getElementById('addBanner'); if(!b) return;
+  const due=gateDue();
+  if(due>0){ b.href='review.html'; b.style.background='var(--coral)';
+    b.innerHTML='<span class="n">🔒</span><span>今天要先複習 <b style="font-size:1.2rem">'+due+'</b> 句，才能加新課 · 點我去複習</span>'; }
+  else{ b.href='../new.html'; b.style.background='var(--teal)';
+    b.innerHTML='<span class="n">➕</span><span>拍照 / 粘貼一段日語課文，AI 自動做成精讀頁</span>'; }
+}
 const box = document.getElementById('lessonList');
 LESSONS.forEach(l=>{
   const p = JD.getProgress(l.id);
@@ -88,6 +103,7 @@ LESSONS.forEach(l=>{
   a.innerHTML = '<span class="badge">'+l.num+'<small>'+l.badge+'</small></span>'+
     '<span class="t"><span class="en">'+l.title+'</span>'+scoreChip(l.id)+'</span>'+
     '<span class="pct">'+(pct>=100?'✅ 完成':pct+'%')+'</span>';
+  applyGate(a, doneCnt>0);
   box.appendChild(a);
 });
 
@@ -105,6 +121,7 @@ function renderUserLessons(){
       '<span class="t"><span class="en">'+JD.esc(l.title||'未命名')+'</span>'+
       (l.level?'<br><span class="zh">'+'★'.repeat(l.level)+'☆'.repeat(5-l.level)+' 難度</span>':'')+scoreChip(l.id)+'</span>'+
       '<span class="pct">'+(pct>=100?'✅':pct+'%')+'</span>';
+    applyGate(a, SECS_KEYS.filter(k=>p[k]).length>0);
     const del=document.createElement('button');
     del.className='udel'; del.type='button'; del.textContent='🗑'; del.title='刪除這課';
     del.addEventListener('click', e=>{
@@ -158,8 +175,9 @@ renderUserLessons();
 renderToday();
 renderStreak();
 renderClimb();
+renderAddGate();
 refreshSearchVisibility();
-window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderStreak(); renderClimb(); refreshSearchVisibility(); };
+window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderStreak(); renderClimb(); renderAddGate(); refreshSearchVisibility(); };
 </script>
 </body>
 </html>

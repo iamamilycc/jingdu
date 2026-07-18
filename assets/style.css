@@ -329,6 +329,9 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .lesson-item .t .en{font-weight:700;font-size:1.02rem}
 .lesson-item .t .zh{color:var(--muted);font-size:.85rem;margin-top:2px}
 .lesson-item .pct{font-family:var(--font-head);font-weight:600;color:var(--teal-deep);font-size:.95rem}
+.lesson-item.locked{opacity:.55}
+.lesson-item.locked .pct{color:var(--coral)}
+.rp-bars .lbl:empty{min-height:.7rem}
 .mic-tip{border-left:5px solid var(--mango)}
 .mic-tip summary{list-style:none}
 .mic-tip summary::-webkit-details-marker{display:none}

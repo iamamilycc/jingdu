@@ -3,23 +3,45 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>學習週報 · 精讀</title>
+<title>學習報告 · 精讀</title>
 <link rel="stylesheet" href="assets/style.css">
+<style>
+.seg{display:inline-flex;background:var(--line);border-radius:999px;padding:3px;gap:2px}
+.seg button{border:none;background:none;padding:7px 15px;border-radius:999px;font-family:var(--font-head);font-size:.92rem;color:var(--muted);cursor:pointer}
+.seg button.on{background:#fff;color:var(--teal-deep);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.seg-row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:6px 0 2px}
+.pin-in{width:130px;box-sizing:border-box;border:2px solid var(--line);border-radius:10px;padding:9px 12px;font-size:1rem;letter-spacing:2px;text-align:center}
+.gate-opt{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:2px solid var(--line);border-radius:12px;margin-top:8px;cursor:pointer}
+.gate-opt.on{border-color:var(--teal);background:rgba(20,160,150,.06)}
+.gate-opt b{font-family:var(--font-head)}
+</style>
 </head>
 <body>
 <header class="site"><div class="row">
   <a href="index.html">← 目錄</a>
-  <h1>📊 學習週報</h1>
+  <h1>📊 學習報告</h1>
 </div></header>
 <main>
-  <p class="hint" style="margin-top:4px">給家長看的：孩子最近學得怎麼樣、哪裡卡住了。英語＋日語數據合在一起。</p>
+  <p class="hint" style="margin-top:4px">給家長看的：孩子最近學得怎麼樣、哪裡卡住了。英語、日語分開看。</p>
+
+  <div class="seg-row">
+    <div class="seg" id="langSeg">
+      <button data-v="en" class="on">📘 英語</button>
+      <button data-v="jp">🎌 日語</button>
+    </div>
+    <div class="seg" id="periodSeg">
+      <button data-v="week" class="on">週報</button>
+      <button data-v="month">月報</button>
+      <button data-v="year">年報</button>
+    </div>
+  </div>
 
   <div class="card" id="rpStreak"></div>
 
-  <h2 class="sec">最近 7 天學習量</h2>
+  <h2 class="sec" id="volTitle">學習量</h2>
   <div class="card">
     <div class="rp-bars" id="rpBars"></div>
-    <p class="hint" style="margin:10px 0 0">柱子＝當天的學習動作次數（完成環節、復盤、練錯題都算）。頻率比單次時長重要，每天一點點最好。</p>
+    <p class="hint" style="margin:10px 0 0" id="volHint"></p>
   </div>
 
   <h2 class="sec">課程進度</h2>
@@ -29,9 +51,12 @@
   <div class="card" id="rpErr"></div>
   <div class="card" id="rpTop"></div>
 
-  <p class="hint">數據存在這台設備上；開啟雲端備份後，換設備也能看到同一份。</p>
+  <h2 class="sec">🔒 家長設定</h2>
+  <div class="card" id="parentCard"></div>
+
+  <p class="hint">數據存在這台設備上；開啟雲端備份後，換設備也能看到同一份。<br>備註：每日學習量的英／日分開，是從加入這個功能後才開始分別累計的；課程進度和錯題本兩邊都是完整的。</p>
 </main>
-<footer class="site">jingdu · 家長週報</footer>
+<footer class="site">jingdu · 家長報告</footer>
 
 <script src="assets/core.js"></script>
 <script src="assets/sync.js"></script>
@@ -39,6 +64,8 @@
 <script>
 const $=s=>document.querySelector(s);
 function dstr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+let LANG='en', PERIOD='week';
 
 function lessonName(id){
   let m;
@@ -49,37 +76,68 @@ function lessonName(id){
   return id;
 }
 
-function render(){
-  /* 連續天數 + 本週活躍 */
-  const st=JD.streak(), days=JD.daysMap();
-  let weekActive=0, weekActions=0;
-  const cols=[];
-  for(let i=6;i>=0;i--){
-    const d=new Date(); d.setDate(d.getDate()-i);
-    const k=dstr(d), c=days[k]||0;
-    if(c>0){ weekActive++; weekActions+=c; }
-    cols.push({lbl:(i===0?'今天':(d.getMonth()+1)+'/'+d.getDate()), c:c});
+/* 依語言+期間產生柱狀資料 [{lbl,c}]，週=近7天、月=本月每日、年=今年12個月 */
+function cols(){
+  const days=JD.daysMapLang(LANG), out=[], now=new Date();
+  if(PERIOD==='week'){
+    for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i);
+      out.push({lbl:(i===0?'今天':(d.getMonth()+1)+'/'+d.getDate()), c:days[dstr(d)]||0}); }
+  } else if(PERIOD==='month'){
+    const y=now.getFullYear(), mo=now.getMonth(), n=new Date(y,mo+1,0).getDate();
+    for(let d=1;d<=n;d++){ const k=y+'-'+String(mo+1).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+      out.push({lbl:(d%5===0||d===1?String(d):''), c:days[k]||0}); }
+  } else {
+    const y=now.getFullYear();
+    for(let mo=0;mo<12;mo++){ let s=0; const pre=y+'-'+String(mo+1).padStart(2,'0');
+      Object.keys(days).forEach(k=>{ if(k.indexOf(pre)===0) s+=days[k]; });
+      out.push({lbl:(mo+1)+'月', c:s}); }
   }
+  return out;
+}
+/* 期間內活躍天數與總動作 */
+function summary(){
+  const days=JD.daysMapLang(LANG), now=new Date(); let activeDays=0, actions=0;
+  const monKey=dstr(now).slice(0,7), yrKey=String(now.getFullYear());
+  const todayK=dstr(now);
+  Object.keys(days).forEach(k=>{
+    let inP=false;
+    if(PERIOD==='year') inP = k.slice(0,4)===yrKey;
+    else if(PERIOD==='month') inP = k.slice(0,7)===monKey;
+    else { const diff=(new Date(todayK+'T00:00:00')-new Date(k+'T00:00:00'))/(24*3600e3); inP = diff>=0 && diff<7; }
+    if(inP && days[k]>0){ activeDays++; actions+=days[k]; }
+  });
+  return {activeDays, actions};
+}
+
+function render(){
+  const langName = LANG==='en'?'英語':'日語';
+  const perName = PERIOD==='week'?'近 7 天':PERIOD==='month'?'本月':'今年';
+
+  /* 連續天數(不分語言：學任一語言都算) + 本期活躍 */
+  const st=JD.streak(), sm=summary();
   $('#rpStreak').innerHTML=
     '<div style="display:flex;gap:18px;flex-wrap:wrap;align-items:center">'+
     '<span style="font-size:1.6rem">🔥</span>'+
-    '<span style="font-family:var(--font-head)">連續學習 <b style="font-size:1.5rem;color:var(--teal-deep)">'+st.n+'</b> 天'+(st.todayDone?'（含今天）':'（今天還沒學）')+'</span>'+
-    '<span style="font-family:var(--font-head);color:var(--muted)">本週學了 <b style="color:var(--teal-deep)">'+weekActive+'</b> 天 · 共 '+weekActions+' 次動作</span></div>';
+    '<span style="font-family:var(--font-head)">連續學習 <b style="font-size:1.5rem;color:var(--teal-deep)">'+st.n+'</b> 天'+(st.todayDone?'（含今天）':'（今天還沒學）')+'<span class="hint" style="display:block;margin:0">連續天數不分語言</span></span>'+
+    '<span style="font-family:var(--font-head);color:var(--muted)">'+perName+'的'+langName+'：學了 <b style="color:var(--teal-deep)">'+sm.activeDays+'</b> 天 · 共 '+sm.actions+' 次動作</span></div>';
 
-  /* 7 天條形 */
-  const max=Math.max.apply(null, cols.map(x=>x.c).concat([1]));
-  $('#rpBars').innerHTML=cols.map(x=>
+  /* 柱狀 */
+  $('#volTitle').textContent = langName+'學習量 · '+perName;
+  const cs=cols(), max=Math.max.apply(null, cs.map(x=>x.c).concat([1]));
+  $('#rpBars').innerHTML=cs.map(x=>
     '<div class="col"><span class="cnt">'+(x.c||'')+'</span>'+
     '<div class="bar '+(x.c?'':'zero')+'" style="height:'+(x.c?Math.max(8,Math.round(x.c/max*100)):3)+'%"></div>'+
     '<span class="lbl">'+x.lbl+'</span></div>').join('');
+  $('#volHint').textContent = (PERIOD==='year'?'每根柱＝該月的學習動作次數。':'每根柱＝當天的學習動作次數（完成環節、復盤、練錯題都算）。')+'頻率比單次時長重要，每天一點點最好。';
 
-  /* 課程進度：掃所有 jingdu_prog_* */
+  /* 課程進度：掃 jingdu_prog_*，只留本語言 */
   const SECS=['listen','read','vocab','grammar','build','speak','quiz','recite','make'];
   const rows=[];
   for(let i=0;i<localStorage.length;i++){
     const k=localStorage.key(i);
     if(!k || k.indexOf('jingdu_prog_')!==0) continue;
     const id=k.slice('jingdu_prog_'.length);
+    if(JD.langOf(id)!==LANG) continue;
     const p=JD.getProgress(id);
     const cnt=SECS.filter(s=>p[s]).length;
     rows.push({id:id, name:lessonName(id), cnt:cnt, pct:Math.round(cnt/SECS.length*100)});
@@ -88,18 +146,18 @@ function render(){
   $('#rpLessons').innerHTML = rows.length ?
     rows.map(r=>'<div class="card lesson-item"><span class="t"><span class="en">'+JD.esc(r.name)+'</span></span>'+
       '<span class="pct">'+(r.pct>=100?'✅ 完成':r.pct+'%（'+r.cnt+'/9 環節）')+'</span></div>').join('')
-    : '<div class="card empty">還沒開始學任何課</div>';
+    : '<div class="card empty">這個語言還沒開始學任何課</div>';
 
-  /* 錯題概況 */
-  const items=JD.allItems();
+  /* 錯題：只留本語言(舊資料沒 lang 欄位時用 lessonId 反推) */
+  const items=JD.allItems().filter(it=>(it.lang||JD.langOf(it.lessonId))===LANG);
   const solid=items.filter(x=>x.solid).length;
-  const due=JD.dueItems().length;
+  const now=Date.now();
+  const due=items.filter(x=>!x.solid && x.due<=now).length;
   $('#rpErr').innerHTML='<div style="display:flex;gap:18px;flex-wrap:wrap;font-family:var(--font-head)">'+
-    '<span>錯題本共 <b style="color:var(--teal-deep)">'+items.length+'</b> 條</span>'+
+    '<span>'+langName+'錯題本共 <b style="color:var(--teal-deep)">'+items.length+'</b> 條</span>'+
     '<span>已牢固 <b style="color:var(--green)">'+solid+'</b> 條</span>'+
     '<span>現在到期 <b style="color:'+(due>0?'var(--coral)':'var(--green)')+'">'+due+'</b> 條</span></div>';
 
-  /* 錯最多 Top5（家長輔導抓手；不洩單詞答案的規則只適用於孩子的復盤清單，週報給家長看全文） */
   const top=items.slice().sort((a,b)=>(b.fails||0)-(a.fails||0)).slice(0,5).filter(x=>(x.fails||0)>=2);
   $('#rpTop').innerHTML = top.length ?
     '<b style="font-family:var(--font-head)">反覆出錯（值得陪孩子看看）：</b>'+
@@ -107,8 +165,76 @@ function render(){
     top.map(x=>'<li>'+JD.esc((x.en||'').slice(0,60))+(x.zh?'（'+JD.esc(x.zh)+'）':'')+' — 錯 '+x.fails+' 次</li>').join('')+'</ul>'
     : '<span style="color:var(--muted)">沒有反覆出錯的內容，很穩！</span>';
 }
+
+/* ---------- 家長設定 ---------- */
+let unlocked=false, panelMode='';  // panelMode: ''|'setpin'|'enterpin'
+function renderParent(){
+  const box=$('#parentCard');
+  const gate=JD.getGate();
+  const gateTxt = gate==='strict'
+    ? '<b style="color:var(--coral)">必須複習完才能上新課</b>：有到期複習沒清完時，「加新課」和沒開始的新課會鎖住。'
+    : '<b style="color:var(--teal-deep)">可以直接上新課</b>：不強制，孩子隨時能開新課（預設）。';
+
+  if(!unlocked){
+    if(panelMode==='setpin'){
+      box.innerHTML='<b style="font-family:var(--font-head)">第一次使用，先設一個家長密碼</b>'+
+        '<p class="hint" style="margin:6px 0 10px">用來保護「複習規則」不被孩子改。建議 4 位數字，記牢，忘了只能清除本機資料重設。</p>'+
+        '<div class="seg-row"><input class="pin-in" id="pin1" type="password" inputmode="numeric" maxlength="12" placeholder="設定密碼">'+
+        '<button class="big-btn teal" id="pinSetBtn" style="margin:0">設定</button></div>'+
+        '<div class="hint" id="pinMsg" style="margin:6px 0 0;color:var(--coral)"></div>';
+      $('#pinSetBtn').onclick=()=>{
+        const v=($('#pin1').value||'').trim();
+        if(v.length<4){ $('#pinMsg').textContent='密碼至少 4 位'; return; }
+        JD.setParentPin(v); unlocked=true; panelMode=''; renderParent();
+      };
+      return;
+    }
+    if(panelMode==='enterpin'){
+      box.innerHTML='<b style="font-family:var(--font-head)">輸入家長密碼</b>'+
+        '<div class="seg-row" style="margin-top:8px"><input class="pin-in" id="pin1" type="password" inputmode="numeric" maxlength="12" placeholder="家長密碼">'+
+        '<button class="big-btn teal" id="pinOkBtn" style="margin:0">確定</button>'+
+        '<button class="big-btn ghost" id="pinCancelBtn" style="margin:0">取消</button></div>'+
+        '<div class="hint" id="pinMsg" style="margin:6px 0 0;color:var(--coral)"></div>';
+      $('#pinOkBtn').onclick=()=>{
+        if(JD.checkParentPin(($('#pin1').value||'').trim())){ unlocked=true; panelMode=''; renderParent(); }
+        else $('#pinMsg').textContent='密碼不對，再試一次';
+      };
+      $('#pinCancelBtn').onclick=()=>{ panelMode=''; renderParent(); };
+      return;
+    }
+    // 上鎖狀態
+    box.innerHTML='<p style="margin:0 0 10px">目前規則：'+gateTxt+'</p>'+
+      '<button class="big-btn teal" id="editBtn" style="margin:0">'+(JD.parentHasPin()?'🔒 輸入密碼修改規則':'🔒 設定家長密碼並修改規則')+'</button>';
+    $('#editBtn').onclick=()=>{ panelMode = JD.parentHasPin()?'enterpin':'setpin'; renderParent(); };
+    return;
+  }
+
+  // 已解鎖：顯示規則選項
+  const strict=gate==='strict';
+  box.innerHTML='<b style="font-family:var(--font-head)">複習規則（上新課的條件）</b>'+
+    '<div class="gate-opt'+(!strict?' on':'')+'" data-g="free"><span style="font-size:1.3rem">'+(!strict?'🟢':'⚪')+'</span>'+
+      '<span><b>可以直接上新課</b><br><span class="hint" style="margin:0">不強制複習，孩子隨時能開新課（預設）</span></span></div>'+
+    '<div class="gate-opt'+(strict?' on':'')+'" data-g="strict"><span style="font-size:1.3rem">'+(strict?'🟢':'⚪')+'</span>'+
+      '<span><b>必須複習完才能上新課</b><br><span class="hint" style="margin:0">有到期複習沒清完時，「加新課」和沒開始的新課會鎖住，先去復盤</span></span></div>'+
+    '<div class="seg-row" style="margin-top:12px">'+
+      '<button class="big-btn ghost" id="repinBtn" style="margin:0">重設密碼</button>'+
+      '<button class="big-btn ghost" id="lockBtn" style="margin:0">完成，鎖回去</button></div>';
+  box.querySelectorAll('.gate-opt').forEach(o=>o.onclick=()=>{ JD.setGate(o.dataset.g); renderParent(); });
+  $('#repinBtn').onclick=()=>{ unlocked=false; panelMode='setpin'; renderParent(); };
+  $('#lockBtn').onclick=()=>{ unlocked=false; panelMode=''; renderParent(); };
+}
+
+/* 切換鈕 */
+$('#langSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  LANG=b.dataset.v; $('#langSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); render();
+});
+$('#periodSeg').querySelectorAll('button').forEach(b=>b.onclick=()=>{
+  PERIOD=b.dataset.v; $('#periodSeg').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b)); render();
+});
+
 render();
-window.JDSYNC_ONRESTORE = render;
+renderParent();
+window.JDSYNC_ONRESTORE = function(){ render(); renderParent(); };
 </script>
 </body>
 </html>
