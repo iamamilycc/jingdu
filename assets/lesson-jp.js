@@ -574,8 +574,32 @@
     $('#celebrate').classList.toggle('show', all);
     if(all) storyUI();
     refreshDots();
+    renderLessonNav();
   }
   refreshDots();
+
+  /* ========== 7 上一課／下一課（同英語版邏輯，見 lesson.js 註解） ========== */
+  function lessonSequence(){
+    const reg = (window.JD_LESSONS_JP||[]).map(l=>({id:l.id, title:l.title, href:l.href}));
+    const own = Object.values((window.JDGen && JDGen.allUserLessons()) || {})
+      .filter(x=>x.lang==='jp')
+      .sort((a,b)=>(a._meta?a._meta.created:0)-(b._meta?b._meta.created:0))
+      .map(x=>({id:x.id, title:x.title||'未命名', href:'lessons/view.html?id='+encodeURIComponent(x.id)}));
+    return reg.concat(own);
+  }
+  function renderLessonNav(){
+    const box=$('#lessonNav'); if(!box) return;
+    const seq=lessonSequence();
+    const idx=seq.findIndex(x=>x.id===L.id);
+    if(idx<0){ box.innerHTML=''; return; }
+    const prev = idx>0 ? seq[idx-1] : null;
+    const next = idx<seq.length-1 ? seq[idx+1] : null;
+    box.innerHTML =
+      (prev ? '<a class="big-btn ghost" style="flex:1;text-align:center" href="../'+prev.href+'">← '+JD.esc(prev.title)+'</a>' : '')+
+      (next ? '<a class="big-btn teal" style="flex:1;text-align:center" href="../'+next.href+'">下一課：'+JD.esc(next.title)+' →</a>'
+             : '<span class="hint" style="margin:0">🎉 已經是最後一課，回目錄看看有沒有新課吧</span>');
+  }
+  renderLessonNav();
 
   /* ?tab= 深連結：今日學習流可直達某環節 */
   const t0 = new URLSearchParams(location.search).get('tab');
