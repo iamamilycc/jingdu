@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>我的登山 · 精讀</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="index.html">← 目錄</a>
+  <h1>🏔️ 我的登山</h1>
+</div></header>
+<main>
+  <p class="hint" style="margin-top:4px">每答對 1 題就往上爬 20 米！選一個角色、定一座想爬的山，一起加油登頂 🚩</p>
+
+  <!-- 登山場景 -->
+  <div class="card" style="padding:0;overflow:hidden">
+    <div class="mtn-scene" id="scene"></div>
+    <div style="padding:14px 16px" id="sceneInfo"></div>
+  </div>
+
+  <!-- 選角色 -->
+  <div class="card">
+    <b style="font-family:var(--font-head)">🧗 選一個登山角色</b>
+    <div class="pick-grid" id="avatarGrid" style="margin-top:10px"></div>
+    <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <label class="big-btn ghost" style="cursor:pointer;padding:9px 16px;margin:0">
+        📷 上傳我的照片<input type="file" id="photo" accept="image/*" style="display:none">
+      </label>
+      <span class="hint" style="margin:0">照片只存這台設備，會裁成圓形頭像</span>
+    </div>
+  </div>
+
+  <!-- 選目標山 -->
+  <div class="card">
+    <b style="font-family:var(--font-head)">🚩 我想爬的山（目標）</b>
+    <div id="mtnList" style="margin-top:10px"></div>
+  </div>
+</main>
+<footer class="site">jingdu · 一步一步，登上世界之巔</footer>
+
+<script src="assets/core.js"></script>
+<script src="assets/sync.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+
+function renderScene(){
+  const ms = JD.mountainState();
+  const M = JD.MOUNTAINS;
+  const target = JD.getTargetMountain();
+  const scene = $('#scene');
+  const isSnow = ms.cur.m >= 3776;
+  const climberBottom = 8 + Math.round(ms.frac*150);
+  scene.innerHTML =
+    '<div class="mtn-alt">🧭 海拔 '+ms.alt+' 米</div>'+
+    '<div class="mtn-peak'+(isSnow?' snow':'')+'"></div>'+
+    (ms.next ? '' : '<div class="mtn-flag">🚩</div>')+
+    '<div class="mtn-climber" style="left:50%;transform:translateX(-50%);bottom:'+climberBottom+'px">'+JD.avatarHTML(44)+'</div>';
+  const toGo = ms.next ? (ms.next.m - ms.alt) : 0;
+  $('#sceneInfo').innerHTML = ms.next
+    ? '正在爬 <b style="font-family:var(--font-head);color:var(--teal-deep)">'+ms.cur.emoji+' '+ms.cur.name+'</b>（'+ms.cur.m+'米）'+
+      '<br>距離下一座 <b>'+ms.next.emoji+' '+ms.next.name+'</b>（'+ms.next.m+'米）還有 <b style="color:var(--coral)">'+toGo+' 米</b>'+
+      '<div class="climb-banner cb-bar" style="height:9px;margin-top:8px;background:var(--line)"><i style="display:block;height:100%;border-radius:4px;background:var(--teal);width:'+Math.round(ms.frac*100)+'%"></i></div>'+
+      '<div class="hint" style="margin:6px 0 0">目標：'+M[target].emoji+' '+M[target].name+'（'+M[target].m+'米）'+(ms.alt>=M[target].m?' — 已登頂！🎉':'')+'</div>'
+    : '<b style="color:var(--teal-deep);font-family:var(--font-head)">🎉 你已登上世界之巔——珠穆朗瑪峰 8848 米！太了不起了！</b>';
+}
+
+function renderAvatars(){
+  const cur = JD.getAvatar();
+  const grid = $('#avatarGrid');
+  grid.innerHTML = JD.AVATARS.map(a=>'<button class="'+(a===cur?'on':'')+'" data-a="'+a+'">'+a+'</button>').join('')+
+    (cur.indexOf('data:')===0 ? '<button class="on" data-a="__photo" title="你的照片">'+JD.avatarHTML(30)+'</button>' : '');
+  grid.querySelectorAll('button').forEach(b=>b.onclick=()=>{
+    const a=b.dataset.a; if(a==='__photo') return;
+    JD.setAvatar(a); markUpdated(); renderAvatars(); renderScene();
+  });
+}
+
+function renderMtnList(){
+  const M=JD.MOUNTAINS, ms=JD.mountainState(), target=JD.getTargetMountain();
+  const box=$('#mtnList');
+  box.innerHTML = M.map((m,i)=>{
+    if(i===0) return '';
+    const reached = ms.alt>=m.m;
+    const isTarget = i===target;
+    return '<div class="mtn-row'+(reached?' reached':'')+'">'+
+      '<span style="font-size:1.3rem">'+m.emoji+'</span>'+
+      '<span>'+m.name+(reached?' ✓':'')+'</span>'+
+      '<span class="mr-m">'+m.m+' 米</span>'+
+      '<button class="big-btn '+(isTarget?'teal':'ghost')+'" style="padding:6px 12px;font-size:.85rem;margin:0" data-i="'+i+'">'+(isTarget?'🚩 目標':'設為目標')+'</button>'+
+      '</div>';
+  }).join('');
+  box.querySelectorAll('button[data-i]').forEach(b=>b.onclick=()=>{
+    JD.setTargetMountain(parseInt(b.dataset.i)); markUpdated(); renderMtnList(); renderScene();
+  });
+}
+
+function markUpdated(){ try{ localStorage.setItem('jingdu_updatedAt', String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule(); }catch(e){} }
+
+/* 上傳照片 → 裁成 128px 圓形頭像(存 dataURL,體積小可雲同步) */
+$('#photo').addEventListener('change', e=>{
+  const f=e.target.files[0]; if(!f) return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const S=128, cv=document.createElement('canvas'); cv.width=S; cv.height=S;
+      const ctx=cv.getContext('2d');
+      const side=Math.min(img.width,img.height), sx=(img.width-side)/2, sy=(img.height-side)/2;
+      ctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
+      const url=cv.toDataURL('image/jpeg', 0.75);
+      JD.setAvatar(url); markUpdated(); renderAvatars(); renderScene();
+    };
+    img.onerror=()=>alert('這張圖片讀不了，換一張試試');
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+});
+
+renderScene(); renderAvatars(); renderMtnList();
+</script>
+</body>
+</html>

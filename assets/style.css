@@ -130,6 +130,39 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .vbtn{font-family:var(--font-head);border:none;border-radius:999px;padding:7px 14px;font-size:.82rem;font-weight:600;cursor:pointer}
 .vbtn.no{background:var(--coral);color:#fff}
 .vbtn.yes{background:#fff;color:var(--teal-deep)}
+/* ---------- 登山遊戲化：頭像 + 山峰場景 ---------- */
+.jd-avatar{display:inline-block;border-radius:50%;background-size:cover;background-position:center;
+  vertical-align:middle;box-shadow:0 2px 6px rgba(0,0,0,.18);border:2px solid #fff;overflow:hidden;
+  text-align:center;line-height:1}
+.jd-avatar.emoji{background:var(--mango-soft);display:inline-flex;align-items:center;justify-content:center}
+/* 山峰場景：天空底 + 三角山 + 小人沿斜坡按進度定位 */
+.mtn-scene{position:relative;height:200px;border-radius:16px;overflow:hidden;
+  background:linear-gradient(#bfe3f5,#eaf6fd 70%,#dff0d8)}
+.mtn-peak{position:absolute;left:50%;bottom:0;transform:translateX(-50%);
+  width:0;height:0;border-left:150px solid transparent;border-right:150px solid transparent;
+  border-bottom:180px solid var(--teal)}
+.mtn-peak.snow{border-bottom-color:#7fb0a6}
+.mtn-flag{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-size:1.5rem;z-index:3}
+.mtn-climber{position:absolute;z-index:4;transition:left 1s ease, bottom 1s ease}
+.mtn-alt{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.85);border-radius:10px;
+  padding:4px 10px;font-family:var(--font-head);font-weight:700;color:var(--teal-deep);z-index:5}
+/* 登山橫幅(目錄頂部) */
+.climb-banner{display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#dff0d8,#cfe8f5);
+  border-radius:var(--r);padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);
+  text-decoration:none;color:var(--ink)}
+.climb-banner .cb-txt{flex:1;line-height:1.4}
+.climb-banner .cb-txt b{font-family:var(--font-head);color:var(--teal-deep)}
+.climb-banner .cb-bar{height:7px;border-radius:4px;background:rgba(255,255,255,.6);overflow:hidden;margin-top:5px}
+.climb-banner .cb-bar>i{display:block;height:100%;background:var(--teal);border-radius:4px}
+/* 頭像/山峰選擇格 */
+.pick-grid{display:flex;flex-wrap:wrap;gap:8px}
+.pick-grid button{border:2px solid var(--line);background:#fff;border-radius:12px;padding:8px 12px;cursor:pointer;font-size:1.5rem}
+.pick-grid button.on{border-color:var(--mango);background:var(--mango-soft)}
+.mtn-row{display:flex;align-items:center;gap:10px;padding:9px 6px;border-bottom:1px dashed var(--line)}
+.mtn-row:last-child{border-bottom:none}
+.mtn-row.reached{color:var(--teal-deep);font-weight:600}
+.mtn-row .mr-m{margin-left:auto;color:var(--muted);font-size:.85rem}
+
 /* 完成一題的鼓勵 toast：一閃而過，不擋操作 */
 .jd-toast{
   position:fixed;left:50%;top:22%;transform:translate(-50%,-6px) scale(.9);

@@ -127,6 +127,21 @@
     return total;
   }
   function altitude(){ return totalCorrect()*METERS_PER_CORRECT; }
+
+  /* ---------- 登山角色（頭像）與目標山 ---------- */
+  const AVATARS = ['🧒','👦','👧','🐱','🐰','🦊','🐼','🤖','🦁','🐯'];
+  function getAvatar(){ try{ return localStorage.getItem(NS+'avatar')||'🧒'; }catch(e){ return '🧒'; } }
+  function setAvatar(v){ try{ if(v) localStorage.setItem(NS+'avatar', v); }catch(e){} }
+  /* 頭像 HTML：上傳的照片(data:)顯示為圓形圖，否則 emoji */
+  function avatarHTML(size){
+    size=size||40; const a=getAvatar();
+    if(a && a.indexOf('data:')===0)
+      return '<span class="jd-avatar" style="width:'+size+'px;height:'+size+'px;background-image:url('+a+')"></span>';
+    return '<span class="jd-avatar emoji" style="width:'+size+'px;height:'+size+'px;font-size:'+Math.round(size*0.62)+'px">'+a+'</span>';
+  }
+  function getTargetMountain(){ try{ const v=parseInt(localStorage.getItem(NS+'target_mtn'),10); return (v>=1&&v<MOUNTAINS.length)?v:MOUNTAINS.length-1; }catch(e){ return MOUNTAINS.length-1; } }
+  function setTargetMountain(i){ try{ localStorage.setItem(NS+'target_mtn', String(i)); }catch(e){} }
+
   /* 依海拔算出「當前達到的最高一座」與「下一座目標」，及爬向下一座的進度 0-1 */
   function mountainState(alt){
     if(alt==null) alt=altitude();
@@ -455,5 +470,6 @@
                 listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
                 lessonScore, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
                 celebrate, praiseKind, sfxEnabled, setSfx,
+                AVATARS, getAvatar, setAvatar, avatarHTML, getTargetMountain, setTargetMountain,
                 LEVEL_NAMES, PASS:85 };
 })();

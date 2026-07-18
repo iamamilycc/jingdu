@@ -11,9 +11,11 @@
   <h1>🎌 日語精讀 · 我的課文本</h1>
   <a href="../voice.html">🔊 聲音</a>
   <a href="../help.html">📖 說明</a>
+  <a href="../mountain.html">🏔️ 登山</a>
   <a href="../index.html">📘 切換英語版</a>
 </div></header>
 <main>
+  <a class="climb-banner" id="climbBanner" href="../mountain.html" style="display:none"></a>
   <a class="streak-chip" id="streakChip" href="../report.html"></a>
   <a class="due-banner" id="dueBanner" href="review.html"></a>
   <div class="card" id="syncCard" style="display:none"></div>
@@ -122,6 +124,18 @@ function renderStreak(){
   el.innerHTML = st.todayDone ? '🔥 連續學習 <b>'+st.n+'</b> 天 · 看週報 →'
     : (st.n>0 ? '🌱 已連續 '+st.n+' 天，今天學一點就續上！ · 看週報 →' : '🌱 今天還沒開始學 · 看週報 →');
 }
+function renderClimb(){
+  const el=document.getElementById('climbBanner'); if(!el) return;
+  const ms=JD.mountainState();
+  if(ms.alt<=0){ el.style.display='none'; return; }
+  el.style.display='flex';
+  const line = ms.next
+    ? '正在爬 <b>'+ms.cur.emoji+' '+ms.cur.name+'</b> · 海拔 <b>'+ms.alt+'米</b><br>'+
+      '<span class="hint" style="margin:0">距 '+ms.next.emoji+' '+ms.next.name+' 還有 '+(ms.next.m-ms.alt)+' 米</span>'+
+      '<div class="cb-bar"><i style="width:'+Math.round(ms.frac*100)+'%"></i></div>'
+    : '🎉 已登頂 <b>珠穆朗瑪峰 8848米</b>！';
+  el.innerHTML = JD.avatarHTML(42)+'<span class="cb-txt">'+line+'</span><span style="align-self:center">›</span>';
+}
 /* 課文搜尋：課多了才顯示搜尋框，即時過濾內建課+自建課 */
 function refreshSearchVisibility(){
   const n = document.querySelectorAll('#lessonList .lesson-item, #userLessonList .lesson-item').length;
@@ -143,8 +157,9 @@ document.getElementById('lessonSearch').addEventListener('input', applySearch);
 renderUserLessons();
 renderToday();
 renderStreak();
+renderClimb();
 refreshSearchVisibility();
-window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderStreak(); refreshSearchVisibility(); };
+window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderStreak(); renderClimb(); refreshSearchVisibility(); };
 </script>
 </body>
 </html>
