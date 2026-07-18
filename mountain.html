@@ -128,9 +128,10 @@ function climberSVG(x,y){
 
 function renderScene(){
   const ms=JD.mountainState(), M=JD.MOUNTAINS, target=JD.getTargetMountain();
-  const sceneMtn = ms.next || ms.cur;          /* 畫正在爬向的那座山 */
-  const frac = ms.next ? ms.frac : 1;
-  $('#scene').innerHTML = svgScene(sceneMtn.art);
+  const tM = M[target];                          /* 畫「你選的目標山」，進度＝朝目標爬了多少 */
+  const alt = ms.alt, reached = alt>=tM.m;
+  const frac = tM.m>0 ? Math.max(0, Math.min(1, alt/tM.m)) : 1;
+  $('#scene').innerHTML = svgScene(tM.art);
   const tr=document.getElementById('mtnTrail'), done=document.getElementById('mtnTrailDone');
   if(tr && done){
     const len=tr.getTotalLength();
@@ -138,13 +139,14 @@ function renderScene(){
     const pt=tr.getPointAtLength(Math.max(0.001,Math.min(1,frac))*len);
     document.getElementById('climberHolder').innerHTML=climberSVG(pt.x, pt.y);
   }
-  const toGo = ms.next ? (ms.next.m - ms.alt) : 0;
-  $('#sceneInfo').innerHTML = ms.next
-    ? '正在爬 <b style="font-family:var(--font-head);color:var(--teal-deep)">'+ms.next.emoji+' '+ms.next.name+'</b>（'+ms.next.m+'米）· 目前海拔 <b>'+ms.alt+'米</b>'+
+  const toGo = Math.max(0, tM.m - alt);
+  $('#sceneInfo').innerHTML = reached
+    ? '<b style="color:var(--teal-deep);font-family:var(--font-head)">🎉 已登上目標 '+tM.emoji+' '+tM.name+'（'+tM.m+'米）！</b>'+
+      '<div class="hint" style="margin:6px 0 0">想挑戰更高？在下面換一座更高的山當目標，小人會重新從山腳出發。</div>'
+    : '目標 <b style="font-family:var(--font-head);color:var(--teal-deep)">'+tM.emoji+' '+tM.name+'</b>（'+tM.m+'米）· 目前海拔 <b>'+alt+'米</b>'+
       '<br>距離登頂還有 <b style="color:var(--coral)">'+toGo+' 米</b>（再答對 '+Math.ceil(toGo/JD.METERS_PER_CORRECT)+' 題）'+
       '<div class="cb-bar" style="height:9px;margin-top:8px;background:var(--line);border-radius:5px;overflow:hidden"><i style="display:block;height:100%;border-radius:5px;background:var(--teal);width:'+Math.round(frac*100)+'%"></i></div>'+
-      '<div class="hint" style="margin:6px 0 0">🚩 我的目標：'+M[target].emoji+' '+M[target].name+'（'+M[target].m+'米）'+(ms.alt>=M[target].m?' — 已達成！🎉':'')+'</div>'
-    : '<b style="color:var(--teal-deep);font-family:var(--font-head)">🎉 你已登上世界之巔——珠穆朗瑪峰 8848 米！太了不起了！</b>';
+      '<div class="hint" style="margin:6px 0 0">目前經過：'+ms.cur.emoji+' '+ms.cur.name+'（'+ms.cur.m+'米）</div>';
 }
 
 function renderAvatars(){

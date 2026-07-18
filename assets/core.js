@@ -146,7 +146,12 @@
       return '<span class="jd-avatar" style="width:'+size+'px;height:'+size+'px;background-image:url('+a+')"></span>';
     return '<span class="jd-avatar emoji" style="width:'+size+'px;height:'+size+'px;font-size:'+Math.round(size*0.62)+'px">'+a+'</span>';
   }
-  function getTargetMountain(){ try{ const v=parseInt(localStorage.getItem(NS+'target_mtn'),10); return (v>=1&&v<MOUNTAINS.length)?v:MOUNTAINS.length-1; }catch(e){ return MOUNTAINS.length-1; } }
+  function getTargetMountain(){
+    try{ const v=parseInt(localStorage.getItem(NS+'target_mtn'),10); if(v>=1&&v<MOUNTAINS.length) return v; }catch(e){}
+    const alt=altitude();                          /* 沒設過→預設下一座還沒到的山，新手也有近目標 */
+    for(let i=1;i<MOUNTAINS.length;i++){ if(MOUNTAINS[i].m>alt) return i; }
+    return MOUNTAINS.length-1;
+  }
   function setTargetMountain(i){ try{ localStorage.setItem(NS+'target_mtn', String(i)); }catch(e){} }
 
   /* 依海拔算出「當前達到的最高一座」與「下一座目標」，及爬向下一座的進度 0-1 */
