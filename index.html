@@ -143,17 +143,18 @@ function renderStreak(){
   el.innerHTML = st.todayDone ? '🔥 連續學習 <b>'+st.n+'</b> 天 · 看週報 →'
     : (st.n>0 ? '🌱 已連續 '+st.n+' 天，今天學一點就續上！ · 看週報 →' : '🌱 今天還沒開始學 · 看週報 →');
 }
-/* 登山橫幅：只在開始爬(海拔>0)後顯示，一眼看到當前山峰與離下一座還差多少 */
+/* 登山橫幅：海拔>0 才顯示，爬向「你選的目標山」，與登山頁一致（原本顯示里程碑山，換目標不變） */
 function renderClimb(){
   const el=document.getElementById('climbBanner'); if(!el) return;
-  const ms=JD.mountainState();
-  if(ms.alt<=0){ el.style.display='none'; return; }
+  const ms=JD.mountainState(), M=JD.MOUNTAINS, tM=M[JD.getTargetMountain()], alt=ms.alt;
+  if(alt<=0){ el.style.display='none'; return; }
   el.style.display='flex';
-  const line = ms.next
-    ? '正在爬 <b>'+ms.cur.emoji+' '+ms.cur.name+'</b> · 海拔 <b>'+ms.alt+'米</b><br>'+
-      '<span class="hint" style="margin:0">距 '+ms.next.emoji+' '+ms.next.name+' 還有 '+(ms.next.m-ms.alt)+' 米</span>'+
-      '<div class="cb-bar"><i style="width:'+Math.round(ms.frac*100)+'%"></i></div>'
-    : '🎉 已登頂 <b>珠穆朗瑪峰 8848米</b>！';
+  const frac = tM.m>0 ? Math.max(0,Math.min(1,alt/tM.m)) : 1;
+  const line = alt>=tM.m
+    ? '🎉 已登上目標 <b>'+tM.emoji+' '+tM.name+'</b>！海拔 <b>'+alt+'米</b>'
+    : '爬向 <b>'+tM.emoji+' '+tM.name+'</b> · 海拔 <b>'+alt+'米</b><br>'+
+      '<span class="hint" style="margin:0">距登頂還有 '+(tM.m-alt)+' 米</span>'+
+      '<div class="cb-bar"><i style="width:'+Math.round(frac*100)+'%"></i></div>';
   el.innerHTML = JD.avatarHTML(42)+'<span class="cb-txt">'+line+'</span><span style="align-self:center">›</span>';
 }
 /* 課文搜尋：課多了才顯示搜尋框，即時過濾內建課+自建課（比對課名英文/中文/難度徽章文字） */
