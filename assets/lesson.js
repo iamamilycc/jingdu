@@ -595,7 +595,20 @@
     function frac(k){ if(p[k]) return 1; const s=sp[k]; return (s&&s.n)? Math.max(0,Math.min(1,(s.done||0)/s.n)) : 0; }
     /* 可打分的環節：顯示「答對幾題」當學習成果；聽全文/逐句/語法只算讀過，無分 */
     const SCORE_VERB = {vocab:'拼對', build:'排對', speak:'讀對', quiz:'答對', recite:'背對', make:'造對'};
+    /* 本課總評分：完成度(做了幾成) + 正確率(做過的裡對了幾成)，只算 6 個計分環節 */
+    const sc = JD.lessonScore(L.id);
+    const scoreLine = sc.n
+      ? '<li class="done-summary" style="flex-direction:column;align-items:stretch;gap:6px">'+
+        '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
+        '<span>📊 本課總評分</span>'+
+        '<span style="font-size:.85rem;color:var(--muted)">計分環節：生詞/連詞/跟讀/聽力/背句/造句</span></div>'+
+        '<div style="display:flex;gap:18px">'+
+        '<span>完成度 <b style="font-size:1.3rem">'+sc.completion+'%</b> <small style="color:var(--muted)">('+sc.done+'/'+sc.n+' 題)</small></span>'+
+        '<span>正確率 <b style="font-size:1.3rem;color:'+(sc.accuracy>=85?'var(--teal-deep)':sc.accuracy>=60?'var(--mango)':'var(--coral)')+'">'+sc.accuracy+'%</b> <small style="color:var(--muted)">(答對 '+sc.score+'/'+sc.done+')</small></span>'+
+        '</div></li>'
+      : '';
     $('#doneList').innerHTML =
+      scoreLine +
       '<li class="done-summary"><span>本課完成 <b>'+doneCnt+'</b> / '+keys.length+'</span>'+
       '<div class="done-bar big"><i style="width:'+pct+'%"></i></div></li>'+
       keys.map(k=>{

@@ -70,6 +70,13 @@ function renderToday(){
   banner.classList.add('zero'); banner.href='new.html';
   banner.innerHTML='<span class="n">🌿</span><span>全部學完啦！拍照 / 粘貼課文，加一課新的吧</span>';
 }
+/* 課名後的總評分小徽章（正確率+完成度，只在做過計分題後顯示） */
+function scoreChip(id){
+  const sc = JD.lessonScore(id);
+  if(!sc.n || !sc.done) return '';
+  const col = sc.accuracy>=85?'var(--teal-deep)':sc.accuracy>=60?'var(--mango)':'var(--coral)';
+  return '<br><span class="zh" style="color:'+col+'">🎯 正確率 '+sc.accuracy+'% · 完成 '+sc.completion+'%</span>';
+}
 const box = document.getElementById('lessonList');
 LESSONS.forEach(l=>{
   const p = JD.getProgress(l.id);
@@ -79,7 +86,7 @@ LESSONS.forEach(l=>{
   a.className='card lesson-item';
   a.href=l.href;
   a.innerHTML = '<span class="badge">'+l.num+'<small>'+l.badge+'</small></span>'+
-    '<span class="t"><span class="en">'+l.en+'</span><br><span class="zh">'+l.zh+'</span></span>'+
+    '<span class="t"><span class="en">'+l.en+'</span><br><span class="zh">'+l.zh+'</span>'+scoreChip(l.id)+'</span>'+
     '<span class="pct">'+(pct>=100?'✅ 完成':pct+'%')+'</span>';
   box.appendChild(a);
 });
@@ -96,7 +103,7 @@ function renderUserLessons(){
     const a=document.createElement('a'); a.className='card lesson-item'; a.href='lessons/view.html?id='+encodeURIComponent(l.id);
     a.innerHTML='<span class="badge" style="background:var(--mango);color:var(--ink)">自建<small>ENG</small></span>'+
       '<span class="t"><span class="en">'+JD.esc(l.title||'未命名')+'</span>'+
-      (l.level?'<br><span class="zh">'+'★'.repeat(l.level)+'☆'.repeat(5-l.level)+' 難度</span>':'')+'</span>'+
+      (l.level?'<br><span class="zh">'+'★'.repeat(l.level)+'☆'.repeat(5-l.level)+' 難度</span>':'')+scoreChip(l.id)+'</span>'+
       '<span class="pct">'+(pct>=100?'✅':pct+'%')+'</span>';
     const del=document.createElement('button');
     del.className='udel'; del.type='button'; del.textContent='🗑'; del.title='刪除這課';

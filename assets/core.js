@@ -82,6 +82,62 @@
     return Math.max(0, Math.min(d, Math.max(0,(n|0)-1)));
   }
 
+  /* ---------- 總評分：只有「有對錯」的 6 個環節計入 ----------
+     聽全文/逐句/語法只是讀過沒對錯，不計分。盲聽揭曉後才答對的聽力題已在計分時排除(quiz score 不含揭曉題)。
+     completion=完成度(做了幾成)，accuracy=正確率(做過的裡對了幾成)。 */
+  const SCORED_SECS = ['vocab','build','speak','quiz','recite','make'];
+  function lessonScore(lessonId){
+    const sp = getSecPos(lessonId);
+    let done=0, n=0, score=0;
+    SCORED_SECS.forEach(k=>{ const s=sp[k]; if(s && s.n){
+      const d=Math.min(s.done||0, s.n), sc=Math.min(s.score||0, d);
+      done+=d; n+=s.n; score+=sc;
+    }});
+    return { done, n, score,
+      completion: n? Math.round(done/n*100) : 0,
+      accuracy: done? Math.round(score/done*100) : 0 };
+  }
+
+  /* ---------- 爬山：累計全站答對題數 → 海拔（每答對1題=20米）→ 對應山峰 ---------- */
+  const METERS_PER_CORRECT = 20;
+  const MOUNTAINS = [
+    {name:'海平面', m:0, emoji:'🌊'},
+    {name:'泰山', m:1545, emoji:'⛰️'},
+    {name:'黃山', m:1864, emoji:'⛰️'},
+    {name:'華山', m:2154, emoji:'⛰️'},
+    {name:'峨眉山', m:3099, emoji:'🏔️'},
+    {name:'富士山', m:3776, emoji:'🗻'},
+    {name:'玉山', m:3952, emoji:'🏔️'},
+    {name:'勃朗峰', m:4808, emoji:'🏔️'},
+    {name:'乞力馬扎羅', m:5895, emoji:'🏔️'},
+    {name:'阿空加瓜', m:6961, emoji:'🏔️'},
+    {name:'珠穆朗瑪峰', m:8848, emoji:'🏔️'}
+  ];
+  function totalCorrect(){
+    let total=0;
+    try{
+      for(let i=0;i<localStorage.length;i++){
+        const k=localStorage.key(i);
+        if(k && k.indexOf(NS+'secpos_')===0){
+          const m=JSON.parse(localStorage.getItem(k))||{};
+          SCORED_SECS.forEach(sec=>{ const s=m[sec]; if(s) total+=Math.min(s.score||0, s.done||0); });
+        }
+      }
+    }catch(e){}
+    return total;
+  }
+  function altitude(){ return totalCorrect()*METERS_PER_CORRECT; }
+  /* 依海拔算出「當前達到的最高一座」與「下一座目標」，及爬向下一座的進度 0-1 */
+  function mountainState(alt){
+    if(alt==null) alt=altitude();
+    let cur=MOUNTAINS[0], next=MOUNTAINS[1]||null;
+    for(let i=0;i<MOUNTAINS.length;i++){
+      if(alt>=MOUNTAINS[i].m){ cur=MOUNTAINS[i]; next=MOUNTAINS[i+1]||null; }
+    }
+    const frac = next ? Math.max(0,Math.min(1,(alt-cur.m)/(next.m-cur.m))) : 1;
+    return { alt, cur, next, frac, atTop: !next };
+  }
+
   /* ---------- 學習日曆 + 連續天數（streak）----------
      days: {'2026-07-14': 動作次數,...}；任何學習動作(完成環節/復盤/錯題)都記一筆 */
   function dstr(d){ const x=d||new Date(); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
@@ -347,5 +403,6 @@
   window.JD = { getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, reviewPass, reviewFail,
                 dueItems, allItems, streak, daysMap, touchDay, speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
                 listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
+                lessonScore, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
                 LEVEL_NAMES, PASS:85 };
 })();
