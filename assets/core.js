@@ -100,8 +100,8 @@
       accuracy: done? Math.round(score/done*100) : 0 };
   }
 
-  /* ---------- 爬山：累計全站答對題數 → 海拔（每答對1題=20米）→ 對應山峰 ---------- */
-  const METERS_PER_CORRECT = 20;
+  /* ---------- 爬山：累計全站答對題數 → 海拔（每答對1題=10米，同一題最好那次封頂在題數=只記一次，已防刷）→ 對應山峰 ---------- */
+  const METERS_PER_CORRECT = 10;
   /* art=卡通輪廓類型（見 mountain.html 的 ART），依真實山形/高度給不同造型與雪量 */
   const MOUNTAINS = [
     {name:'海平面', m:0, emoji:'🌊', art:'rounded'},
