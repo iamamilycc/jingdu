@@ -130,6 +130,12 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .vbtn{font-family:var(--font-head);border:none;border-radius:999px;padding:7px 14px;font-size:.82rem;font-weight:600;cursor:pointer}
 .vbtn.no{background:var(--coral);color:#fff}
 .vbtn.yes{background:#fff;color:var(--teal-deep)}
+/* 盲聽：聽力題句子先模糊，聽3次可「看一眼」，答完自動顯示 */
+.qz-blind{
+  max-width:520px;margin:0 auto 12px;padding:12px 16px;border-radius:12px;
+  background:var(--mango-soft);font-family:var(--font-en);font-weight:600;font-size:1.05rem;
+  transition:filter .3s; filter:blur(8px); user-select:none;
+}
 .qz-opt{
   display:block;width:100%;max-width:520px;margin:8px auto;text-align:left;
   font-family:var(--font-en);font-size:1rem;font-weight:600;

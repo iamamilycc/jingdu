@@ -278,8 +278,8 @@
   spk.i = resume('speak', L.sentences.length);
   spkRender();
 
-  /* ========== 4.5 聽力題 ========== */
-  const qz={ i:0, score:0 };
+  /* ========== 4.5 聽力題（盲聽：句子先模糊，聽3次才能「看一眼」；看過再答對＝算錯不計分） ========== */
+  const qz={ i:0, score:0, listens:0, revealed:false };
   function qzPlaySeq(idxs,k){
     k=k||0; if(k>=idxs.length) return;
     const u=new SpeechSynthesisUtterance(R.toKana(L.sentences[idxs[k]].jp));
@@ -289,6 +289,7 @@
     if(k===0) speechSynthesis.cancel();
     speechSynthesis.speak(u);
   }
+  function qzBlindHTML(it){ return it.play.map(i=>R.toRubyHTML(JD.esc((L.sentences[i]||{}).jp||''))).join(' '); }
   function qzRender(){
     const box=$('#quizBox'); if(!box) return;
     if(qz.i>=L.listening.length){
@@ -297,25 +298,44 @@
         '<div style="margin-top:10px"><button class="big-btn ghost" onclick="qzRestart()">再做一遍</button></div></div>';
       done('quiz'); return;
     }
+    qz.listens=0; qz.revealed=false;
     const it=L.listening[qz.i];
     box.innerHTML='<div class="stage">'+
       '<div style="font-family:var(--font-head);color:var(--muted);font-size:.9rem;margin-bottom:8px">第 '+(qz.i+1)+' / '+L.listening.length+' 題</div>'+
+      '<div id="qzBlind" class="qz-blind jp-text">'+qzBlindHTML(it)+'</div>'+
       '<button class="big-btn teal" onclick="qzPlay()">🔊 播放錄音</button>'+
+      '<div id="qzRevealWrap" style="display:none;margin-top:6px"><button class="big-btn ghost" onclick="qzReveal()">😳 聽不懂，看一眼（這題會算錯）</button></div>'+
       '<div class="jp-text" style="font-weight:700;font-size:1.05rem;margin:14px 0 10px">'+R.toRubyHTML(JD.esc(it.q))+'</div>'+
       '<div id="qzOpts">'+it.opts.map((o,k)=>'<button class="qz-opt jp-text" data-k="'+k+'">'+String.fromCharCode(65+k)+'. '+R.toRubyHTML(JD.esc(String(o).replace(/^[A-DＡ-Ｄ][.、．)）]\s*/,'')))+'</button>').join('')+'</div>'+
       '<div id="qzFb" style="margin-top:10px"></div></div>';
     $$('#qzOpts .qz-opt').forEach(b=>b.onclick=()=>qzAnswer(parseInt(b.dataset.k)));
-    qzPlaySeq(it.play);
+    qz.listens++; qzPlaySeq(it.play);
   }
-  window.qzPlay=()=>qzPlaySeq(L.listening[qz.i].play);
+  window.qzPlay=function(){
+    qz.listens++;
+    qzPlaySeq(L.listening[qz.i].play);
+    if(qz.listens>=3 && !qz.revealed){ const w=$('#qzRevealWrap'); if(w) w.style.display='block'; }
+  };
+  window.qzReveal=function(){
+    qz.revealed=true;
+    const el=$('#qzBlind'); if(el) el.classList.remove('qz-blind');
+    const w=$('#qzRevealWrap'); if(w) w.style.display='none';
+  };
   function qzAnswer(k){
     const it=L.listening[qz.i];
     $$('#qzOpts .qz-opt').forEach((b,j)=>{ b.disabled=true; if(j===it.ans) b.classList.add('right'); else if(j===k) b.classList.add('wrong'); });
-    if(k===it.ans){ qz.score++; $('#qzFb').innerHTML='<div class="acc-badge good">🎉 答對了！</div>'; }
-    else{
+    const correct=(k===it.ans);
+    const s=L.sentences[it.srcIdx];
+    if(correct && !qz.revealed){
+      qz.score++; $('#qzFb').innerHTML='<div class="acc-badge good">🎉 答對了！</div>';
+    }else if(correct && qz.revealed){
+      JD.addError({id:L.id+'#'+it.srcIdx, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
+      $('#qzFb').innerHTML='<div class="acc-badge bad">答對了，但看過答案這題算錯——多聽幾次，下次不看就能懂 💪</div>';
+    }else{
+      JD.addError({id:L.id+'#'+it.srcIdx, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
       $('#qzFb').innerHTML='<div class="acc-badge bad">再聽聽～正確答案是 '+String.fromCharCode(65+it.ans)+'</div>';
-      const s=L.sentences[it.srcIdx]; JD.addError({id:L.id+'#'+it.srcIdx, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
     }
+    const el=$('#qzBlind'); if(el) el.classList.remove('qz-blind');
     $('#qzFb').innerHTML += '<div style="margin-top:8px"><button class="big-btn teal" onclick="qzNext()">下一題 →</button></div>';
   }
   window.qzNext=function(){ qz.i++; pos('quiz', qz.i, L.listening.length, qz.score); qzRender(); };
