@@ -138,6 +138,56 @@
     return { alt, cur, next, frac, atTop: !next };
   }
 
+  /* ---------- 完成一題的音效鼓勵 + 一閃而過的英文短語（~0.9秒自動消失，可開關） ----------
+     音效用 WebAudio 即時合成，不用下載音檔、零成本；toast pointer-events:none 不擋操作。
+     由用戶操作(答題)觸發，符合 iOS 需用戶手勢才能出聲的限制。 */
+  let _ac=null;
+  function audioCtx(){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; if(!_ac) _ac=new AC(); if(_ac.state==='suspended') _ac.resume(); return _ac; }catch(e){ return null; } }
+  function beep(freqs, dur){
+    const ac=audioCtx(); if(!ac) return;
+    const t0=ac.currentTime;
+    freqs.forEach((f,i)=>{
+      const o=ac.createOscillator(), g=ac.createGain();
+      o.type='sine'; o.frequency.value=f; o.connect(g); g.connect(ac.destination);
+      const s=t0+i*dur*0.7;
+      g.gain.setValueAtTime(0.0001, s);
+      g.gain.exponentialRampToValueAtTime(0.25, s+0.02);
+      g.gain.exponentialRampToValueAtTime(0.0001, s+dur);
+      o.start(s); o.stop(s+dur);
+    });
+  }
+  function sfxEnabled(){ try{ return localStorage.getItem(NS+'sfx')!=='0'; }catch(e){ return true; } }
+  function setSfx(on){ try{ localStorage.setItem(NS+'sfx', on?'1':'0'); }catch(e){} }
+  const PRAISE = {
+    great: ['Awesome!','Perfect!','Brilliant!','Unbelievable!','Fantastic!','Amazing!'],
+    good:  ['Good job!','Nice!','Well done!','Great!','Keep it up!','Way to go!'],
+    try:   ['Keep going!','Almost!','Try again!',"Don't give up!",'You can do it!','So close!']
+  };
+  /* kind: 'great' | 'good' | 'try' */
+  function celebrate(kind){
+    if(!sfxEnabled()) return;
+    kind = PRAISE[kind] ? kind : 'good';
+    const list = PRAISE[kind];
+    const txt = list[Math.floor(Math.random()*list.length)];
+    const emoji = kind==='great'?'🎉':kind==='good'?'👍':'💪';
+    if(kind==='great') beep([523,659,784],0.18);
+    else if(kind==='good') beep([523,659],0.15);
+    else beep([392],0.20);
+    if(typeof document==='undefined') return;
+    let t=document.getElementById('jdToast');
+    if(!t){ t=document.createElement('div'); t.id='jdToast'; t.className='jd-toast'; (document.body||document.documentElement).appendChild(t); }
+    t.innerHTML='<span style="font-size:1.7rem;vertical-align:middle;margin-right:6px">'+emoji+'</span>'+txt;
+    t.classList.remove('show'); void t.offsetWidth; t.classList.add('show');
+    clearTimeout(t._timer); t._timer=setTimeout(function(){ t.classList.remove('show'); }, 900);
+  }
+  /* 依準確率/對錯給分級：acc>=95 或 blindQuizWin=great；>=PASS 或 correct=good；否則 try */
+  function praiseKind(opt){
+    opt=opt||{};
+    if(opt.great) return 'great';
+    if(typeof opt.acc==='number') return opt.acc>=95?'great':opt.acc>=85?'good':'try';
+    return opt.correct?'good':'try';
+  }
+
   /* ---------- 學習日曆 + 連續天數（streak）----------
      days: {'2026-07-14': 動作次數,...}；任何學習動作(完成環節/復盤/錯題)都記一筆 */
   function dstr(d){ const x=d||new Date(); return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0'); }
@@ -404,5 +454,6 @@
                 dueItems, allItems, streak, daysMap, touchDay, speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
                 listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
                 lessonScore, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
+                celebrate, praiseKind, sfxEnabled, setSfx,
                 LEVEL_NAMES, PASS:85 };
 })();

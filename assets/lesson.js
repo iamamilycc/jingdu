@@ -155,9 +155,11 @@
         fb.innerHTML='<span class="vok">✓ 拼對了！</span>';
         JD.speak(v.w,false);
         setTimeout(()=>c.classList.remove('flip'), 900);
+        JD.celebrate('good');
       }else{
         fb.innerHTML='<span class="vbad">✗ 正確拼寫：<b>'+JD.esc(v.w)+'</b></span>';
         JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:v.w, zh:v.zh, type:'word', pos:v.pos});
+        JD.celebrate('try');
       }
       if(judged.size >= L.vocab.length) done('vocab');
     }
@@ -237,9 +239,9 @@
     const got=bd.placed.map(c=>c.w).join(' ').toLowerCase(), want=it.words.join(' ').toLowerCase();
     if(got===want){
       bd.results[bd.i]=true; JD.speak(it.en,false);
-      bdRender('<div class="acc-badge good">🎉 排對了！<br>'+JD.esc(it.en)+'</div>'); bdMaybeDone();
+      bdRender('<div class="acc-badge good">🎉 排對了！<br>'+JD.esc(it.en)+'</div>'); bdMaybeDone(); JD.celebrate('good');
     }else{
-      bdRender('<div class="acc-badge bad">順序還不對，再試試～（點已排的單詞可移回去）</div>');
+      bdRender('<div class="acc-badge bad">順序還不對，再試試～（點已排的單詞可移回去）</div>'); JD.celebrate('try');
     }
   };
   window.bdReveal=function(){
@@ -270,6 +272,7 @@
     startRec($('#spkRecBtn'), s, '#spkResult', '#spkHeard', acc=>{
       spk.results[i]=Math.max(spk.results[i]||0, acc); spkRender0nly();  /* 取最高準確率 */
       pos('speak', spk.results.filter(x=>x!=null).length, L.sentences.length, spk.results.filter(x=>x!=null&&x>=JD.PASS).length);
+      JD.celebrate(JD.praiseKind({acc:acc}));
       /* 跟讀不達標也進錯題本（與背句同 id，自動合併） */
       if(acc < JD.PASS) JD.addError({id:L.id+'#'+i, lessonId:L.id, en:s.en, zh:s.zh});
     });
@@ -342,14 +345,14 @@
     const correct = (k===it.ans);
     const s = L.sentences[it.srcIdx];
     if(correct && !qz.revealed){
-      qz.score++; $('#qzFb').innerHTML='<div class="acc-badge good">🎉 答對了！</div>';
+      qz.score++; $('#qzFb').innerHTML='<div class="acc-badge good">🎉 答對了！</div>'; JD.celebrate('great');
     }else if(correct && qz.revealed){
       /* 看過答案才對 → 算錯，不計分，進錯題本 */
       JD.addError({id:L.id+'#'+it.srcIdx, lessonId:L.id, en:s.en, zh:s.zh});
-      $('#qzFb').innerHTML='<div class="acc-badge bad">答對了，但看過答案這題算錯——多聽幾次，下次不看就能懂 💪</div>';
+      $('#qzFb').innerHTML='<div class="acc-badge bad">答對了，但看過答案這題算錯——多聽幾次，下次不看就能懂 💪</div>'; JD.celebrate('try');
     }else{
       JD.addError({id:L.id+'#'+it.srcIdx, lessonId:L.id, en:s.en, zh:s.zh});
-      $('#qzFb').innerHTML='<div class="acc-badge bad">再聽聽～正確答案是 '+String.fromCharCode(65+it.ans)+'</div>';
+      $('#qzFb').innerHTML='<div class="acc-badge bad">再聽聽～正確答案是 '+String.fromCharCode(65+it.ans)+'</div>'; JD.celebrate('try');
     }
     const el=$('#qzBlind'); if(el) el.classList.remove('qz-blind');   /* 答完顯示原句讓孩子核對 */
     $('#qzFb').innerHTML += '<div style="margin-top:8px"><button class="big-btn teal" onclick="qzNext()">下一題 →</button></div>';
@@ -425,6 +428,7 @@
     const s = L.sentences[rc.i];
     rc.results[rc.i]=Math.max(rc.results[rc.i]||0, acc);  /* 取最高準確率；看答案的0分不會抹掉已有好分 */
     pos('recite', rc.results.filter(x=>x!=null).length, L.sentences.length, rc.results.filter(x=>x!=null&&x>=JD.PASS).length);
+    if(showedResult) JD.celebrate(JD.praiseKind({acc:acc}));  /* 只在真背(非看答案)時給鼓勵 */
     if(acc < JD.PASS){
       JD.addError({id:L.id+'#'+rc.i, lessonId:L.id, en:s.en, zh:s.zh});
     }
@@ -535,6 +539,7 @@
   };
   function mkAfter(ok, fix, tip){
     mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */
+    JD.celebrate(ok?'good':'try');
     $('#mkFb').innerHTML=
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
       (ok||!fix?'':'<div class="eg" style="margin-top:8px">可以這樣說：'+JD.esc(fix)+'</div>')+

@@ -34,6 +34,12 @@
 <main>
   <p class="hint" style="margin-top:4px">不同聲音「像不像真人」差很多。按 ▶️ 試聽，挑一個你最喜歡的按「選這個」。英語、日語各選一個，全站朗讀都會用它。</p>
 
+  <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-family:var(--font-head);font-weight:600">🎉 答題鼓勵音效</span>
+    <span class="hint" style="margin:0;flex:1">做對題目時的小音效＋英文鼓勵字（很短）</span>
+    <button id="sfxToggle" class="big-btn teal" style="padding:9px 18px" onclick="toggleSfx()"></button>
+  </div>
+
   <h2 class="sec vsec">📘 英語聲音</h2>
   <div id="enList"></div>
 
@@ -128,6 +134,16 @@ function renderList(lang, boxId){
     box.appendChild(wrap.firstChild);
   }
 }
+/* 答題鼓勵音效開關 */
+function renderSfxBtn(){
+  const b=$('#sfxToggle'); if(!b) return;
+  const on=JD.sfxEnabled();
+  b.textContent = on?'✅ 已開啟':'🔇 已關閉';
+  b.classList.toggle('teal', on); b.classList.toggle('ghost', !on);
+}
+window.toggleSfx=function(){ JD.setSfx(!JD.sfxEnabled()); renderSfxBtn(); if(JD.sfxEnabled()) JD.celebrate('great'); };
+renderSfxBtn();
+
 function renderAll(){ renderList('en-US','enList'); renderList('ja-JP','jpList'); }
 renderAll();
 /* iOS/部分瀏覽器首次 getVoices() 為空，聲音列表就緒後重繪 */

@@ -158,10 +158,11 @@
       if(ok) vright.add(i);   /* 取最好：讀對過就算會，重做讀錯不抹掉 */
       pos('vocab', judged.size, L.vocab.length, vright.size);
       c.classList.remove('known','unknown'); c.classList.add(ok?'known':'unknown');
-      if(ok){ fb.innerHTML='<span class="vok">✓ 讀對了！</span>'; JD.speak(R.toKana(v.w),false,LANG); setTimeout(()=>c.classList.remove('flip'),900); }
+      if(ok){ fb.innerHTML='<span class="vok">✓ 讀對了！</span>'; JD.speak(R.toKana(v.w),false,LANG); setTimeout(()=>c.classList.remove('flip'),900); JD.celebrate('good'); }
       else{
         fb.innerHTML='<span class="vbad">✗ 正確讀音：<b>'+JD.esc(R.toKana(v.w))+'</b></span>';
         JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:R.toKana(v.w), zh:v.zh, type:'word', pos:v.pos, kmap:KANJI_MAP});
+        JD.celebrate('try');
       }
       if(judged.size>=L.vocab.length) done('vocab');
     }
@@ -235,8 +236,8 @@
     const it=bdItems[bd.i];
     if(bd.placed.length<it.words.length){ bdRender('<div class="acc-badge bad">還有詞語沒排上去哦</div>'); return; }
     const got=bd.placed.map(c=>c.w).join(''), want=it.words.join('');
-    if(got===want){ bd.results[bd.i]=true; JD.speak(it.jp,false,LANG); bdRender('<div class="acc-badge good">🎉 排對了！<br>'+JD.esc(it.jp)+'</div>'); bdMaybeDone(); }
-    else{ bdRender('<div class="acc-badge bad">順序還不對，再試試～</div>'); }
+    if(got===want){ bd.results[bd.i]=true; JD.speak(it.jp,false,LANG); bdRender('<div class="acc-badge good">🎉 排對了！<br>'+JD.esc(it.jp)+'</div>'); bdMaybeDone(); JD.celebrate('good'); }
+    else{ bdRender('<div class="acc-badge bad">順序還不對，再試試～</div>'); JD.celebrate('try'); }
   };
   window.bdReveal=function(){
     const it=bdItems[bd.i]; if(bd.results[bd.i]!==true) bd.results[bd.i]=false;  /* 解對過就保留對 */
@@ -264,6 +265,7 @@
     startRec($('#spkRecBtn'), s, '#spkResult', '#spkHeard', acc=>{
       spk.results[i]=Math.max(spk.results[i]||0, acc); spkRenderPills();  /* 取最高準確率 */
       pos('speak', spk.results.filter(x=>x!=null).length, L.sentences.length, spk.results.filter(x=>x!=null&&x>=JD.PASS).length);
+      JD.celebrate(JD.praiseKind({acc:acc}));
       if(acc<JD.PASS) JD.addError({id:L.id+'#'+i, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
     });
   };
@@ -388,6 +390,7 @@
   function rcFinish(acc, showedResult){
     const s=L.sentences[rc.i]; rc.results[rc.i]=Math.max(rc.results[rc.i]||0, acc);  /* 取最高準確率 */
     pos('recite', rc.results.filter(x=>x!=null).length, L.sentences.length, rc.results.filter(x=>x!=null&&x>=JD.PASS).length);
+    if(showedResult) JD.celebrate(JD.praiseKind({acc:acc}));
     if(acc<JD.PASS) JD.addError({id:L.id+'#'+rc.i, lessonId:L.id, en:R.toKana(s.jp), zh:s.zh, kmap:KANJI_MAP});
     if(!showedResult) $('#rcResult').innerHTML='<div class="acc-badge bad">進錯題本，等會再戰 💪</div>';
     $('#rcTarget').innerHTML='<span class="jp-target jp-text">'+R.toRubyHTML(JD.esc(s.jp))+'</span>';
@@ -494,6 +497,7 @@
   };
   function mkAfter(ok, fix, tip){
     mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */
+    JD.celebrate(ok?'good':'try');
     $('#mkFb').innerHTML=
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
       (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">可以這樣說：'+JD.esc(fix)+'</div>')+
