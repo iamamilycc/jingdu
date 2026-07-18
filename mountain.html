@@ -12,7 +12,7 @@
   <h1>🏔️ 我的登山</h1>
 </div></header>
 <main>
-  <p class="hint" style="margin-top:4px">每答對 1 題就往上爬 20 米！選一個角色、定一座想爬的山，一起加油登頂 🚩</p>
+  <p class="hint" style="margin-top:4px">每答對 1 題就往上爬 20 米！小人會爬到你分數對應的半山腰。選一個角色、定一座想爬的山，一起登頂 🚩</p>
 
   <!-- 登山場景 -->
   <div class="card" style="padding:0;overflow:hidden">
@@ -45,30 +45,110 @@
 <script>
 const $=s=>document.querySelector(s);
 
+/* ---------- 卡通山造型庫（內建 SVG，零外部資源） ----------
+   viewBox 0 0 300 200，地面 y≈186。body=山體、snow=雪帽(空=不積雪)、
+   trail=登山步道(從山腳→山頂，供小人按 frac 定位)、px/py=山頂(插旗+登頂點)。 */
+const ART = {
+  rounded:{ rock:'#6cb089', px:150, py:110,
+    body:'M14,186 Q70,124 150,110 Q230,124 286,186 Z', snow:'',
+    trail:'M74,186 L112,160 L94,142 L138,124 L150,112' },
+  craggy:{ rock:'#7fa088', px:150, py:66,
+    body:'M18,186 L94,122 L118,140 L150,66 L182,134 L206,118 L282,186 Z',
+    snow:'M134,92 L150,66 L167,94 L157,86 L150,78 L143,86 Z',
+    trail:'M64,186 L104,158 L88,138 L134,112 L124,90 L150,70' },
+  fuji:{ rock:'#7f90b6', px:150, py:58,
+    body:'M12,186 Q80,170 150,58 Q220,170 288,186 Z',
+    snow:'M110,116 Q128,64 150,58 Q172,64 190,116 Q170,102 158,108 Q150,102 142,108 Q130,102 110,116 Z',
+    trail:'M72,186 L122,160 L96,136 L140,110 L122,86 L150,62' },
+  peak:{ rock:'#7889ae', px:150, py:54,
+    body:'M20,186 Q80,150 150,54 Q220,150 280,186 Z',
+    snow:'M118,106 Q140,58 150,54 Q160,58 182,106 Q160,94 150,100 Q140,94 118,106 Z',
+    trail:'M66,186 L110,158 L92,134 L136,106 L124,82 L150,58' },
+  matterhorn:{ rock:'#8792a8', px:159, py:57,
+    body:'M26,186 Q86,150 150,60 Q158,50 168,58 Q210,150 274,186 Z',
+    snow:'M124,100 Q150,62 166,58 Q172,76 186,104 Q160,92 150,98 Q138,92 124,100 Z',
+    trail:'M64,186 L108,158 L90,134 L134,106 L126,80 L158,60' },
+  twin:{ rock:'#8b95ac', px:120, py:86,
+    body:'M16,186 Q60,150 104,98 Q124,78 145,100 Q150,105 155,100 Q176,78 196,98 Q240,150 284,186 Z',
+    snow:'M90,100 Q104,80 116,94 Q126,104 106,108 Q96,106 90,100 Z M184,94 Q196,80 210,100 Q204,106 194,108 Q174,104 184,94 Z',
+    trail:'M70,186 L110,158 L98,132 L126,108 L116,92 L120,86' },
+  volcano:{ rock:'#8d95a4', px:150, py:96,
+    body:'M18,186 Q78,150 116,96 L184,96 Q222,150 282,186 Z',
+    snow:'M116,96 L184,96 Q176,112 150,106 Q124,112 116,96 Z',
+    trail:'M70,186 L112,158 L98,134 L130,110 L120,100 L126,96' },
+  jagged:{ rock:'#9aa4b6', px:150, py:48,
+    body:'M14,186 L64,120 L92,142 L128,82 L150,48 L176,88 L208,126 L238,110 L286,186 Z',
+    snow:'M132,80 L150,48 L172,90 L160,82 L150,68 L140,82 Z',
+    trail:'M60,186 L100,158 L84,134 L128,102 L138,72 L150,52' },
+  everest:{ rock:'#9ba5b7', px:150, py:44,
+    body:'M10,186 L58,128 L88,148 L120,96 L150,44 L182,92 L214,140 L244,120 L290,186 Z',
+    snow:'M120,96 L150,44 L184,96 L166,84 L150,60 L134,84 Z',
+    trail:'M56,186 L98,158 L82,132 L126,100 L122,72 L150,48' }
+};
+function shade(hex){ /* 底部加深做立體 */
+  const n=parseInt(hex.slice(1),16); const r=(n>>16)&255,g=(n>>8)&255,b=n&255;
+  const f=x=>Math.round(x*0.78);
+  return '#'+[f(r),f(g),f(b)].map(x=>x.toString(16).padStart(2,'0')).join('');
+}
+function svgScene(art){
+  const a=ART[art]||ART.peak;
+  const snow=a.snow?'<path d="'+a.snow+'" fill="#f4fbff"/>':'';
+  return '<svg viewBox="0 0 300 200" class="mtn-svg" preserveAspectRatio="xMidYMid meet">'+
+    '<defs>'+
+    '<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#bfe6fb"/><stop offset="1" stop-color="#eef8ff"/></linearGradient>'+
+    '<linearGradient id="rk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="'+a.rock+'"/><stop offset="1" stop-color="'+shade(a.rock)+'"/></linearGradient>'+
+    '</defs>'+
+    '<rect x="0" y="0" width="300" height="200" fill="url(#sky)"/>'+
+    '<circle cx="254" cy="32" r="17" fill="#ffe6a0"/>'+
+    '<g fill="#ffffff" opacity=".9"><ellipse cx="56" cy="40" rx="25" ry="10"/><ellipse cx="80" cy="34" rx="17" ry="8"/></g>'+
+    '<rect x="0" y="180" width="300" height="20" fill="#8fd0a0"/>'+
+    '<path d="'+a.body+'" fill="url(#rk)"/>'+snow+
+    '<path id="mtnTrail" d="'+a.trail+'" fill="none" stroke="#caa877" stroke-width="3" stroke-linecap="round" stroke-dasharray="1 6" opacity=".7"/>'+
+    '<path id="mtnTrailDone" d="'+a.trail+'" fill="none" stroke="#e8743b" stroke-width="3.6" stroke-linecap="round"/>'+
+    '<text x="'+a.px+'" y="'+(a.py-3)+'" font-size="17" text-anchor="middle">🚩</text>'+
+    '<g id="climberHolder"></g></svg>';
+}
+function svgThumb(art){
+  const a=ART[art]||ART.peak;
+  const snow=a.snow?'<path d="'+a.snow+'" fill="#f4fbff"/>':'';
+  return '<svg viewBox="0 55 300 135" class="m-thumb" preserveAspectRatio="xMidYMid meet">'+
+    '<path d="'+a.body+'" fill="'+a.rock+'"/>'+snow+'</svg>';
+}
+function climberSVG(x,y){
+  const av=JD.getAvatar(), isPhoto=av.indexOf('data:')===0, r=14;
+  const inner = isPhoto
+    ? '<clipPath id="cc"><circle cx="0" cy="0" r="'+r+'"/></clipPath>'+
+      '<image href="'+av+'" x="'+(-r)+'" y="'+(-r)+'" width="'+(2*r)+'" height="'+(2*r)+'" clip-path="url(#cc)" preserveAspectRatio="xMidYMid slice"/>'+
+      '<circle cx="0" cy="0" r="'+r+'" fill="none" stroke="#fff" stroke-width="2.5"/>'
+    : '<circle cx="0" cy="0" r="'+r+'" fill="#ffe7b3" stroke="#fff" stroke-width="2.5"/>'+
+      '<text x="0" y="0" font-size="18" text-anchor="middle" dominant-baseline="central">'+av+'</text>';
+  return '<g transform="translate('+x+','+y+')"><g class="bob">'+
+    '<ellipse cx="0" cy="'+(r+3)+'" rx="'+(r-2)+'" ry="2.5" fill="rgba(0,0,0,.16)"/>'+inner+'</g></g>';
+}
+
 function renderScene(){
-  const ms = JD.mountainState();
-  const M = JD.MOUNTAINS;
-  const target = JD.getTargetMountain();
-  const scene = $('#scene');
-  const isSnow = ms.cur.m >= 3776;
-  const climberBottom = 8 + Math.round(ms.frac*150);
-  scene.innerHTML =
-    '<div class="mtn-alt">🧭 海拔 '+ms.alt+' 米</div>'+
-    '<div class="mtn-peak'+(isSnow?' snow':'')+'"></div>'+
-    (ms.next ? '' : '<div class="mtn-flag">🚩</div>')+
-    '<div class="mtn-climber" style="left:50%;transform:translateX(-50%);bottom:'+climberBottom+'px">'+JD.avatarHTML(44)+'</div>';
+  const ms=JD.mountainState(), M=JD.MOUNTAINS, target=JD.getTargetMountain();
+  const sceneMtn = ms.next || ms.cur;          /* 畫正在爬向的那座山 */
+  const frac = ms.next ? ms.frac : 1;
+  $('#scene').innerHTML = svgScene(sceneMtn.art);
+  const tr=document.getElementById('mtnTrail'), done=document.getElementById('mtnTrailDone');
+  if(tr && done){
+    const len=tr.getTotalLength();
+    done.style.strokeDasharray=len; done.style.strokeDashoffset=len*(1-frac);
+    const pt=tr.getPointAtLength(Math.max(0.001,Math.min(1,frac))*len);
+    document.getElementById('climberHolder').innerHTML=climberSVG(pt.x, pt.y);
+  }
   const toGo = ms.next ? (ms.next.m - ms.alt) : 0;
   $('#sceneInfo').innerHTML = ms.next
-    ? '正在爬 <b style="font-family:var(--font-head);color:var(--teal-deep)">'+ms.cur.emoji+' '+ms.cur.name+'</b>（'+ms.cur.m+'米）'+
-      '<br>距離下一座 <b>'+ms.next.emoji+' '+ms.next.name+'</b>（'+ms.next.m+'米）還有 <b style="color:var(--coral)">'+toGo+' 米</b>'+
-      '<div class="climb-banner cb-bar" style="height:9px;margin-top:8px;background:var(--line)"><i style="display:block;height:100%;border-radius:4px;background:var(--teal);width:'+Math.round(ms.frac*100)+'%"></i></div>'+
-      '<div class="hint" style="margin:6px 0 0">目標：'+M[target].emoji+' '+M[target].name+'（'+M[target].m+'米）'+(ms.alt>=M[target].m?' — 已登頂！🎉':'')+'</div>'
+    ? '正在爬 <b style="font-family:var(--font-head);color:var(--teal-deep)">'+ms.next.emoji+' '+ms.next.name+'</b>（'+ms.next.m+'米）· 目前海拔 <b>'+ms.alt+'米</b>'+
+      '<br>距離登頂還有 <b style="color:var(--coral)">'+toGo+' 米</b>（再答對 '+Math.ceil(toGo/JD.METERS_PER_CORRECT)+' 題）'+
+      '<div class="cb-bar" style="height:9px;margin-top:8px;background:var(--line);border-radius:5px;overflow:hidden"><i style="display:block;height:100%;border-radius:5px;background:var(--teal);width:'+Math.round(frac*100)+'%"></i></div>'+
+      '<div class="hint" style="margin:6px 0 0">🚩 我的目標：'+M[target].emoji+' '+M[target].name+'（'+M[target].m+'米）'+(ms.alt>=M[target].m?' — 已達成！🎉':'')+'</div>'
     : '<b style="color:var(--teal-deep);font-family:var(--font-head)">🎉 你已登上世界之巔——珠穆朗瑪峰 8848 米！太了不起了！</b>';
 }
 
 function renderAvatars(){
-  const cur = JD.getAvatar();
-  const grid = $('#avatarGrid');
+  const cur=JD.getAvatar(), grid=$('#avatarGrid');
   grid.innerHTML = JD.AVATARS.map(a=>'<button class="'+(a===cur?'on':'')+'" data-a="'+a+'">'+a+'</button>').join('')+
     (cur.indexOf('data:')===0 ? '<button class="on" data-a="__photo" title="你的照片">'+JD.avatarHTML(30)+'</button>' : '');
   grid.querySelectorAll('button').forEach(b=>b.onclick=()=>{
@@ -78,14 +158,12 @@ function renderAvatars(){
 }
 
 function renderMtnList(){
-  const M=JD.MOUNTAINS, ms=JD.mountainState(), target=JD.getTargetMountain();
-  const box=$('#mtnList');
+  const M=JD.MOUNTAINS, ms=JD.mountainState(), target=JD.getTargetMountain(), box=$('#mtnList');
   box.innerHTML = M.map((m,i)=>{
     if(i===0) return '';
-    const reached = ms.alt>=m.m;
-    const isTarget = i===target;
+    const reached=ms.alt>=m.m, isTarget=i===target;
     return '<div class="mtn-row'+(reached?' reached':'')+'">'+
-      '<span style="font-size:1.3rem">'+m.emoji+'</span>'+
+      '<span class="mr-thumb">'+svgThumb(m.art)+'</span>'+
       '<span>'+m.name+(reached?' ✓':'')+'</span>'+
       '<span class="mr-m">'+m.m+' 米</span>'+
       '<button class="big-btn '+(isTarget?'teal':'ghost')+'" style="padding:6px 12px;font-size:.85rem;margin:0" data-i="'+i+'">'+(isTarget?'🚩 目標':'設為目標')+'</button>'+
@@ -109,8 +187,7 @@ $('#photo').addEventListener('change', e=>{
       const ctx=cv.getContext('2d');
       const side=Math.min(img.width,img.height), sx=(img.width-side)/2, sy=(img.height-side)/2;
       ctx.drawImage(img, sx, sy, side, side, 0, 0, S, S);
-      const url=cv.toDataURL('image/jpeg', 0.75);
-      JD.setAvatar(url); markUpdated(); renderAvatars(); renderScene();
+      JD.setAvatar(cv.toDataURL('image/jpeg', 0.75)); markUpdated(); renderAvatars(); renderScene();
     };
     img.onerror=()=>alert('這張圖片讀不了，換一張試試');
     img.src=rd.result;
@@ -119,6 +196,7 @@ $('#photo').addEventListener('change', e=>{
 });
 
 renderScene(); renderAvatars(); renderMtnList();
+window.JDSYNC_ONRESTORE=function(){ renderScene(); renderAvatars(); renderMtnList(); };
 </script>
 </body>
 </html>

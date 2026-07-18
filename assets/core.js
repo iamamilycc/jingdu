@@ -102,18 +102,23 @@
 
   /* ---------- 爬山：累計全站答對題數 → 海拔（每答對1題=20米）→ 對應山峰 ---------- */
   const METERS_PER_CORRECT = 20;
+  /* art=卡通輪廓類型（見 mountain.html 的 ART），依真實山形/高度給不同造型與雪量 */
   const MOUNTAINS = [
-    {name:'海平面', m:0, emoji:'🌊'},
-    {name:'泰山', m:1545, emoji:'⛰️'},
-    {name:'黃山', m:1864, emoji:'⛰️'},
-    {name:'華山', m:2154, emoji:'⛰️'},
-    {name:'峨眉山', m:3099, emoji:'🏔️'},
-    {name:'富士山', m:3776, emoji:'🗻'},
-    {name:'玉山', m:3952, emoji:'🏔️'},
-    {name:'勃朗峰', m:4808, emoji:'🏔️'},
-    {name:'乞力馬扎羅', m:5895, emoji:'🏔️'},
-    {name:'阿空加瓜', m:6961, emoji:'🏔️'},
-    {name:'珠穆朗瑪峰', m:8848, emoji:'🏔️'}
+    {name:'海平面', m:0, emoji:'🌊', art:'rounded'},
+    {name:'泰山', m:1545, emoji:'⛰️', art:'rounded'},
+    {name:'黃山', m:1864, emoji:'⛰️', art:'craggy'},
+    {name:'華山', m:2154, emoji:'⛰️', art:'craggy'},
+    {name:'峨眉山', m:3099, emoji:'🏔️', art:'rounded'},
+    {name:'富士山', m:3776, emoji:'🗻', art:'fuji'},
+    {name:'玉山', m:3952, emoji:'🏔️', art:'peak'},
+    {name:'馬特洪峰', m:4478, emoji:'🏔️', art:'matterhorn'},
+    {name:'勃朗峰', m:4808, emoji:'🏔️', art:'peak'},
+    {name:'厄爾布魯士', m:5642, emoji:'🏔️', art:'twin'},
+    {name:'乞力馬扎羅', m:5895, emoji:'🌋', art:'volcano'},
+    {name:'迪納利', m:6190, emoji:'🏔️', art:'peak'},
+    {name:'阿空加瓜', m:6961, emoji:'🏔️', art:'jagged'},
+    {name:'喬戈里峰', m:8611, emoji:'🏔️', art:'jagged'},
+    {name:'珠穆朗瑪峰', m:8848, emoji:'🏔️', art:'everest'}
   ];
   function totalCorrect(){
     let total=0;

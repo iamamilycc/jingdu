@@ -137,17 +137,13 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
   vertical-align:middle;box-shadow:0 2px 6px rgba(0,0,0,.18);border:2px solid #fff;overflow:hidden;
   text-align:center;line-height:1}
 .jd-avatar.emoji{background:var(--mango-soft);display:inline-flex;align-items:center;justify-content:center}
-/* 山峰場景：天空底 + 三角山 + 小人沿斜坡按進度定位 */
-.mtn-scene{position:relative;height:200px;border-radius:16px;overflow:hidden;
-  background:linear-gradient(#bfe3f5,#eaf6fd 70%,#dff0d8)}
-.mtn-peak{position:absolute;left:50%;bottom:0;transform:translateX(-50%);
-  width:0;height:0;border-left:150px solid transparent;border-right:150px solid transparent;
-  border-bottom:180px solid var(--teal)}
-.mtn-peak.snow{border-bottom-color:#7fb0a6}
-.mtn-flag{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-size:1.5rem;z-index:3}
-.mtn-climber{position:absolute;z-index:4;transition:left 1s ease, bottom 1s ease}
-.mtn-alt{position:absolute;left:10px;top:10px;background:rgba(255,255,255,.85);border-radius:10px;
-  padding:4px 10px;font-family:var(--font-head);font-weight:700;color:var(--teal-deep);z-index:5}
+/* 山峰場景：內建 SVG 卡通山，小人用 getPointAtLength 貼在步道對應 frac 處 */
+.mtn-scene{position:relative;border-radius:16px 16px 0 0;overflow:hidden;background:#eef8ff}
+.mtn-svg{display:block;width:100%;height:auto}
+.mtn-svg .bob{animation:jd-bob 1.5s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+@keyframes jd-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}
+.m-thumb{width:50px;height:32px;flex:none}
+.mtn-row .mr-thumb{display:inline-flex;align-items:center}
 /* 登山橫幅(目錄頂部) */
 .climb-banner{display:flex;align-items:center;gap:12px;background:linear-gradient(120deg,#dff0d8,#cfe8f5);
   border-radius:var(--r);padding:12px 16px;margin-bottom:14px;box-shadow:var(--shadow);
