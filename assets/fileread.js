@@ -14,6 +14,29 @@
     return new Promise((res,rej)=>{ const r=new FileReader(); r.onload=()=>res(r.result); r.onerror=()=>rej(new Error('讀取失敗')); r.readAsArrayBuffer(file); });
   }
 
+  /* 縮圖壓縮：手機拍照原圖常 3~5MB，base64 塞進 API 請求體會被 Safari 直接丟掉（fetch 報「Load failed」）。
+     長邊壓到 <=1800px、輸出 JPEG(質量 .85)，文字仍清晰可 OCR，體積降到 ~200-400KB，杜絕上傳失敗。
+     讀不了(如某些 HEIC)就回原圖不擋流程。 */
+  function downscaleImage(dataUrl, maxDim, quality){
+    return new Promise((res)=>{
+      const img=new Image();
+      img.onload=()=>{
+        const w=img.naturalWidth||img.width, h=img.naturalHeight||img.height;
+        if(!w || !h){ res(dataUrl); return; }
+        const scale=Math.min(1, maxDim/Math.max(w,h));
+        const nw=Math.max(1,Math.round(w*scale)), nh=Math.max(1,Math.round(h*scale));
+        try{
+          const cv=document.createElement('canvas'); cv.width=nw; cv.height=nh;
+          cv.getContext('2d').drawImage(img,0,0,nw,nh);
+          const out=cv.toDataURL('image/jpeg', quality);
+          res(out && out.length < dataUrl.length ? out : dataUrl);  /* 壓不小就用原圖 */
+        }catch(e){ res(dataUrl); }
+      };
+      img.onerror=()=>res(dataUrl);
+      img.src=dataUrl;
+    });
+  }
+
   function decodeEntities(s){
     return s.replace(/&amp;/g,'&').replace(/&lt;/g,'<').replace(/&gt;/g,'>')
             .replace(/&quot;/g,'"').replace(/&apos;/g,"'")
@@ -66,7 +89,8 @@
   async function read(file){
     const name=(file.name||'').toLowerCase();
     if(file.type && file.type.indexOf('image/')===0){
-      return { kind:'image', dataUrl: await readAsDataURL(file) };
+      const raw = await readAsDataURL(file);
+      return { kind:'image', dataUrl: await downscaleImage(raw, 1800, 0.85) };
     }
     if(name.endsWith('.docx')){
       return { kind:'text', text: await docxToText(await readAsArrayBuffer(file)) };

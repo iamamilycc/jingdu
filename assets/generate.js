@@ -230,11 +230,24 @@ ${schema}`;
     if(opts.max_tokens) body.max_tokens = opts.max_tokens;
     /* 智譜 GLM-4 支援強制輸出合法 JSON，杜絕「多一句解釋 / 尾逗號」導致 parse 失敗 */
     if(opts.json) body.response_format = { type:'json_object' };
-    const resp = await fetch(ENDPOINT, {
-      method:'POST',
-      headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' },
-      body: JSON.stringify(body)
-    });
+    const payload = JSON.stringify(body);
+    /* fetch 在網路層失敗(如圖太大被瀏覽器丟掉、連線中斷)會 throw TypeError「Load failed」，
+       不是 HTTP 錯誤碼。自動重試一次；仍失敗給看得懂的提示。 */
+    async function doFetch(){
+      return fetch(ENDPOINT, {
+        method:'POST',
+        headers:{ 'Authorization':'Bearer '+key, 'Content-Type':'application/json' },
+        body: payload
+      });
+    }
+    let resp;
+    try{ resp = await doFetch(); }
+    catch(e1){
+      if(onProgress) onProgress('網路不穩，重試一次…');
+      await new Promise(r=>setTimeout(r, 900));
+      try{ resp = await doFetch(); }
+      catch(e2){ throw new Error('連不上智譜（網路中斷或圖片太大）。請確認網路，或換一張更清楚、檔案小一點的照片再試。'); }
+    }
     if(resp.status===401) throw new Error('API Key 無效或已過期');
     if(!resp.ok){ const t=await resp.text().catch(()=>''); throw new Error('智譜回應錯誤 '+resp.status+' '+t.slice(0,120)); }
     const j = await resp.json();
