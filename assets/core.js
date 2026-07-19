@@ -349,9 +349,9 @@
       .map(v=>({ name:v.name, voiceURI:v.voiceURI, local:v.localService, hiq:HIQ.test(v.name) }))
       .sort((a,b)=> (b.hiq?1:0)-(a.hiq?1:0) || a.name.localeCompare(b.name));
   }
-  function speak(text, slow, lang){
+  /* 系統合成聲（Web Speech）——雲端語音沒開/失敗時的保底 */
+  function systemSpeak(text, slow, lang){
     if(!('speechSynthesis' in window)) return;
-    lang = lang || 'en-US';
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang=lang;
@@ -359,6 +359,18 @@
     u.rate = slow?0.6:0.92; u.pitch = 1.0;
     const v = pickVoice(lang); if(v) u.voice=v;
     speechSynthesis.speak(u);
+  }
+  /* 對外朗讀：優先用雲端神經語音（更像真人），任何失敗自動退回系統合成聲，絕不會沒聲音。 */
+  function speak(text, slow, lang){
+    lang = lang || 'en-US';
+    try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){}
+    if(window.JDTTS) JDTTS.stop();
+    if(window.JDTTS && JDTTS.enabled()){
+      const prefix = lang.split('-')[0]==='ja' ? 'ja' : 'en';
+      JDTTS.play(text, prefix, slow).then(ok=>{ if(!ok) systemSpeak(text, slow, lang); });
+      return;
+    }
+    systemSpeak(text, slow, lang);
   }
   /* 試聽指定聲音（聲音設定頁用）；voiceURI 為空則用當前偏好/優選 */
   function previewVoice(lang, voiceURI){

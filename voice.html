@@ -34,6 +34,37 @@
 <main>
   <p class="hint" style="margin-top:4px">不同聲音「像不像真人」差很多。按 ▶️ 試聽，挑一個你最喜歡的按「選這個」。英語、日語各選一個，全站朗讀都會用它。</p>
 
+  <!-- ☁️ 雲端真人語音（Google 神經語音）：最像真人；沒開/失敗自動退回下面的系統聲 -->
+  <div class="card" id="cloudCard" style="border-left:5px solid var(--teal)">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-family:var(--font-head);font-weight:600">☁️ 雲端真人語音</span>
+      <span class="hint" style="margin:0;flex:1;min-width:180px">Google 神經語音，母語發音、語調自然，最像真人（每月免費額度很大，一個孩子基本用不完）。開了之後全站朗讀都用它，萬一沒聲/失敗會自動退回系統聲。</span>
+      <button id="cloudToggle" class="big-btn ghost" style="padding:9px 18px;margin:0" onclick="toggleCloud()"></button>
+    </div>
+    <div id="cloudBody" style="margin-top:12px">
+      <label class="hint" style="display:block;margin:0 0 4px">Google API Key（只存這台設備，不外傳）</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="password" id="gkey" placeholder="貼上 Google TTS 的 API Key" autocomplete="off"
+          style="flex:1;min-width:200px;box-sizing:border-box;border:2px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.95rem">
+        <button class="big-btn teal" style="padding:9px 16px;margin:0" onclick="saveCloudKey()">存</button>
+      </div>
+      <div id="cloudVoicePick" style="margin-top:12px"></div>
+      <div id="cloudMsg" class="hint" style="margin-top:8px"></div>
+      <details class="morevox" style="margin-top:10px"><summary>👉 怎麼申請 Google Key？（一次搞定，還能鎖死防盜用）</summary>
+        <div>
+          <ol style="line-height:1.85">
+            <li>到 <b>console.cloud.google.com</b> 登入 Google 帳號（要綁一張信用卡才有免費額度；用不到就不扣款）</li>
+            <li>上方建一個「<b>專案</b>」→ 搜尋並「<b>啟用</b>」<b>Cloud Text-to-Speech API</b></li>
+            <li>左側「<b>憑證</b>」→ 建立憑證 → <b>API 金鑰</b> → 複製</li>
+            <li><b style="color:var(--coral)">防盜用（重要）</b>：點該金鑰 →「應用程式限制」選 <b>HTTP 參照網址</b>，加 <b>iamamilycc.github.io/*</b>；「API 限制」只勾 <b>Cloud Text-to-Speech API</b> → 儲存。這樣別人拿到也用不了</li>
+            <li>把金鑰貼到上面按「<b>存</b>」，選好聲音按 <b>▶️ 試聽</b>，好聽就把開關打開</li>
+          </ol>
+          <p class="hint" style="margin:6px 0 0">費用：神經語音每月前 100 萬字免費，加上本站會把念過的句子快取起來、重播不再花錢——一個孩子日常用基本 $0。</p>
+        </div>
+      </details>
+    </div>
+  </div>
+
   <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <span style="font-family:var(--font-head);font-weight:600">🎉 答題鼓勵音效</span>
     <span class="hint" style="margin:0;flex:1">做對題目時的小音效＋英文鼓勵字（很短）</span>
@@ -52,6 +83,7 @@
 <footer class="site">jingdu · 挑一個順耳的聲音陪你讀</footer>
 
 <script src="assets/core.js"></script>
+<script src="assets/tts.js"></script>
 <script src="assets/sync.js"></script>
 <script>
 const $=s=>document.querySelector(s);
@@ -143,6 +175,53 @@ function renderSfxBtn(){
 }
 window.toggleSfx=function(){ JD.setSfx(!JD.sfxEnabled()); renderSfxBtn(); if(JD.sfxEnabled()) JD.celebrate('great'); };
 renderSfxBtn();
+
+/* ☁️ 雲端真人語音（Google TTS） */
+function markSync(){ try{ localStorage.setItem('jingdu_updatedAt', String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule(); }catch(e){} }
+function renderCloudVoices(){
+  const box=$('#cloudVoicePick'); if(!box || !window.JDTTS) return;
+  const V=JDTTS.VOICES;
+  function sel(prefix, title){
+    const cur=JDTTS.getVoice(prefix);
+    const opts=V[prefix].map(v=>'<option value="'+v.name+'"'+(v.name===cur?' selected':'')+'>'+v.label+'</option>').join('');
+    return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px">'+
+      '<span style="font-family:var(--font-head);min-width:52px">'+title+'</span>'+
+      '<select data-p="'+prefix+'" style="flex:1;min-width:150px;border:2px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.92rem;background:#fff;color:var(--ink)">'+opts+'</select>'+
+      '<button class="big-btn ghost" style="padding:8px 14px;margin:0" data-try="'+prefix+'">▶️ 試聽</button></div>';
+  }
+  box.innerHTML=sel('en','📘 英語')+sel('ja','🎌 日語');
+  box.querySelectorAll('select').forEach(s=>s.onchange=()=>{ JDTTS.setVoice(s.dataset.p, s.value); markSync(); });
+  box.querySelectorAll('[data-try]').forEach(b=>b.onclick=async()=>{
+    const m=$('#cloudMsg'); m.textContent='⏳ 合成中…（第一次要等一兩秒）'; m.style.color='';
+    const r=await JDTTS.test(b.dataset.try);
+    if(r.ok){ m.textContent='✅ 成功！這就是雲端語音的聲音。喜歡就把右上開關打開'; m.style.color='var(--teal-deep)'; }
+    else{ m.textContent='❌ 沒成功：'+(r.err||'')+'　（開了也會自動退回系統聲，不會沒聲音）'; m.style.color='var(--coral)'; }
+  });
+}
+function renderCloud(){
+  const t=$('#cloudToggle'); if(!t || !window.JDTTS) return;
+  const on=JDTTS.enabled(), hasKey=!!JDTTS.getKey();
+  t.textContent = on?'✅ 已開啟':'⭕ 未開啟';
+  t.classList.toggle('teal', on); t.classList.toggle('ghost', !on);
+  const k=$('#gkey'); if(k) k.placeholder = hasKey ? '（已存 key，要換再貼新的）' : '貼上 Google TTS 的 API Key';
+  renderCloudVoices();
+}
+window.toggleCloud=function(){
+  const m=$('#cloudMsg');
+  if(!JDTTS.enabled()){
+    if(!JDTTS.getKey()){ m.textContent='請先填 Google API Key、按 ▶️ 試聽成功，再打開'; m.style.color='var(--coral)'; return; }
+    JDTTS.setEnabled(true); m.textContent='✅ 已開啟，全站朗讀改用雲端真人語音'; m.style.color='var(--teal-deep)';
+  } else { JDTTS.setEnabled(false); m.textContent='已關閉，改回系統聲'; m.style.color=''; }
+  markSync(); renderCloud();
+};
+window.saveCloudKey=function(){
+  const v=$('#gkey').value.trim(), m=$('#cloudMsg');
+  if(!v){ m.textContent='還沒貼 key'; m.style.color='var(--coral)'; return; }
+  JDTTS.setKey(v); $('#gkey').value='';
+  m.textContent='✅ key 已存。按上面 ▶️ 試聽確認，好聽再打開右上開關'; m.style.color='var(--teal-deep)';
+  markSync(); renderCloud();
+};
+renderCloud();
 
 function renderAll(){ renderList('en-US','enList'); renderList('ja-JP','jpList'); }
 renderAll();
