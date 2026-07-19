@@ -169,9 +169,11 @@
      音效用 WebAudio 即時合成，不用下載音檔、零成本；toast pointer-events:none 不擋操作。
      由用戶操作(答題)觸發，符合 iOS 需用戶手勢才能出聲的限制。 */
   let _ac=null;
-  function audioCtx(){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; if(!_ac) _ac=new AC(); if(_ac.state==='suspended') _ac.resume(); return _ac; }catch(e){ return null; } }
-  function beep(freqs, dur){
-    const ac=audioCtx(); if(!ac) return;
+  function audioCtx(){ try{ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return null; if(!_ac) _ac=new AC(); return _ac; }catch(e){ return null; } }
+  /* 首次觸控/點擊就喚醒音訊（iOS/Chrome 的 AudioContext 預設 suspended，必須在用戶手勢中 resume） */
+  function warmAudio(){ try{ const ac=audioCtx(); if(ac && ac.state==='suspended') ac.resume(); }catch(e){} }
+  try{ document.addEventListener('touchend', warmAudio, {passive:true}); document.addEventListener('click', warmAudio, {passive:true}); }catch(e){}
+  function schedBeep(ac, freqs, dur){
     const t0=ac.currentTime;
     freqs.forEach((f,i)=>{
       const o=ac.createOscillator(), g=ac.createGain();
@@ -182,6 +184,12 @@
       g.gain.exponentialRampToValueAtTime(0.0001, s+dur);
       o.start(s); o.stop(s+dur);
     });
+  }
+  /* suspended 時 resume 是非同步的——必須等它 running 再排程，否則排在暫停的時間軸上＝沒聲音 */
+  function beep(freqs, dur){
+    const ac=audioCtx(); if(!ac) return;
+    if(ac.state==='suspended'){ ac.resume().then(()=>schedBeep(ac,freqs,dur)).catch(()=>{}); }
+    else schedBeep(ac, freqs, dur);
   }
   function sfxEnabled(){ try{ return localStorage.getItem(NS+'sfx')!=='0'; }catch(e){ return true; } }
   function setSfx(on){ try{ localStorage.setItem(NS+'sfx', on?'1':'0'); }catch(e){} }
