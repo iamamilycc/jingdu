@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="虫虫精讀">
+  <defs>
+    <linearGradient id="wg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6FD08C"/><stop offset="1" stop-color="#3E8E5A"/>
+    </linearGradient>
+  </defs>
+  <!-- 底：奶油圓角方塊，任何底色都清楚 -->
+  <rect x="2" y="2" width="60" height="60" rx="15" fill="#FBF6EC" stroke="#0F7B6C" stroke-width="2.5"/>
+  <!-- 打開的書 -->
+  <path d="M10 47 Q22 41 32 46 Q42 41 54 47 L54 55 Q42 50 32 54 Q22 50 10 55 Z" fill="#F5A623"/>
+  <path d="M32 46 Q22 41 11 46.5 L11 53.5 Q22 48.5 32 53 Z" fill="#FFFDF7"/>
+  <path d="M32 46 Q42 41 53 46.5 L53 53.5 Q42 48.5 32 53 Z" fill="#FFFDF7"/>
+  <path d="M32 46 L32 53" stroke="#E0B060" stroke-width="1.3"/>
+  <!-- 書蟲身體：幾節綠色圓球，從書裡拱起 -->
+  <circle cx="21" cy="43" r="5.4" fill="url(#wg)"/>
+  <circle cx="28" cy="38" r="5.8" fill="url(#wg)"/>
+  <circle cx="35.5" cy="34.5" r="6" fill="url(#wg)"/>
+  <!-- 頭 -->
+  <circle cx="44" cy="28" r="8.4" fill="url(#wg)"/>
+  <!-- 觸角 -->
+  <path d="M41 21 Q39 15 41.5 12" stroke="#3E8E5A" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M47 21 Q49 15 46.5 12" stroke="#3E8E5A" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <circle cx="41.5" cy="11.5" r="2" fill="#F5A623"/>
+  <circle cx="46.5" cy="11.5" r="2" fill="#F5A623"/>
+  <!-- 眼鏡 + 眼睛 -->
+  <circle cx="41" cy="28" r="3.6" fill="#FFFFFF" stroke="#0A5A4F" stroke-width="1.6"/>
+  <circle cx="48" cy="28" r="3.6" fill="#FFFFFF" stroke="#0A5A4F" stroke-width="1.6"/>
+  <path d="M44.6 27.4 H44.4" stroke="#0A5A4F" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M44.6 27.6 Q44.3 26.9 44.4 27.4" stroke="#0A5A4F" stroke-width="1.4" fill="none"/>
+  <circle cx="41.4" cy="28.4" r="1.7" fill="#2B2320"/>
+  <circle cx="48.4" cy="28.4" r="1.7" fill="#2B2320"/>
+  <circle cx="41.9" cy="27.9" r="0.5" fill="#fff"/>
+  <circle cx="48.9" cy="27.9" r="0.5" fill="#fff"/>
+  <!-- 微笑 -->
+  <path d="M42 33.5 Q45 36 48 33.5" stroke="#0A5A4F" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+</svg>

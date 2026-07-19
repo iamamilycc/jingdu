@@ -38,6 +38,8 @@ header.site{
   border-bottom:4px solid var(--mango);
 }
 header.site .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;max-width:860px;margin:0 auto}
+.brand-logo{flex:none;width:38px;height:38px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
+.brand-hero{width:76px;height:76px;display:block;margin:0 auto 6px}
 /* min-width 防止窄屏把標題壓成逐字換行（中文字間本可斷行，flex 預設 min-width:auto 會把它壓到只剩一字寬）；
    放不下時靠 flex-wrap 讓導航鏈接掉到下一行，標題本身永遠保持整行寬度 */
 /* 長課名不再撐爆 header：字略小、行距收緊、最多兩行超出以…省略（品牌短標題不受影響） */

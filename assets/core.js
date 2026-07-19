@@ -1,5 +1,5 @@
 /* 精讀 jingdu 核心引擎：存儲 / 艾賓浩斯 / TTS / 語音識別 / 逐詞比對
-   版權所有 © 2026 iamamilycc · 保留一切權利 All Rights Reserved.
+   版權所有 © 2026 iamamilycc · 虫虫精讀 · 保留一切權利 All Rights Reserved.
    官方唯一網址 https://iamamilycc.github.io/jingdu ——未經書面同意禁止複製/鏡像/改作/商用。 */
 (function(){
   'use strict';
