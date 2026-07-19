@@ -1,118 +1,146 @@
-/* 精讀 jingdu — 雲端神經語音（Google Cloud Text-to-Speech）
-   目的：系統合成聲不夠像真人；接 Google 神經語音（Neural2 / Chirp3 HD，母語發音、語調自然）。
-   設計：
-   - BYOK：key 存本機 localStorage，直連 texttospeech.googleapis.com（附 ?key=），不經任何中轉。
-   - 快取：每句音檔存 IndexedDB，同句重播不再呼叫 API（省錢、離線、秒播）。
-   - 安全退回：任何失敗（沒 key / 網路 / CORS / iOS 擋播 / 語音名錯）一律回 false，
-     呼叫端（core.js speak）據此退回系統合成聲——最壞情況＝跟現在一樣，絕不會沒聲音。
+/* 精讀 jingdu — 雲端神經語音（可切換供應商）
+   目的：系統合成聲不夠像真人。優先用雲端神經 TTS（語調自然）。
+   供應商：
+   - 'zhipu'（預設，國內可用）：智譜 GLM-TTS，端點 open.bigmodel.cn（本站其它功能已在用、CORS 已通），
+     直接復用「做課那把智譜 key」（jingdu_zhipu_key），不用再貼。回 audio/wav 二進位。
+     ⚠ 智譜音色偏中文，英/日發音是否夠母語需實測；不好聽就退回系統聲。
+   - 'google'：Google Cloud TTS（母語自然，但國內要翻牆+外幣卡），另貼 Google key，回 base64 mp3。
+   共通：
+   - 快取：每句音檔（Blob）存 IndexedDB，同句重播不再呼叫 API（省錢、離線、秒播）。
+   - 安全退回：任何失敗一律回 false，core.js speak() 據此退回系統合成聲——絕不會沒聲音。
    - iOS 音訊解鎖：HTMLAudio 在 iOS 需用戶手勢後才能播；首次觸控用靜音 WAV 解鎖同一個複用元素。 */
 (function(){
   'use strict';
   const NS='jingdu_';
-  const EP='https://texttospeech.googleapis.com/v1/text:synthesize';
+  const ZHIPU_EP='https://open.bigmodel.cn/api/paas/v4/audio/speech';
+  const GOOGLE_EP='https://texttospeech.googleapis.com/v1/text:synthesize';
 
-  /* 可選語音（Neural2＝穩定必可用；Chirp3 HD＝最自然最新）。預設用 Neural2 保證第一次就有聲。 */
-  const VOICES = {
+  /* 智譜系統音色（語言無關，一個音色可讀中英日）；Google 分語言選。 */
+  const ZHIPU_VOICES=[
+    {name:'tongtong', label:'彤彤（女聲·預設）'},
+    {name:'xiaochen', label:'小陳（男聲）'},
+    {name:'chuichui', label:'錘錘'},
+    {name:'jam',      label:'Jam'},
+    {name:'kazi',     label:'Kazi'},
+    {name:'douji',    label:'Douji'},
+    {name:'luodo',    label:'Luodo'}
+  ];
+  const GOOGLE_VOICES={
     en:[
-      {name:'en-US-Neural2-F',       label:'美式女聲 · 自然（推薦）'},
-      {name:'en-US-Neural2-J',       label:'美式男聲 · 自然'},
-      {name:'en-US-Chirp3-HD-Aoede', label:'美式女聲 · 最自然（Chirp3 HD）'},
-      {name:'en-US-Chirp3-HD-Charon',label:'美式男聲 · 最自然（Chirp3 HD）'},
-      {name:'en-GB-Neural2-A',       label:'英式女聲 · 自然'}
+      {name:'en-US-Neural2-F',       label:'美式女聲·自然（推薦）'},
+      {name:'en-US-Neural2-J',       label:'美式男聲·自然'},
+      {name:'en-US-Chirp3-HD-Aoede', label:'美式女聲·最自然（Chirp3 HD）'},
+      {name:'en-GB-Neural2-A',       label:'英式女聲·自然'}
     ],
     ja:[
-      {name:'ja-JP-Neural2-B',       label:'女聲 · 自然（推薦）'},
-      {name:'ja-JP-Neural2-C',       label:'男聲 · 自然'},
-      {name:'ja-JP-Chirp3-HD-Aoede', label:'女聲 · 最自然（Chirp3 HD）'}
+      {name:'ja-JP-Neural2-B',       label:'女聲·自然（推薦）'},
+      {name:'ja-JP-Neural2-C',       label:'男聲·自然'},
+      {name:'ja-JP-Chirp3-HD-Aoede', label:'女聲·最自然（Chirp3 HD）'}
     ]
   };
-  const DEFAULT_VOICE = { en:'en-US-Neural2-F', ja:'ja-JP-Neural2-B' };
+  const GOOGLE_DEFAULT={ en:'en-US-Neural2-F', ja:'ja-JP-Neural2-B' };
 
-  function getKey(){ try{ return localStorage.getItem(NS+'gtts_key')||''; }catch(e){ return ''; } }
-  function setKey(k){ try{ if(k) localStorage.setItem(NS+'gtts_key', k.trim()); else localStorage.removeItem(NS+'gtts_key'); }catch(e){} }
-  function enabled(){ try{ return localStorage.getItem(NS+'gtts_on')==='1' && !!getKey(); }catch(e){ return false; } }
-  function setEnabled(on){ try{ localStorage.setItem(NS+'gtts_on', on?'1':'0'); }catch(e){} }
-  function getVoice(prefix){ try{ return localStorage.getItem(NS+'gtts_voice_'+prefix)||DEFAULT_VOICE[prefix]||''; }catch(e){ return DEFAULT_VOICE[prefix]||''; } }
-  function setVoice(prefix, name){ try{ if(name) localStorage.setItem(NS+'gtts_voice_'+prefix, name); }catch(e){} }
+  function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lset(k,v){ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
 
-  /* ---------- IndexedDB 音檔快取 ---------- */
+  function getProvider(){ const p=ls(NS+'gtts_provider'); return (p==='google')?'google':'zhipu'; }
+  function setProvider(p){ lset(NS+'gtts_provider', p==='google'?'google':'zhipu'); }
+  function enabled(){ return ls(NS+'gtts_on')==='1' && !!providerKey(); }
+  function setEnabled(on){ lset(NS+'gtts_on', on?'1':'0'); }
+
+  /* 智譜復用做課那把 key；Google 用自己的 key */
+  function zhipuKey(){ return ls(NS+'zhipu_key')||''; }
+  function googleKey(){ return ls(NS+'gtts_key')||''; }
+  function setGoogleKey(k){ lset(NS+'gtts_key', k?k.trim():null); }
+  function providerKey(){ return getProvider()==='google'?googleKey():zhipuKey(); }
+
+  function getZVoice(){ return ls(NS+'gtts_zvoice')||'tongtong'; }
+  function setZVoice(v){ lset(NS+'gtts_zvoice', v); }
+  function getGVoice(prefix){ return ls(NS+'gtts_voice_'+prefix)||GOOGLE_DEFAULT[prefix]||''; }
+  function setGVoice(prefix,v){ lset(NS+'gtts_voice_'+prefix, v); }
+
+  /* ---------- IndexedDB 音檔快取（存 Blob） ---------- */
   let _db=null;
-  function db(){
-    return new Promise((res)=>{
-      if(_db) return res(_db);
-      try{
-        const r=indexedDB.open(NS+'tts',1);
-        r.onupgradeneeded=()=>{ try{ r.result.createObjectStore('a'); }catch(e){} };
-        r.onsuccess=()=>{ _db=r.result; res(_db); };
-        r.onerror=()=>res(null);
-      }catch(e){ res(null); }
-    });
-  }
-  function cacheGet(k){
-    return new Promise((res)=>{ db().then(d=>{ if(!d) return res(null);
-      try{ const t=d.transaction('a').objectStore('a').get(k); t.onsuccess=()=>res(t.result||null); t.onerror=()=>res(null); }
-      catch(e){ res(null); } }); });
-  }
+  function db(){ return new Promise((res)=>{ if(_db) return res(_db);
+    try{ const r=indexedDB.open(NS+'tts',1);
+      r.onupgradeneeded=()=>{ try{ r.result.createObjectStore('a'); }catch(e){} };
+      r.onsuccess=()=>{ _db=r.result; res(_db); }; r.onerror=()=>res(null);
+    }catch(e){ res(null); } }); }
+  function cacheGet(k){ return new Promise((res)=>{ db().then(d=>{ if(!d) return res(null);
+    try{ const t=d.transaction('a').objectStore('a').get(k); t.onsuccess=()=>res(t.result||null); t.onerror=()=>res(null); }
+    catch(e){ res(null); } }); }); }
   function cachePut(k,v){ db().then(d=>{ if(!d) return; try{ d.transaction('a','readwrite').objectStore('a').put(v,k); }catch(e){} }); }
 
   /* ---------- iOS 音訊解鎖 + 複用單一 Audio 元素 ---------- */
   const SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-  let _audio=null, _unlocked=false;
+  let _audio=null, _unlocked=false, _url=null;
   function el(){ if(!_audio){ _audio=new Audio(); _audio.preload='auto'; } return _audio; }
-  function unlock(){
-    if(_unlocked) return;
-    const a=el();
-    try{ a.src=SILENT; const p=a.play(); if(p&&p.then) p.then(()=>{ try{a.pause();}catch(e){} _unlocked=true; }).catch(()=>{}); else _unlocked=true; }catch(e){}
-  }
+  function unlock(){ if(_unlocked) return; const a=el();
+    try{ a.src=SILENT; const p=a.play(); if(p&&p.then) p.then(()=>{ try{a.pause();}catch(e){} _unlocked=true; }).catch(()=>{}); else _unlocked=true; }catch(e){} }
   try{ document.addEventListener('touchend', unlock, {passive:true}); document.addEventListener('click', unlock, {passive:true}); }catch(e){}
+  function stop(){ try{ if(_audio) _audio.pause(); }catch(e){} }
 
-  function stop(){ try{ if(_audio){ _audio.pause(); } }catch(e){} }
-
-  /* ---------- 合成（回 base64 mp3，失敗 throw） ---------- */
-  async function synth(text, prefix, slow){
-    const key=getKey(); if(!key) throw new Error('沒有雲端語音 key');
-    const voice=getVoice(prefix);
-    const lc=voice.split('-').slice(0,2).join('-');   /* en-US / ja-JP / en-GB */
-    const body={ input:{text:text}, voice:{languageCode:lc, name:voice},
-                 audioConfig:{ audioEncoding:'MP3', speakingRate: slow?0.7:0.95 } };
-    const resp=await fetch(EP+'?key='+encodeURIComponent(key), {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
-    if(!resp.ok){ const t=await resp.text().catch(()=>''); throw new Error('Google TTS '+resp.status+' '+t.slice(0,160)); }
-    const j=await resp.json();
-    if(!j.audioContent) throw new Error('沒有返回音檔');
-    return j.audioContent;
+  function b64ToBlob(b64, mime){
+    const bin=atob(b64); const len=bin.length; const u8=new Uint8Array(len);
+    for(let i=0;i<len;i++) u8[i]=bin.charCodeAt(i);
+    return new Blob([u8], {type:mime});
   }
 
-  /* ---------- 主入口：播放 text；成功回 true，失敗回 false（呼叫端退回系統聲） ---------- */
+  /* ---------- 合成（回 audio Blob，失敗 throw） ---------- */
+  async function synthBlob(text, prefix, slow){
+    if(getProvider()==='google'){
+      const key=googleKey(); if(!key) throw new Error('沒有 Google key');
+      const voice=getGVoice(prefix), lc=voice.split('-').slice(0,2).join('-');
+      const resp=await fetch(GOOGLE_EP+'?key='+encodeURIComponent(key),{ method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({input:{text:text}, voice:{languageCode:lc, name:voice}, audioConfig:{audioEncoding:'MP3', speakingRate:slow?0.7:0.95}}) });
+      if(!resp.ok){ const t=await resp.text().catch(()=>''); throw new Error('Google TTS '+resp.status+' '+t.slice(0,160)); }
+      const j=await resp.json(); if(!j.audioContent) throw new Error('Google 沒返回音檔');
+      return b64ToBlob(j.audioContent, 'audio/mp3');
+    }
+    /* zhipu */
+    const key=zhipuKey(); if(!key) throw new Error('還沒設定智譜 key（在「加課」頁設一次）');
+    const resp=await fetch(ZHIPU_EP,{ method:'POST',
+      headers:{'Authorization':'Bearer '+key, 'Content-Type':'application/json'},
+      body:JSON.stringify({model:'glm-tts', input:text, voice:getZVoice(), response_format:'wav', speed: slow?0.8:1.0}) });
+    if(!resp.ok){ const t=await resp.text().catch(()=>''); throw new Error('智譜 TTS '+resp.status+' '+t.slice(0,160)); }
+    const blob=await resp.blob();
+    if(!blob || blob.size<200) throw new Error('智譜返回的音檔為空');
+    return blob;
+  }
+
+  async function playBlob(blob){
+    const a=el(); stop();
+    try{ if(_url){ URL.revokeObjectURL(_url); _url=null; } }catch(e){}
+    _url=URL.createObjectURL(blob); a.src=_url;
+    await a.play();
+  }
+
+  /* 主入口：成功回 true，失敗回 false（呼叫端退回系統聲） */
   async function play(text, prefix, slow){
     if(!enabled()) return false;
     text=(text||'').trim(); if(!text) return false;
     prefix=(prefix==='ja')?'ja':'en';
-    const voice=getVoice(prefix);
-    const ck=voice+'|'+(slow?'s':'n')+'|'+text;
+    const voiceKey=getProvider()==='google'?getGVoice(prefix):('z:'+getZVoice());
+    const ck=getProvider()+'|'+voiceKey+'|'+(slow?'s':'n')+'|'+text;
     try{
-      let b64=await cacheGet(ck);
-      if(!b64){ b64=await synth(text, prefix, slow); cachePut(ck, b64); }
-      const a=el(); stop();
-      a.src='data:audio/mp3;base64,'+b64;
-      await a.play();      /* resolve＝開始播放；由按鈕手勢觸發＋已解鎖，iOS 可播 */
+      let blob=await cacheGet(ck);
+      if(!blob){ blob=await synthBlob(text, prefix, slow); cachePut(ck, blob); }
+      await playBlob(blob);
       return true;
     }catch(e){ return false; }
   }
 
-  /* 試聽 / 測 key：合成一句短樣本；回 {ok, err} */
+  /* 試聽 / 測 key：不吃 enabled 開關，供設定頁按語言試聽發音 */
   async function test(prefix){
     prefix=(prefix==='ja')?'ja':'en';
     const s = prefix==='ja' ? 'こんにちは、いっしょに にほんごを べんきょうしましょう。'
                             : 'Hello! Let us read this sentence together.';
-    try{
-      const key=getKey(); if(!key) return {ok:false, err:'還沒填 key'};
-      const b64=await synth(s, prefix, false);           /* 直接合成，不吃 enabled 開關，供設定頁試聽 */
-      const a=el(); stop(); a.src='data:audio/mp3;base64,'+b64;
-      try{ await a.play(); }catch(e){}
-      return {ok:true};
-    }catch(e){ return {ok:false, err:e.message||String(e)}; }
+    try{ const blob=await synthBlob(s, prefix, false); try{ await playBlob(blob); }catch(e){} return {ok:true}; }
+    catch(e){ return {ok:false, err:e.message||String(e)}; }
   }
 
-  window.JDTTS={ getKey, setKey, enabled, setEnabled, getVoice, setVoice, play, stop, test, synth, VOICES, DEFAULT_VOICE };
+  window.JDTTS={ getProvider,setProvider, enabled,setEnabled, zhipuKey, googleKey,setGoogleKey, providerKey,
+                 getZVoice,setZVoice, getGVoice,setGVoice, play, stop, test, synthBlob,
+                 ZHIPU_VOICES, GOOGLE_VOICES };
 })();
