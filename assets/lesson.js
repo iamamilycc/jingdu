@@ -47,7 +47,7 @@
     const el = document.getElementById('lt'+i);
     if(el) el.scrollIntoView({block:'center', behavior:'smooth'});
   }
-  function ltAdvance(i){ if(lt.playing) setTimeout(()=>ltPlayFrom(i+1), 250); }
+  function ltAdvance(i){ if(lt.playing) setTimeout(()=>ltPlayFrom(i+1), 0); }
   /* 系統合成聲逐句朗讀（雲端沒開/失敗時的保底），保留高亮與看門狗 */
   function ltSystemSpeak(i, text){
     const u = new SpeechSynthesisUtterance(text);
@@ -68,16 +68,8 @@
       ltStopUI(); return;
     }
     lt.idx = i; ltHighlight(i);
-    const text = L.sentences[i].en;
-    /* 開了雲端語音就逐句走雲端（母語自然聲）+保留高亮；沒開/單句失敗自動退回系統聲 */
-    if(window.JDTTS && JDTTS.enabled()){
-      JDTTS.playUntilEnd(text, 'en', lt.slow).then(ok=>{
-        if(!lt.playing) return;
-        if(ok) ltAdvance(i); else ltSystemSpeak(i, text);
-      });
-      return;
-    }
-    ltSystemSpeak(i, text);
+    /* 聽全文暫用系統聲（連續朗讀接雲端曾在 iOS 出現沒聲音，待device實測穩妥再接） */
+    ltSystemSpeak(i, L.sentences[i].en);
   }
   function ltStopUI(){
     lt.playing=false; speechSynthesis.cancel(); if(window.JDTTS) JDTTS.stop();
@@ -305,14 +297,7 @@
   const qz = { i:0, score:0, answeredCnt:0, listens:0, revealed:false };
   function qzPlaySeq(idxs, k){
     k = k||0; if(k>=idxs.length) return;
-    const text = L.sentences[idxs[k]].en;
-    if(k===0){ try{ speechSynthesis.cancel(); }catch(e){} if(window.JDTTS) JDTTS.stop(); }
-    if(window.JDTTS && JDTTS.enabled()){
-      JDTTS.playUntilEnd(text, 'en', false).then(ok=>{
-        if(ok) setTimeout(()=>qzPlaySeq(idxs,k+1), 300); else qzSysSpeak(idxs, k);
-      });
-      return;
-    }
+    if(k===0){ try{ speechSynthesis.cancel(); }catch(e){} }
     qzSysSpeak(idxs, k);
   }
   function qzSysSpeak(idxs, k){

@@ -74,7 +74,7 @@
     $$('.lt-zh').forEach((el,k)=>el.classList.toggle('now', k===i));
     const el=document.getElementById('lt'+i); if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
   }
-  function ltAdvance(i){ if(lt.playing) setTimeout(()=>ltPlayFrom(i+1), 250); }
+  function ltAdvance(i){ if(lt.playing) setTimeout(()=>ltPlayFrom(i+1), 0); }
   /* 系統合成聲逐句（雲端沒開/失敗時保底）：用 kana 讓系統聲讀得準；保留高亮與看門狗 */
   function ltSystemSpeak(i){
     const text = R.toKana(L.sentences[i].jp);
@@ -92,14 +92,7 @@
     if(!lt.playing) return;
     if(i>=L.sentences.length){ done('listen'); if(lt.loop){ ltPlayFrom(0); return; } ltStopUI(); return; }
     ltHighlight(i);
-    /* 開了雲端就逐句走雲端母語日語聲（傳原文，Azure 能正確讀漢字）+保留高亮；沒開/失敗退回系統聲 */
-    if(window.JDTTS && JDTTS.enabled()){
-      JDTTS.playUntilEnd(L.sentences[i].jp, 'ja', lt.slow).then(ok=>{
-        if(!lt.playing) return;
-        if(ok) ltAdvance(i); else ltSystemSpeak(i);
-      });
-      return;
-    }
+    /* 聽全文暫用系統聲（連續朗讀接雲端曾在 iOS 沒聲音，待實測穩妥再接） */
     ltSystemSpeak(i);
   }
   function ltStopUI(){
@@ -293,13 +286,7 @@
   const qz={ i:0, score:0, listens:0, revealed:false };
   function qzPlaySeq(idxs,k){
     k=k||0; if(k>=idxs.length) return;
-    if(k===0){ try{ speechSynthesis.cancel(); }catch(e){} if(window.JDTTS) JDTTS.stop(); }
-    if(window.JDTTS && JDTTS.enabled()){
-      JDTTS.playUntilEnd(L.sentences[idxs[k]].jp, 'ja', false).then(ok=>{
-        if(ok) setTimeout(()=>qzPlaySeq(idxs,k+1),300); else qzSysSpeak(idxs,k);
-      });
-      return;
-    }
+    if(k===0){ try{ speechSynthesis.cancel(); }catch(e){} }
     qzSysSpeak(idxs,k);
   }
   function qzSysSpeak(idxs,k){

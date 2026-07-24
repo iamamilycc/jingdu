@@ -6,6 +6,7 @@
 <title>新增課文 · 精讀</title>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <style>
   .gen-field{margin-bottom:16px}
   .gen-field label{display:block;font-family:var(--font-head);font-weight:600;margin-bottom:6px;font-size:.95rem}
@@ -51,9 +52,12 @@
     </div>
 
     <div class="gen-field">
-      <label>② 智譜 API Key（只存這台設備，用來調 AI 生成）</label>
-      <input type="password" id="apiKey" placeholder="貼上你的智譜 key（設過一次就會記住）">
-      <div class="key-hint">還沒有？去 <b>bigmodel.cn</b> 註冊 → 控制台領 API Key，並確認帳戶已<b>充值</b>。key 通用。</div>
+      <label>② 智譜 API Key（只存這台設備，用來調 AI 生成 + 智譜語音）</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="password" id="apiKey" placeholder="貼上你的智譜 key（設過一次就會記住）" style="flex:1;min-width:180px">
+        <button type="button" id="saveKeyBtn" class="big-btn teal" style="padding:10px 18px;margin:0" onclick="saveKey()">存 key</button>
+      </div>
+      <div id="keyMsg" class="key-hint">還沒有？去 <b>bigmodel.cn</b> 註冊 → 控制台領 API Key，並確認帳戶已<b>充值</b>。key 通用。</div>
       <div style="margin-top:10px">
         <label style="display:block;font-family:var(--font-head);font-weight:600;margin-bottom:6px;font-size:.9rem">出題品質（點一下選，不用打字）</label>
         <div class="lang-toggle">
@@ -114,6 +118,16 @@ setQuality(quality);
 
 // 回填已存的 key
 $('#apiKey').value = JDGen.getKey();
+// 獨立保存 key（不用生成課文也能存；智譜語音也用這把 key）
+window.saveKey=function(){
+  const v=$('#apiKey').value.trim(), m=$('#keyMsg');
+  if(!v){ if(m){ m.innerHTML='<span style="color:var(--coral)">還沒貼 key</span>'; } return; }
+  JDGen.setKey(v);
+  localStorage.setItem('jingdu_updatedAt', String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule();
+  if(m){ m.innerHTML='<span style="color:var(--teal-deep)">✅ key 已存（做課和智譜語音都用它）</span>'; }
+};
+// 失焦自動存一次，避免「貼了沒存」
+$('#apiKey').addEventListener('blur', ()=>{ const v=$('#apiKey').value.trim(); if(v) JDGen.setKey(v); });
 
 let photoDataUrl = null;
 function fb(msg, bad){ $('#genFb').innerHTML='<div class="acc-badge '+(bad?'bad':'good')+'">'+JD.esc(msg)+'</div>'; }

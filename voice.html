@@ -6,6 +6,7 @@
 <title>朗讀聲音設定 · 精讀</title>
 <link rel="stylesheet" href="assets/style.css">
 <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <style>
   .vrow{display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid var(--line);border-radius:14px;margin-bottom:10px;background:#fff}
   .vrow.on{border-color:var(--teal);background:var(--green-soft)}
@@ -100,13 +101,10 @@ function device(){
 function moreVoicesHTML(label){
   const d=device(); let steps;
   if(d==='ios'){
-    steps='<b>iPhone / iPad 照著點：</b><ol>'+
-      '<li>打開「<b>設定</b>」App</li>'+
-      '<li>輔助功能</li>'+
-      '<li>朗讀內容</li>'+
-      '<li>聲音 → <b>'+label+'</b></li>'+
-      '<li>找標「<b>增強版 / Enhanced</b>」或「<b>Siri</b>」的聲音，點右邊<b>雲朵 ☁️</b>下載</li>'+
-      '<li>下載完回到這頁，下拉刷新，新聲音就出現在上面（標「較自然」）</li></ol>';
+    /* iOS/iPadOS 網頁拿不到下載的增強版/Siri 語音（蘋果限制，已確認），不再誤導用戶去下載 */
+    return '<details class="morevox" open><summary>📱 iPhone / iPad 想要更自然的聲音？</summary>'+
+      '<div class="mv-steps"><b>蘋果不把下載的系統語音開放給網頁</b>（在 iPhone/iPad 上下載了也用不了，這是系統限制、不是本站問題）。'+
+      '<br><br>要更自然、母語標準的聲音，請用本頁最上面的 <b>☁️ 雲端真人語音</b>（推薦 <b>Azure 微軟</b>）——iPhone/iPad 上實測可用。</div></details>';
   } else if(d==='mac'){
     steps='<b>Mac 照著點：</b><ol>'+
       '<li>左上角  → <b>系統設定</b></li>'+
