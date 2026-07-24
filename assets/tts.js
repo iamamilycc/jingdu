@@ -1,10 +1,10 @@
 /* 精讀 jingdu — 雲端神經語音（可切換供應商）
    目的：系統合成聲不夠像真人。優先用雲端神經 TTS（語調自然）。
    供應商：
-   - 'zhipu'（預設，國內可用）：智譜 GLM-TTS，端點 open.bigmodel.cn（本站其它功能已在用、CORS 已通），
-     直接復用「做課那把智譜 key」（jingdu_zhipu_key），不用再貼。回 audio/wav 二進位。
-     ⚠ 智譜音色偏中文，英/日發音是否夠母語需實測；不好聽就退回系統聲。
-   - 'google'：Google Cloud TTS（母語自然，但國內要翻牆+外幣卡），另貼 Google key，回 base64 mp3。
+   - 'azure'：微軟 Azure 神經語音（母語又自然，最佳）。個人國際號 East Asia 區在國內實測不翻牆可用、iOS 能播。
+     兩步：issueToken（Ocp-Apim-Subscription-Key）→ 合成（Bearer token + SSML）。token 快取 9 分鐘。回 mp3。
+   - 'zhipu'（國內免申請）：智譜 GLM-TTS，復用「做課那把智譜 key」。⚠英文偏中式腔。回 wav。
+   - 'google'：Google Cloud TTS（母語自然，但國內要翻牆+外幣卡）。回 base64 mp3。
    共通：
    - 快取：每句音檔（Blob）存 IndexedDB，同句重播不再呼叫 API（省錢、離線、秒播）。
    - 安全退回：任何失敗一律回 false，core.js speak() 據此退回系統合成聲——絕不會沒聲音。
@@ -14,50 +14,67 @@
   const NS='jingdu_';
   const ZHIPU_EP='https://open.bigmodel.cn/api/paas/v4/audio/speech';
   const GOOGLE_EP='https://texttospeech.googleapis.com/v1/text:synthesize';
+  const azTokenEP=(r)=>'https://'+r+'.api.cognitive.microsoft.com/sts/v1.0/issueToken';
+  const azTtsEP=(r)=>'https://'+r+'.tts.speech.microsoft.com/cognitiveservices/v1';
 
-  /* 智譜系統音色（語言無關，一個音色可讀中英日）；Google 分語言選。 */
+  /* Azure 母語神經語音（發音準又自然） */
+  const AZURE_VOICES={
+    en:[
+      {name:'en-US-AriaNeural',  label:'美式女聲 Aria（自然·推薦）'},
+      {name:'en-US-JennyNeural', label:'美式女聲 Jenny（溫暖）'},
+      {name:'en-US-GuyNeural',   label:'美式男聲 Guy'},
+      {name:'en-GB-SoniaNeural', label:'英式女聲 Sonia'}
+    ],
+    ja:[
+      {name:'ja-JP-NanamiNeural', label:'女聲 Nanami（自然·推薦）'},
+      {name:'ja-JP-KeitaNeural',  label:'男聲 Keita'}
+    ]
+  };
+  const AZURE_DEFAULT={ en:'en-US-AriaNeural', ja:'ja-JP-NanamiNeural' };
+  /* 智譜系統音色（語言無關）；Google 分語言選。 */
   const ZHIPU_VOICES=[
     {name:'tongtong', label:'彤彤（女聲·預設）'},
     {name:'xiaochen', label:'小陳（男聲）'},
     {name:'chuichui', label:'錘錘'},
-    {name:'jam',      label:'Jam'},
-    {name:'kazi',     label:'Kazi'},
-    {name:'douji',    label:'Douji'},
-    {name:'luodo',    label:'Luodo'}
+    {name:'jam',label:'Jam'},{name:'kazi',label:'Kazi'},{name:'douji',label:'Douji'},{name:'luodo',label:'Luodo'}
   ];
   const GOOGLE_VOICES={
-    en:[
-      {name:'en-US-Neural2-F',       label:'美式女聲·自然（推薦）'},
-      {name:'en-US-Neural2-J',       label:'美式男聲·自然'},
-      {name:'en-US-Chirp3-HD-Aoede', label:'美式女聲·最自然（Chirp3 HD）'},
-      {name:'en-GB-Neural2-A',       label:'英式女聲·自然'}
-    ],
-    ja:[
-      {name:'ja-JP-Neural2-B',       label:'女聲·自然（推薦）'},
-      {name:'ja-JP-Neural2-C',       label:'男聲·自然'},
-      {name:'ja-JP-Chirp3-HD-Aoede', label:'女聲·最自然（Chirp3 HD）'}
-    ]
+    en:[{name:'en-US-Neural2-F',label:'美式女聲·自然（推薦）'},{name:'en-US-Neural2-J',label:'美式男聲·自然'},
+        {name:'en-US-Chirp3-HD-Aoede',label:'美式女聲·最自然（Chirp3 HD）'},{name:'en-GB-Neural2-A',label:'英式女聲·自然'}],
+    ja:[{name:'ja-JP-Neural2-B',label:'女聲·自然（推薦）'},{name:'ja-JP-Neural2-C',label:'男聲·自然'},
+        {name:'ja-JP-Chirp3-HD-Aoede',label:'女聲·最自然（Chirp3 HD）'}]
   };
   const GOOGLE_DEFAULT={ en:'en-US-Neural2-F', ja:'ja-JP-Neural2-B' };
 
   function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
   function lset(k,v){ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
 
-  function getProvider(){ const p=ls(NS+'gtts_provider'); return (p==='google')?'google':'zhipu'; }
-  function setProvider(p){ lset(NS+'gtts_provider', p==='google'?'google':'zhipu'); }
-  function enabled(){ return ls(NS+'gtts_on')==='1' && !!providerKey(); }
+  function getProvider(){ const p=ls(NS+'gtts_provider'); return (p==='google'||p==='azure')?p:'zhipu'; }
+  function setProvider(p){ lset(NS+'gtts_provider', (p==='google'||p==='azure')?p:'zhipu'); }
+  function enabled(){
+    if(ls(NS+'gtts_on')!=='1') return false;
+    const p=getProvider();
+    if(p==='azure') return !!azureKey() && !!azureRegion();
+    return !!providerKey();
+  }
   function setEnabled(on){ lset(NS+'gtts_on', on?'1':'0'); }
 
-  /* 智譜復用做課那把 key；Google 用自己的 key */
+  /* 各家 key */
   function zhipuKey(){ return ls(NS+'zhipu_key')||''; }
   function googleKey(){ return ls(NS+'gtts_key')||''; }
   function setGoogleKey(k){ lset(NS+'gtts_key', k?k.trim():null); }
-  function providerKey(){ return getProvider()==='google'?googleKey():zhipuKey(); }
+  function azureKey(){ return ls(NS+'az_key')||''; }
+  function setAzureKey(k){ lset(NS+'az_key', k?k.trim():null); }
+  function azureRegion(){ return ls(NS+'az_region')||''; }
+  function setAzureRegion(r){ lset(NS+'az_region', r?r.trim().toLowerCase():null); }
+  function providerKey(){ const p=getProvider(); return p==='google'?googleKey():p==='azure'?azureKey():zhipuKey(); }
 
   function getZVoice(){ return ls(NS+'gtts_zvoice')||'tongtong'; }
   function setZVoice(v){ lset(NS+'gtts_zvoice', v); }
   function getGVoice(prefix){ return ls(NS+'gtts_voice_'+prefix)||GOOGLE_DEFAULT[prefix]||''; }
   function setGVoice(prefix,v){ lset(NS+'gtts_voice_'+prefix, v); }
+  function getAzVoice(prefix){ return ls(NS+'az_voice_'+prefix)||AZURE_DEFAULT[prefix]||''; }
+  function setAzVoice(prefix,v){ lset(NS+'az_voice_'+prefix, v); }
 
   /* ---------- IndexedDB 音檔快取（存 Blob） ---------- */
   let _db=null;
@@ -85,10 +102,37 @@
     for(let i=0;i<len;i++) u8[i]=bin.charCodeAt(i);
     return new Blob([u8], {type:mime});
   }
+  function ssmlEsc(s){ return String(s).replace(/[<&>"]/g,c=>({'<':'&lt;','&':'&amp;','>':'&gt;','"':'&quot;'}[c])); }
+
+  /* Azure token 快取（有效 ~10 分鐘，這裡存 9 分鐘） */
+  let _azTok=null, _azTokT=0, _azTokR=null;
+  async function azureToken(){
+    const region=azureRegion(), key=azureKey();
+    if(!region||!key) throw new Error('沒有 Azure key 或區域');
+    if(_azTok && _azTokR===region && (Date.now()-_azTokT)<9*60000) return _azTok;
+    const r=await fetch(azTokenEP(region),{ method:'POST', headers:{'Ocp-Apim-Subscription-Key':key} });
+    if(!r.ok) throw new Error('Azure token '+r.status+(r.status===401?'（密鑰或區域不對）':''));
+    _azTok=await r.text(); _azTokT=Date.now(); _azTokR=region; return _azTok;
+  }
 
   /* ---------- 合成（回 audio Blob，失敗 throw） ---------- */
   async function synthBlob(text, prefix, slow){
-    if(getProvider()==='google'){
+    const prov=getProvider();
+    if(prov==='azure'){
+      const region=azureRegion(); if(!region||!azureKey()) throw new Error('沒有 Azure key/區域');
+      const voice=getAzVoice(prefix), lang=voice.split('-').slice(0,2).join('-');
+      const inner = slow ? '<prosody rate="-15%">'+ssmlEsc(text)+'</prosody>' : ssmlEsc(text);
+      const ssml='<speak version="1.0" xml:lang="'+lang+'"><voice name="'+voice+'">'+inner+'</voice></speak>';
+      const doSynth=(tok)=>fetch(azTtsEP(region),{ method:'POST',
+        headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/ssml+xml','X-Microsoft-OutputFormat':'audio-24khz-48kbitrate-mono-mp3'},
+        body:ssml });
+      let resp=await doSynth(await azureToken());
+      if(resp.status===401){ _azTok=null; resp=await doSynth(await azureToken()); }  /* token 過期→刷新重試一次 */
+      if(!resp.ok){ const t=await resp.text().catch(()=>''); throw new Error('Azure TTS '+resp.status+' '+t.slice(0,120)); }
+      const blob=await resp.blob(); if(!blob||blob.size<200) throw new Error('Azure 返回音檔為空');
+      return blob;
+    }
+    if(prov==='google'){
       const key=googleKey(); if(!key) throw new Error('沒有 Google key');
       const voice=getGVoice(prefix), lc=voice.split('-').slice(0,2).join('-');
       const resp=await fetch(GOOGLE_EP+'?key='+encodeURIComponent(key),{ method:'POST',
@@ -116,13 +160,17 @@
     await a.play();
   }
 
+  function voiceKeyFor(prefix){
+    const p=getProvider();
+    return p==='google'?getGVoice(prefix) : p==='azure'?getAzVoice(prefix) : ('z:'+getZVoice());
+  }
+
   /* 主入口：成功回 true，失敗回 false（呼叫端退回系統聲） */
   async function play(text, prefix, slow){
     if(!enabled()) return false;
     text=(text||'').trim(); if(!text) return false;
     prefix=(prefix==='ja')?'ja':'en';
-    const voiceKey=getProvider()==='google'?getGVoice(prefix):('z:'+getZVoice());
-    const ck=getProvider()+'|'+voiceKey+'|'+(slow?'s':'n')+'|'+text;
+    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+text;
     try{
       let blob=await cacheGet(ck);
       if(!blob){ blob=await synthBlob(text, prefix, slow); cachePut(ck, blob); }
@@ -140,7 +188,9 @@
     catch(e){ return {ok:false, err:e.message||String(e)}; }
   }
 
-  window.JDTTS={ getProvider,setProvider, enabled,setEnabled, zhipuKey, googleKey,setGoogleKey, providerKey,
-                 getZVoice,setZVoice, getGVoice,setGVoice, play, stop, test, synthBlob,
-                 ZHIPU_VOICES, GOOGLE_VOICES };
+  window.JDTTS={ getProvider,setProvider, enabled,setEnabled, providerKey,
+                 zhipuKey, googleKey,setGoogleKey, azureKey,setAzureKey, azureRegion,setAzureRegion,
+                 getZVoice,setZVoice, getGVoice,setGVoice, getAzVoice,setAzVoice,
+                 play, stop, test, synthBlob,
+                 ZHIPU_VOICES, GOOGLE_VOICES, AZURE_VOICES };
 })();

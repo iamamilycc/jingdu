@@ -46,7 +46,8 @@
       <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
         <span style="font-family:var(--font-head);min-width:64px">語音來源</span>
         <select id="provSel" onchange="onProvChange()" style="flex:1;min-width:160px;border:2px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.92rem;background:#fff;color:var(--ink)">
-          <option value="zhipu">智譜 GLM-TTS（國內可用，用做課的智譜 key）</option>
+          <option value="azure">Azure 微軟（母語又自然·國內可用·推薦）</option>
+          <option value="zhipu">智譜 GLM-TTS（免申請·英文偏中式腔）</option>
           <option value="google">Google（母語最自然，需海外條件）</option>
         </select>
       </div>
@@ -178,51 +179,76 @@ renderSfxBtn();
 function markSync(){ try{ localStorage.setItem('jingdu_updatedAt', String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule(); }catch(e){} }
 function cmsg(txt, col){ const m=$('#cloudMsg'); if(m){ m.textContent=txt; m.style.color=col||''; } }
 /* 供應商相關的：key 狀態列、聲音選單、設定指引 */
+function voiceSelUI(vp, getV, setV, VOICES){
+  function sel(prefix,title){ const cur=getV(prefix);
+    const opts=VOICES[prefix].map(v=>'<option value="'+v.name+'"'+(v.name===cur?' selected':'')+'>'+v.label+'</option>').join('');
+    return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px"><span style="font-family:var(--font-head);min-width:52px">'+title+'</span>'+
+      '<select data-p="'+prefix+'" style="flex:1;min-width:150px;border:2px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.92rem;background:#fff;color:var(--ink)">'+opts+'</select></div>'; }
+  vp.innerHTML=sel('en','📘 英語')+sel('ja','🎌 日語');
+  vp.querySelectorAll('select').forEach(s=>s.onchange=()=>{ setV(s.dataset.p, s.value); markSync(); });
+}
 function renderProvBody(){
   const prov=JDTTS.getProvider(), box=$('#provBody'), vp=$('#cloudVoicePick');
-  if(prov==='zhipu'){
+  const inStyle='flex:1;min-width:150px;box-sizing:border-box;border:2px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.95rem';
+  if(prov==='azure'){
+    const hasKey=!!JDTTS.azureKey();
+    box.innerHTML='<label class="hint" style="display:block;margin:0 0 4px">Azure 密鑰 + 區域（只存本機）</label>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="password" id="azkey" autocomplete="off" placeholder="'+(hasKey?'（已存密鑰，要換再貼）':'貼上 Azure 密鑰 KEY 1')+'" style="'+inStyle+'"></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px"><input type="text" id="azregion" placeholder="區域（如 eastasia）" value="'+(JDTTS.azureRegion()||'')+'" style="'+inStyle+'">'+
+      '<button class="big-btn teal" style="padding:9px 16px;margin:0" onclick="saveAzure()">存</button></div>';
+    voiceSelUI(vp, JDTTS.getAzVoice, JDTTS.setAzVoice, JDTTS.AZURE_VOICES);
+  } else if(prov==='google'){
+    const hasKey=!!JDTTS.googleKey();
+    box.innerHTML='<label class="hint" style="display:block;margin:0 0 4px">Google API Key（只存本機）</label>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="password" id="gkey" autocomplete="off" placeholder="'+(hasKey?'（已存 key，要換再貼新的）':'貼上 Google TTS 的 API Key')+'" style="'+inStyle+'">'+
+      '<button class="big-btn teal" style="padding:9px 16px;margin:0" onclick="saveCloudKey()">存</button></div>';
+    voiceSelUI(vp, JDTTS.getGVoice, JDTTS.setGVoice, JDTTS.GOOGLE_VOICES);
+  } else { /* zhipu */
     const hasKey=!!JDTTS.zhipuKey();
     box.innerHTML = hasKey
       ? '<p class="hint" style="margin:0;color:var(--teal-deep)">✅ 用你「做課」那把智譜 key，不用再貼。國內可用、不翻牆。</p>'
       : '<p class="hint" style="margin:0;color:var(--coral)">還沒設定智譜 key。先到「➕ 加課」頁填一次智譜 key，再回來這裡。</p>';
-    /* 智譜音色（語言無關，一個音色可讀中英日） */
     const cur=JDTTS.getZVoice();
     const opts=JDTTS.ZHIPU_VOICES.map(v=>'<option value="'+v.name+'"'+(v.name===cur?' selected':'')+'>'+v.label+'</option>').join('');
     vp.innerHTML='<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-family:var(--font-head);min-width:52px">音色</span>'+
       '<select id="zvSel" style="flex:1;min-width:160px;border:2px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.92rem;background:#fff;color:var(--ink)">'+opts+'</select></div>';
     $('#zvSel').onchange=()=>{ JDTTS.setZVoice($('#zvSel').value); markSync(); };
-  } else { /* google */
-    const hasKey=!!JDTTS.googleKey();
-    box.innerHTML='<label class="hint" style="display:block;margin:0 0 4px">Google API Key（只存本機）</label>'+
-      '<div style="display:flex;gap:8px;flex-wrap:wrap"><input type="password" id="gkey" autocomplete="off" placeholder="'+(hasKey?'（已存 key，要換再貼新的）':'貼上 Google TTS 的 API Key')+'" style="flex:1;min-width:200px;box-sizing:border-box;border:2px solid var(--line);border-radius:10px;padding:10px 12px;font-size:.95rem">'+
-      '<button class="big-btn teal" style="padding:9px 16px;margin:0" onclick="saveCloudKey()">存</button></div>';
-    const V=JDTTS.GOOGLE_VOICES;
-    function sel(prefix,title){ const cur=JDTTS.getGVoice(prefix);
-      const opts=V[prefix].map(v=>'<option value="'+v.name+'"'+(v.name===cur?' selected':'')+'>'+v.label+'</option>').join('');
-      return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:6px"><span style="font-family:var(--font-head);min-width:52px">'+title+'</span>'+
-        '<select data-p="'+prefix+'" style="flex:1;min-width:150px;border:2px solid var(--line);border-radius:10px;padding:8px 10px;font-size:.92rem;background:#fff;color:var(--ink)">'+opts+'</select></div>'; }
-    vp.innerHTML=sel('en','📘 英語')+sel('ja','🎌 日語');
-    vp.querySelectorAll('select').forEach(s=>s.onchange=()=>{ JDTTS.setGVoice(s.dataset.p, s.value); markSync(); });
   }
   renderGuide(prov);
 }
 function renderGuide(prov){
   const s=$('#guideSummary'), b=$('#guideBody');
-  if(prov==='zhipu'){
-    s.textContent='👉 智譜 TTS 怎麼用？';
-    b.innerHTML='<ol style="line-height:1.85"><li>你做課用的智譜 key 就是這個 TTS 用的 key，<b>不用再申請</b>。</li>'+
-      '<li>若還沒設智譜 key：到「➕ 加課」頁填一次即可。</li>'+
-      '<li>按上面 <b>▶️ 試聽英文 / 日文</b>，親耳聽發音自然不自然——<b>好聽就打開右上開關</b>，帶中國腔就別開、保持系統聲。</li></ol>'+
-      '<p class="hint" style="margin:6px 0 0">智譜按字計費、很便宜，念過的句子會快取重播不再花錢。</p>';
-  } else {
+  if(prov==='azure'){
+    s.textContent='👉 Azure 微軟語音怎麼設定？（母語又自然·國內可用）';
+    b.innerHTML='<ol style="line-height:1.85"><li>portal.azure.com 建「語音服務(Speech)」資源，定價層選 <b>F0（免費，每月50萬字符）</b>，區域選 <b>East Asia</b>。</li>'+
+      '<li>進資源 →「密鑰和終結點」→ 複製 <b>KEY 1</b> 和 <b>區域（如 eastasia）</b>。</li>'+
+      '<li>貼到上面按「存」→ 按 <b>▶️ 試聽</b>，好聽就打開右上開關。</li></ol>'+
+      '<p class="hint" style="margin:6px 0 0">母語發音、語調自然；念過的句子會快取重播不再花錢；每月 50 萬字符免費，一個孩子基本用不完。</p>';
+  } else if(prov==='google'){
     s.textContent='👉 怎麼申請 Google Key？（國內要翻牆＋外幣卡）';
     b.innerHTML='<ol style="line-height:1.85"><li>console.cloud.google.com 登入 → 建專案 → 啟用 <b>Cloud Text-to-Speech API</b></li>'+
       '<li>憑證 → 建 API 金鑰 → 複製</li>'+
       '<li><b style="color:var(--coral)">防盜用</b>：金鑰限「HTTP 參照網址」加 <b>iamamilycc.github.io/*</b>、API 限制只勾 TTS</li>'+
       '<li>貼上按「存」→ 試聽 → 好聽就打開開關</li></ol>'+
       '<p class="hint" style="margin:6px 0 0">神經語音每月前 100 萬字免費＋本站快取，日常基本 $0。</p>';
+  } else {
+    s.textContent='👉 智譜 TTS 怎麼用？';
+    b.innerHTML='<ol style="line-height:1.85"><li>你做課用的智譜 key 就是這個 TTS 用的 key，<b>不用再申請</b>。</li>'+
+      '<li>若還沒設智譜 key：到「➕ 加課」頁填一次即可。</li>'+
+      '<li>按上面 <b>▶️ 試聽英文 / 日文</b>，親耳聽發音——⚠️智譜英文<b>偏中式腔</b>，學發音建議改用 Azure。</li></ol>'+
+      '<p class="hint" style="margin:6px 0 0">智譜免申請、按字計費很便宜，念過的句子快取重播不再花錢。</p>';
   }
 }
+window.saveAzure=function(){
+  const k=$('#azkey'), rg=$('#azregion'); if(!k||!rg) return;
+  const key=k.value.trim(), region=rg.value.trim();
+  if(!region){ cmsg('還沒填區域（如 eastasia）','var(--coral)'); return; }
+  if(key) JDTTS.setAzureKey(key);
+  JDTTS.setAzureRegion(region);
+  if(k) k.value='';
+  if(!JDTTS.azureKey()){ cmsg('還沒填密鑰','var(--coral)'); return; }
+  cmsg('✅ Azure 密鑰+區域已存。按 ▶️ 試聽確認','var(--teal-deep)'); markSync(); renderCloud();
+};
 function renderCloud(){
   const t=$('#cloudToggle'); if(!t || !window.JDTTS) return;
   const on=JDTTS.enabled();
@@ -234,7 +260,9 @@ function renderCloud(){
 window.onProvChange=function(){ JDTTS.setProvider($('#provSel').value); markSync(); renderCloud(); };
 window.toggleCloud=function(){
   if(!JDTTS.enabled()){
-    if(!JDTTS.providerKey()){ cmsg(JDTTS.getProvider()==='zhipu'?'還沒設定智譜 key（去「加課」頁填一次）':'請先填 Google key 並試聽成功','var(--coral)'); return; }
+    const p=JDTTS.getProvider();
+    if(p==='azure' && (!JDTTS.azureKey()||!JDTTS.azureRegion())){ cmsg('請先填 Azure 密鑰 + 區域並按「存」','var(--coral)'); return; }
+    if(p!=='azure' && !JDTTS.providerKey()){ cmsg(p==='zhipu'?'還沒設定智譜 key（去「加課」頁填一次）':'請先填 Google key 並試聽成功','var(--coral)'); return; }
     JDTTS.setEnabled(true); cmsg('✅ 已開啟，全站單句朗讀改用雲端語音','var(--teal-deep)');
   } else { JDTTS.setEnabled(false); cmsg('已關閉，改回系統聲',''); }
   markSync(); renderCloud();
