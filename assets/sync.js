@@ -42,9 +42,10 @@
   /* ---------- 供應商抽象 ---------- */
   function isGitee(c){ return (c&&c.provider)==='gitee'; }
   function repoOwner(c){ return (c && c.owner) || 'iamamilycc'; }   /* 舊 github 設定無 owner → 作者自己的倉 */
+  function repoName(c){ return (c && c.repo) || 'jingdu-data'; }     /* 可自訂倉庫名，舊設定預設 jingdu-data */
   function contentsUrl(c, path){
     const base = isGitee(c) ? 'https://gitee.com/api/v5' : 'https://api.github.com';
-    return base+'/repos/'+repoOwner(c)+'/jingdu-data/contents/'+path;
+    return base+'/repos/'+repoOwner(c)+'/'+repoName(c)+'/contents/'+path;
   }
   /* 用令牌問「我是誰」→ 拿到 owner 帳號名，同時驗證令牌有效 */
   async function whoami(provider, token){
@@ -199,19 +200,21 @@
         {key:'provider', label:'雲端服務', type:'select', value:c.provider||'gitee', options:[
           {value:'gitee', label:'Gitee 碼雲（國內·不翻牆·推薦）'},
           {value:'github', label:'GitHub（需海外網絡）'} ]},
+        {key:'repo', label:'倉庫名稱', type:'text', placeholder:'你建的私有倉庫名', value:c.repo||'jingdu-data'},
         {key:'token', label:'同步碼（私人令牌）', type:'textarea', placeholder:'貼上令牌（之前設過可留空不改）'}
       ],
-      hint:'令牌只存這台設備、不外傳。Gitee：設置→私人令牌，勾「projects」生成。先在對應平台建一個私有倉庫「jingdu-data」。'
+      hint:'令牌只存這台設備、不外傳。先在雲端建一個「私有」倉庫，把倉庫名填上面。Gitee：設置→私人令牌，勾「projects」生成。'
     });
     if(!vals || !vals.user) return;
     const token=vals.token||c.token||'';
     if(!token){ alert('沒有同步碼，先不開啟雲端備份。'); return; }
     const provider = vals.provider==='github' ? 'github' : 'gitee';
+    const repo = (vals.repo||'').trim() || 'jingdu-data';
     setStatus('☁️ 驗證令牌中…');
     let owner;
     try{ owner = await whoami(provider, token); }
     catch(e){ alert('令牌驗證失敗：可能令牌不對、或連不上雲端。請檢查後重試。'); renderCard(); return; }
-    setCfg({ user:vals.user, token:token, provider:provider, owner:owner }); sha=null;
+    setCfg({ user:vals.user, token:token, provider:provider, owner:owner, repo:repo }); sha=null;
     init();
   }
   async function switchUser(){
@@ -222,7 +225,7 @@
       fields:[{key:'user', label:'切換到哪位使用者？', type:'text', placeholder:'輸入暱稱'}]
     });
     if(!vals || !vals.user || vals.user===c.user) return;
-    setCfg({user:vals.user, token:c.token, provider:c.provider, owner:c.owner}); sha=null;
+    setCfg({user:vals.user, token:c.token, provider:c.provider, owner:c.owner, repo:c.repo}); sha=null;
     applySnapshot({data:{}});
     localStorage.removeItem(UPD_KEY);
     init();

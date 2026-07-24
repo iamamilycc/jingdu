@@ -92,9 +92,21 @@
     if(!lt.playing) return;
     if(i>=L.sentences.length){ done('listen'); if(lt.loop){ ltPlayFrom(0); return; } ltStopUI(); return; }
     ltHighlight(i);
-    /* 聽全文暫用系統聲（連續朗讀接雲端曾在 iOS 沒聲音，待實測穩妥再接） */
+    /* 「聽全文用雲端」實驗開關;開了才逐句走雲端母語日語聲(傳原文,Azure能讀漢字)。防禦式保底不卡成沒聲音 */
+    if(ltCloudOn() && window.JDTTS && JDTTS.enabled() && JDTTS.playUntilEnd){
+      let done2=false;
+      const fb=()=>{ if(done2||!lt.playing) return; done2=true; ltSystemSpeak(i); };
+      const wd=setTimeout(fb, Math.max(6000, (L.sentences[i].jp||'').length*220));
+      JDTTS.playUntilEnd(L.sentences[i].jp, 'ja', lt.slow).then(ok=>{
+        if(done2) return; done2=true; clearTimeout(wd);
+        if(!lt.playing) return;
+        ok ? ltAdvance(i) : ltSystemSpeak(i);
+      }).catch(()=>{ if(done2) return; done2=true; clearTimeout(wd); if(lt.playing) ltSystemSpeak(i); });
+      return;
+    }
     ltSystemSpeak(i);
   }
+  function ltCloudOn(){ try{ return localStorage.getItem('jingdu_lt_cloud')==='1'; }catch(e){ return false; } }
   function ltStopUI(){
     lt.playing=false; speechSynthesis.cancel(); if(window.JDTTS) JDTTS.stop();
     $$('.lt-sent').forEach(el=>el.classList.remove('now'));
