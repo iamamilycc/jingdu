@@ -179,6 +179,29 @@
     }catch(e){ return false; }
   }
 
+  /* 連續朗讀用：播放並在「這句放完(ended)」才 resolve；成功回 true、失敗回 false。
+     供「聽全文」逐句串播（走快取、用同一個已解鎖的 Audio 元素）。可被 stop() 中斷。 */
+  async function playUntilEnd(text, prefix, slow){
+    if(!enabled()) return false;
+    text=(text||'').trim(); if(!text) return false;
+    prefix=(prefix==='ja')?'ja':'en';
+    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+text;
+    try{
+      let blob=await cacheGet(ck);
+      if(!blob){ blob=await synthBlob(text, prefix, slow); cachePut(ck, blob); }
+      const a=el(); stop();
+      try{ if(_url){ URL.revokeObjectURL(_url); _url=null; } }catch(e){}
+      _url=URL.createObjectURL(blob); a.src=_url;
+      await new Promise((res,rej)=>{
+        const clean=()=>{ a.onended=null; a.onerror=null; };
+        a.onended=()=>{ clean(); res(); };
+        a.onerror=()=>{ clean(); rej(new Error('audio error')); };
+        const p=a.play(); if(p&&p.catch) p.catch(e=>{ clean(); rej(e); });
+      });
+      return true;
+    }catch(e){ return false; }
+  }
+
   /* 試聽 / 測 key：不吃 enabled 開關，供設定頁按語言試聽發音 */
   async function test(prefix){
     prefix=(prefix==='ja')?'ja':'en';
@@ -191,6 +214,6 @@
   window.JDTTS={ getProvider,setProvider, enabled,setEnabled, providerKey,
                  zhipuKey, googleKey,setGoogleKey, azureKey,setAzureKey, azureRegion,setAzureRegion,
                  getZVoice,setZVoice, getGVoice,setGVoice, getAzVoice,setAzVoice,
-                 play, stop, test, synthBlob,
+                 play, playUntilEnd, stop, test, synthBlob,
                  ZHIPU_VOICES, GOOGLE_VOICES, AZURE_VOICES };
 })();

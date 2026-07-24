@@ -47,6 +47,19 @@
     const el = document.getElementById('lt'+i);
     if(el) el.scrollIntoView({block:'center', behavior:'smooth'});
   }
+  function ltAdvance(i){ if(lt.playing) setTimeout(()=>ltPlayFrom(i+1), 250); }
+  /* 系統合成聲逐句朗讀（雲端沒開/失敗時的保底），保留高亮與看門狗 */
+  function ltSystemSpeak(i, text){
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang='en-US'; u.rate = lt.slow ? 0.6 : 0.9;
+    const v = JD.pickVoice('en-US'); if(v) u.voice = v;
+    let advanced=false;
+    const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); ltAdvance(i); };
+    u.onend=go; u.onerror=go;
+    const est = text.length * (lt.slow?90:65) + 4000;
+    const watchdog=setTimeout(()=>{ try{ speechSynthesis.cancel(); }catch(e){} go(); }, est);
+    try{ speechSynthesis.speak(u); }catch(e){ go(); }
+  }
   function ltPlayFrom(i){
     if(!lt.playing) return;
     if(i >= L.sentences.length){
@@ -56,20 +69,18 @@
     }
     lt.idx = i; ltHighlight(i);
     const text = L.sentences[i].en;
-    const u = new SpeechSynthesisUtterance(text);
-    u.lang='en-US'; u.rate = lt.slow ? 0.6 : 0.9;
-    const v = JD.pickVoice('en-US'); if(v) u.voice = v; /* 不指定聲音時系統可能用預設/中文聲讀英文 */
-    let advanced=false;
-    const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); setTimeout(()=>ltPlayFrom(i+1),300); };
-    /* onend/onerror 都推進：單句出錯不中斷整篇（iOS 上 onerror 常誤觸發） */
-    u.onend=go; u.onerror=go;
-    /* 看門狗：iOS Safari 的 speechSynthesis 會靜默卡死不觸發 onend，逾時強制推進保證讀完整篇 */
-    const est = text.length * (lt.slow?90:65) + 4000;
-    const watchdog=setTimeout(()=>{ try{ speechSynthesis.cancel(); }catch(e){} go(); }, est);
-    try{ speechSynthesis.speak(u); }catch(e){ go(); }
+    /* 開了雲端語音就逐句走雲端（母語自然聲）+保留高亮；沒開/單句失敗自動退回系統聲 */
+    if(window.JDTTS && JDTTS.enabled()){
+      JDTTS.playUntilEnd(text, 'en', lt.slow).then(ok=>{
+        if(!lt.playing) return;
+        if(ok) ltAdvance(i); else ltSystemSpeak(i, text);
+      });
+      return;
+    }
+    ltSystemSpeak(i, text);
   }
   function ltStopUI(){
-    lt.playing=false; speechSynthesis.cancel();
+    lt.playing=false; speechSynthesis.cancel(); if(window.JDTTS) JDTTS.stop();
     $$('.lt-sent').forEach(el=>el.classList.remove('now'));
     const b=$('#ltPlayBtn'); if(b){ b.textContent='▶️ 播放全文'; b.classList.remove('rec'); b.classList.add('teal'); }
   }
@@ -294,11 +305,22 @@
   const qz = { i:0, score:0, answeredCnt:0, listens:0, revealed:false };
   function qzPlaySeq(idxs, k){
     k = k||0; if(k>=idxs.length) return;
+    const text = L.sentences[idxs[k]].en;
+    if(k===0){ try{ speechSynthesis.cancel(); }catch(e){} if(window.JDTTS) JDTTS.stop(); }
+    if(window.JDTTS && JDTTS.enabled()){
+      JDTTS.playUntilEnd(text, 'en', false).then(ok=>{
+        if(ok) setTimeout(()=>qzPlaySeq(idxs,k+1), 300); else qzSysSpeak(idxs, k);
+      });
+      return;
+    }
+    qzSysSpeak(idxs, k);
+  }
+  function qzSysSpeak(idxs, k){
     const u = new SpeechSynthesisUtterance(L.sentences[idxs[k]].en);
     u.lang='en-US'; u.rate=0.9;
     const v = JD.pickVoice('en-US'); if(v) u.voice = v;
-    u.onend = ()=>setTimeout(()=>qzPlaySeq(idxs,k+1), 300);
-    if(k===0) speechSynthesis.cancel();
+    const nx=()=>setTimeout(()=>qzPlaySeq(idxs,k+1), 300);
+    u.onend=nx; u.onerror=nx;
     speechSynthesis.speak(u);
   }
   function qzBlindText(it){ return it.play.map(i=>(L.sentences[i]||{}).en||'').join(' '); }

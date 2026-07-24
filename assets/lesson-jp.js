@@ -74,27 +74,36 @@
     $$('.lt-zh').forEach((el,k)=>el.classList.toggle('now', k===i));
     const el=document.getElementById('lt'+i); if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
   }
-  function ltPlayFrom(i){
-    if(!lt.playing) return;
-    if(i>=L.sentences.length){ done('listen'); if(lt.loop){ ltPlayFrom(0); return; } ltStopUI(); return; }
-    ltHighlight(i);
+  function ltAdvance(i){ if(lt.playing) setTimeout(()=>ltPlayFrom(i+1), 250); }
+  /* 系統合成聲逐句（雲端沒開/失敗時保底）：用 kana 讓系統聲讀得準；保留高亮與看門狗 */
+  function ltSystemSpeak(i){
     const text = R.toKana(L.sentences[i].jp);
     const u=new SpeechSynthesisUtterance(text);
     u.lang=LANG; u.rate = lt.slow?0.6:0.85;
-    const v=JD.pickVoice(LANG); if(v) u.voice=v; /* 不指定聲音時系統可能用預設聲讀日文 */
+    const v=JD.pickVoice(LANG); if(v) u.voice=v;
     let advanced=false;
-    const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); setTimeout(()=>ltPlayFrom(i+1),300); };
-    /* onend 正常推進；onerror 也推進（單句出錯不該中斷整篇，iOS 上 onerror 常誤觸發） */
-    u.onend=go;
-    u.onerror=go;
-    /* 看門狗：iOS Safari 的 speechSynthesis 會靜默卡死不觸發 onend，
-       估算朗讀時間(每字約0.18s / 慢速0.26s)＋4秒兜底，逾時強制推進，保證讀完整篇 */
+    const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); ltAdvance(i); };
+    u.onend=go; u.onerror=go;
     const est = text.length * (lt.slow?260:180) + 4000;
     const watchdog=setTimeout(()=>{ try{ speechSynthesis.cancel(); }catch(e){} go(); }, est);
     try{ speechSynthesis.speak(u); }catch(e){ go(); }
   }
+  function ltPlayFrom(i){
+    if(!lt.playing) return;
+    if(i>=L.sentences.length){ done('listen'); if(lt.loop){ ltPlayFrom(0); return; } ltStopUI(); return; }
+    ltHighlight(i);
+    /* 開了雲端就逐句走雲端母語日語聲（傳原文，Azure 能正確讀漢字）+保留高亮；沒開/失敗退回系統聲 */
+    if(window.JDTTS && JDTTS.enabled()){
+      JDTTS.playUntilEnd(L.sentences[i].jp, 'ja', lt.slow).then(ok=>{
+        if(!lt.playing) return;
+        if(ok) ltAdvance(i); else ltSystemSpeak(i);
+      });
+      return;
+    }
+    ltSystemSpeak(i);
+  }
   function ltStopUI(){
-    lt.playing=false; speechSynthesis.cancel();
+    lt.playing=false; speechSynthesis.cancel(); if(window.JDTTS) JDTTS.stop();
     $$('.lt-sent').forEach(el=>el.classList.remove('now'));
     const b=$('#ltPlayBtn'); if(b){ b.textContent='▶️ 播放全文'; b.classList.remove('rec'); b.classList.add('teal'); }
   }
@@ -284,11 +293,21 @@
   const qz={ i:0, score:0, listens:0, revealed:false };
   function qzPlaySeq(idxs,k){
     k=k||0; if(k>=idxs.length) return;
+    if(k===0){ try{ speechSynthesis.cancel(); }catch(e){} if(window.JDTTS) JDTTS.stop(); }
+    if(window.JDTTS && JDTTS.enabled()){
+      JDTTS.playUntilEnd(L.sentences[idxs[k]].jp, 'ja', false).then(ok=>{
+        if(ok) setTimeout(()=>qzPlaySeq(idxs,k+1),300); else qzSysSpeak(idxs,k);
+      });
+      return;
+    }
+    qzSysSpeak(idxs,k);
+  }
+  function qzSysSpeak(idxs,k){
     const u=new SpeechSynthesisUtterance(R.toKana(L.sentences[idxs[k]].jp));
     u.lang=LANG; u.rate=0.85;
     const v=JD.pickVoice(LANG); if(v) u.voice=v;
-    u.onend=()=>setTimeout(()=>qzPlaySeq(idxs,k+1),300);
-    if(k===0) speechSynthesis.cancel();
+    const nx=()=>setTimeout(()=>qzPlaySeq(idxs,k+1),300);
+    u.onend=nx; u.onerror=nx;
     speechSynthesis.speak(u);
   }
   function qzBlindHTML(it){ return it.play.map(i=>R.toRubyHTML(JD.esc((L.sentences[i]||{}).jp||''))).join(' '); }
