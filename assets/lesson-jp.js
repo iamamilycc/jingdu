@@ -92,21 +92,26 @@
     if(!lt.playing) return;
     if(i>=L.sentences.length){ done('listen'); if(lt.loop){ ltPlayFrom(0); return; } ltStopUI(); return; }
     ltHighlight(i);
-    /* 「聽全文用雲端」實驗開關;開了才逐句走雲端母語日語聲(傳原文,Azure能讀漢字)。防禦式保底不卡成沒聲音 */
-    if(ltCloudOn() && window.JDTTS && JDTTS.enabled() && JDTTS.playUntilEnd){
-      let done2=false;
-      const fb=()=>{ if(done2||!lt.playing) return; done2=true; ltSystemSpeak(i); };
-      const wd=setTimeout(fb, Math.max(6000, (L.sentences[i].jp||'').length*220));
-      JDTTS.playUntilEnd(L.sentences[i].jp, 'ja', lt.slow).then(ok=>{
-        if(done2) return; done2=true; clearTimeout(wd);
-        if(!lt.playing) return;
-        ok ? ltAdvance(i) : ltSystemSpeak(i);
-      }).catch(()=>{ if(done2) return; done2=true; clearTimeout(wd); if(lt.playing) ltSystemSpeak(i); });
-      return;
-    }
     ltSystemSpeak(i);
   }
   function ltCloudOn(){ try{ return localStorage.getItem('jingdu_lt_cloud')==='1'; }catch(e){ return false; } }
+  /* 雲端聽全文：整篇合成一段連續音檔一次播完(iOS穩);傳原文kanji(Azure能讀漢字);進度比例高亮;失敗退回系統逐句 */
+  async function ltCloudPlayAll(){
+    const sents=L.sentences.map(s=>s.jp), full=sents.join('  ');
+    const lens=sents.map(s=>(s||'').length+2), total=lens.reduce((a,b)=>a+b,0)||1;
+    const cum=[]; let acc=0; lens.forEach((n,i)=>{ cum[i]=acc; acc+=n; });
+    lt.idx=-1; ltHighlight(0);
+    const onProg=(t,dur)=>{ if(!dur||!lt.playing) return;
+      const cp=(t/dur)*total; let idx=0; for(let i=0;i<cum.length;i++){ if(cp>=cum[i]) idx=i; }
+      if(idx!==lt.idx){ lt.idx=idx; ltHighlight(idx); } };
+    let ok=false;
+    try{ ok=await JDTTS.playUntilEnd(full,'ja',lt.slow,onProg); }catch(e){ ok=false; }
+    if(!lt.playing) return;
+    if(!ok){ ltPlayFrom(0); return; }
+    done('listen');
+    if(lt.loop){ ltCloudPlayAll(); return; }
+    ltStopUI();
+  }
   function ltStopUI(){
     lt.playing=false; speechSynthesis.cancel(); if(window.JDTTS) JDTTS.stop();
     $$('.lt-sent').forEach(el=>el.classList.remove('now'));
@@ -114,9 +119,10 @@
   }
   window.ltPlay=function(){
     if(lt.playing){ ltStopUI(); return; }
-    lt.playing=true; speechSynthesis.cancel();
+    lt.playing=true; speechSynthesis.cancel(); if(window.JDTTS) JDTTS.stop();
     const b=$('#ltPlayBtn'); b.textContent='⏹️ 停止'; b.classList.remove('teal'); b.classList.add('rec');
-    ltPlayFrom(0);
+    if(ltCloudOn() && window.JDTTS && JDTTS.enabled() && JDTTS.playUntilEnd) ltCloudPlayAll();
+    else ltPlayFrom(0);
   };
   function ltBtnState(btn,on){ btn.classList.toggle('mango',on); btn.classList.toggle('ghost',!on); }
   window.ltToggleSpeed=function(btn){ lt.slow=!lt.slow; btn.textContent='🐢 慢速：'+(lt.slow?'開':'關'); ltBtnState(btn,lt.slow); };

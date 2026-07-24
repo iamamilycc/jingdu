@@ -181,7 +181,7 @@
 
   /* 連續朗讀用：播放並在「這句放完(ended)」才 resolve；成功回 true、失敗回 false。
      供「聽全文」逐句串播（走快取、用同一個已解鎖的 Audio 元素）。可被 stop() 中斷。 */
-  async function playUntilEnd(text, prefix, slow){
+  async function playUntilEnd(text, prefix, slow, onProgress){
     if(!enabled()) return false;
     text=(text||'').trim(); if(!text) return false;
     prefix=(prefix==='ja')?'ja':'en';
@@ -193,7 +193,8 @@
       try{ if(_url){ URL.revokeObjectURL(_url); _url=null; } }catch(e){}
       _url=URL.createObjectURL(blob); a.src=_url;
       await new Promise((res,rej)=>{
-        const clean=()=>{ a.onended=null; a.onerror=null; };
+        const clean=()=>{ a.onended=null; a.onerror=null; a.ontimeupdate=null; };
+        if(onProgress) a.ontimeupdate=()=>{ try{ onProgress(a.currentTime, a.duration||0); }catch(e){} };
         a.onended=()=>{ clean(); res(); };
         a.onerror=()=>{ clean(); rej(new Error('audio error')); };
         const p=a.play(); if(p&&p.catch) p.catch(e=>{ clean(); rej(e); });

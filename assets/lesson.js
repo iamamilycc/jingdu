@@ -68,23 +68,27 @@
       ltStopUI(); return;
     }
     lt.idx = i; ltHighlight(i);
-    const text = L.sentences[i].en;
-    /* 「聽全文用雲端」是實驗開關(voice頁);開了才逐句走雲端母語聲。
-       防禦式：看門狗逾時 / 失敗 / playUntilEnd不存在 一律退回系統聲，絕不卡成沒聲音。 */
-    if(ltCloudOn() && window.JDTTS && JDTTS.enabled() && JDTTS.playUntilEnd){
-      let done2=false;
-      const fb=()=>{ if(done2||!lt.playing) return; done2=true; ltSystemSpeak(i, text); };
-      const wd=setTimeout(fb, Math.max(6000, text.length*160));
-      JDTTS.playUntilEnd(text, 'en', lt.slow).then(ok=>{
-        if(done2) return; done2=true; clearTimeout(wd);
-        if(!lt.playing) return;
-        ok ? ltAdvance(i) : ltSystemSpeak(i, text);
-      }).catch(()=>{ if(done2) return; done2=true; clearTimeout(wd); if(lt.playing) ltSystemSpeak(i, text); });
-      return;
-    }
-    ltSystemSpeak(i, text);
+    ltSystemSpeak(i, L.sentences[i].en);
   }
   function ltCloudOn(){ try{ return localStorage.getItem('jingdu_lt_cloud')==='1'; }catch(e){ return false; } }
+  /* 雲端聽全文：整篇合成成「一段連續音檔」一次播完（iOS 上單段播放穩，逐句快速連切會靜默）。
+     高亮用「播放進度×字數比例」估算跟上；失敗則退回系統逐句朗讀，絕不沒聲音。 */
+  async function ltCloudPlayAll(){
+    const sents=L.sentences.map(s=>s.en), full=sents.join('  ');
+    const lens=sents.map(s=>s.length+2), total=lens.reduce((a,b)=>a+b,0)||1;
+    const cum=[]; let acc=0; lens.forEach((n,i)=>{ cum[i]=acc; acc+=n; });
+    lt.idx=-1; ltHighlight(0);
+    const onProg=(t,dur)=>{ if(!dur||!lt.playing) return;
+      const cp=(t/dur)*total; let idx=0; for(let i=0;i<cum.length;i++){ if(cp>=cum[i]) idx=i; }
+      if(idx!==lt.idx){ lt.idx=idx; ltHighlight(idx); } };
+    let ok=false;
+    try{ ok=await JDTTS.playUntilEnd(full,'en',lt.slow,onProg); }catch(e){ ok=false; }
+    if(!lt.playing) return;
+    if(!ok){ ltPlayFrom(0); return; }        /* 雲端失敗→退回系統逐句 */
+    done('listen');
+    if(lt.loop){ ltCloudPlayAll(); return; }
+    ltStopUI();
+  }
   function ltStopUI(){
     lt.playing=false; speechSynthesis.cancel(); if(window.JDTTS) JDTTS.stop();
     $$('.lt-sent').forEach(el=>el.classList.remove('now'));
@@ -92,9 +96,10 @@
   }
   window.ltPlay = function(){
     if(lt.playing){ ltStopUI(); return; }
-    lt.playing=true; speechSynthesis.cancel();
+    lt.playing=true; speechSynthesis.cancel(); if(window.JDTTS) JDTTS.stop();
     const b=$('#ltPlayBtn'); b.textContent='⏹️ 停止'; b.classList.remove('teal'); b.classList.add('rec');
-    ltPlayFrom(0);
+    if(ltCloudOn() && window.JDTTS && JDTTS.enabled() && JDTTS.playUntilEnd) ltCloudPlayAll();
+    else ltPlayFrom(0);
   };
   function ltBtnState(btn,on){ btn.classList.toggle('mango',on); btn.classList.toggle('ghost',!on); }
   /* 全文中文翻譯卡：插在全文下方，播放時對應句一起高亮；小朋友看不懂英文可對照 */
