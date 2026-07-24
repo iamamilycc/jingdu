@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Azure 語音測試 · 虫虫精讀</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<style>
+  main{max-width:560px}
+  label{display:block;font-family:var(--font-head);font-weight:600;margin:12px 0 4px}
+  input,select,textarea{width:100%;box-sizing:border-box;border:2px solid var(--line);border-radius:10px;padding:10px 12px;font-size:1rem;background:#fff;color:var(--ink)}
+  #log{white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:.82rem;line-height:1.6;background:#0c1720;color:#c8e6d8;border-radius:12px;padding:14px;margin-top:14px;min-height:80px}
+  .ok{color:#7fe0a0}.bad{color:#ff9b82}.warn{color:#ffd479}
+</style>
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="index.html">← 目錄</a>
+  <h1>🔬 Azure 語音測試</h1>
+</div></header>
+<main>
+  <p class="hint" style="margin-top:4px">給爸媽測試用：填你 Azure 的密鑰和區域，按「試聽」，看能不能出聲。<b>密鑰只留在這台設備、不外傳。</b>建議在 iPad 上、<b>不開 VPN</b> 測。</p>
+
+  <label>密鑰（KEY 1）</label>
+  <input id="key" type="password" placeholder="貼上 Azure 密鑰" autocomplete="off">
+
+  <label>區域（Region / Location）</label>
+  <input id="region" type="text" placeholder="例如 eastasia" value="eastasia">
+
+  <label>試聽語音</label>
+  <select id="voice">
+    <option value="en-US|en-US-AriaNeural">英語 · Aria（女·自然）</option>
+    <option value="en-US|en-US-JennyNeural">英語 · Jenny（女）</option>
+    <option value="en-US|en-US-GuyNeural">英語 · Guy（男）</option>
+    <option value="ja-JP|ja-JP-NanamiNeural">日語 · Nanami（女）</option>
+    <option value="ja-JP|ja-JP-KeitaNeural">日語 · Keita（男）</option>
+  </select>
+
+  <label>要念的句子</label>
+  <textarea id="text" rows="2">Hello! Let us read this sentence together.</textarea>
+
+  <button id="btn" class="big-btn teal" style="width:100%;margin-top:16px">▶️ 試聽（會逐步顯示結果）</button>
+
+  <div id="log">按「試聽」開始…</div>
+
+  <p class="hint" style="margin-top:12px">測試頁，驗證通過後會拿掉。把最後的結果（綠色成功 / 紅色失敗那幾行）截圖給 Claude。</p>
+</main>
+
+<script>
+const $=s=>document.querySelector(s);
+const logEl=$('#log');
+function log(msg, cls){ logEl.innerHTML += '\n'+(cls?'<span class="'+cls+'">'+msg+'</span>':msg); logEl.scrollTop=logEl.scrollHeight; }
+function reset(){ logEl.innerHTML='開始測試…'; }
+
+let audio=null;
+$('#btn').onclick=async ()=>{
+  reset();
+  const key=$('#key').value.trim();
+  const region=$('#region').value.trim().toLowerCase();
+  const [lang,voice]=$('#voice').value.split('|');
+  const text=$('#text').value.trim()||'Hello.';
+  if(!key){ log('❌ 還沒填密鑰','bad'); return; }
+  if(!region){ log('❌ 還沒填區域','bad'); return; }
+
+  // 先在用戶手勢中準備 Audio 元素（iOS 需要）
+  if(!audio) audio=new Audio();
+
+  // 第 1 步：拿 token
+  log('① 向 Azure 換 token…');
+  let token;
+  try{
+    const tr=await fetch('https://'+region+'.api.cognitive.microsoft.com/sts/v1.0/issueToken',{
+      method:'POST', headers:{'Ocp-Apim-Subscription-Key':key}
+    });
+    if(!tr.ok){ log('❌ 換 token 失敗：HTTP '+tr.status+'（'+(tr.status===401?'密鑰或區域不對':'服務端錯誤')+'）','bad'); return; }
+    token=await tr.text();
+    log('✅ 拿到 token（連得上 Azure、密鑰有效）','ok');
+  }catch(e){
+    log('❌ 換 token 連不上：'+e.message,'bad');
+    log('　→ 多半是「網絡到不了 Azure」（要翻牆）或 CORS 被擋。這一步就是驗「不翻墻能不能用」的關鍵。','warn');
+    return;
+  }
+
+  // 第 2 步：合成音檔
+  log('② 合成語音…');
+  const ssml='<speak version="1.0" xml:lang="'+lang+'"><voice name="'+voice+'">'+
+    text.replace(/[<&>]/g,c=>({'<':'&lt;','&':'&amp;','>':'&gt;'}[c]))+'</voice></speak>';
+  let blob;
+  try{
+    const sr=await fetch('https://'+region+'.tts.speech.microsoft.com/cognitiveservices/v1',{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+token,'Content-Type':'application/ssml+xml','X-Microsoft-OutputFormat':'audio-24khz-48kbitrate-mono-mp3'},
+      body:ssml
+    });
+    if(!sr.ok){ const t=await sr.text().catch(()=>''); log('❌ 合成失敗：HTTP '+sr.status+' '+t.slice(0,120),'bad'); return; }
+    blob=await sr.blob();
+    log('✅ 合成成功，音檔 '+Math.round(blob.size/1024)+' KB','ok');
+  }catch(e){
+    log('❌ 合成連不上：'+e.message,'bad');
+    log('　→ token 拿到了但合成端點連不上/被 CORS 擋。','warn');
+    return;
+  }
+
+  // 第 3 步：播放
+  log('③ 播放（iPad 上這步最容易靜音）…');
+  try{
+    audio.src=URL.createObjectURL(blob);
+    await audio.play();
+    log('✅ 已開始播放！你聽到聲音了嗎？','ok');
+    log('　→ 有聲音＝全通，這條路成立 🎉','ok');
+    log('　→ 沒聲音（但上面都綠）＝iPad 播放限制，得再調。','warn');
+  }catch(e){
+    log('❌ 播放被瀏覽器擋：'+e.message,'bad');
+    log('　→ 再按一次「試聽」試試（iOS 有時要第二次手勢）。','warn');
+  }
+};
+</script>
+</body>
+</html>
