@@ -320,16 +320,22 @@
 
   /* ========== 4.5 聽力題（盲聽：句子先模糊，聽3次才能「看一眼」；看過再答對＝算錯不計分） ========== */
   const qz={ i:0, score:0, listens:0, revealed:false };
-  function qzPlaySeq(idxs,k){
-    k=k||0; if(k>=idxs.length) return;
-    if(k===0){ try{ speechSynthesis.cancel(); }catch(e){} }
-    qzSysSpeak(idxs,k);
+  /* 聽力題也用雲端母語聲：整段連續合成一次播完。⚠️日語傳 R.toKana(假名讀音)避免漢字+注音讀兩遍 */
+  function qzPlaySeq(idxs){
+    try{ speechSynthesis.cancel(); }catch(e){} if(window.JDTTS) JDTTS.stop();
+    if(ltCloudOn() && window.JDTTS && JDTTS.enabled() && JDTTS.playUntilEnd){
+      const full = idxs.map(i=>R.toKana((L.sentences[i]||{}).jp||'')).join('\x01');
+      JDTTS.playUntilEnd(full,'ja',false,null).then(ok=>{ if(!ok) qzSysSpeak(idxs,0); }).catch(()=>qzSysSpeak(idxs,0));
+      return;
+    }
+    qzSysSpeak(idxs,0);
   }
   function qzSysSpeak(idxs,k){
+    k=k||0; if(k>=idxs.length) return;
     const u=new SpeechSynthesisUtterance(R.toKana(L.sentences[idxs[k]].jp));
     u.lang=LANG; u.rate=0.85;
     const v=JD.pickVoice(LANG); if(v) u.voice=v;
-    const nx=()=>setTimeout(()=>qzPlaySeq(idxs,k+1),300);
+    const nx=()=>setTimeout(()=>qzSysSpeak(idxs,k+1),300);
     u.onend=nx; u.onerror=nx;
     speechSynthesis.speak(u);
   }
