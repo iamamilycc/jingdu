@@ -74,6 +74,11 @@ nav.tabs::-webkit-scrollbar{display:none}
   box-shadow:var(--shadow);padding:18px;margin-bottom:14px;position:relative;
 }
 .card.stitch{border-style:dashed;border-color:#D9CBB2;background:linear-gradient(#fff,#FFFDF8)}
+/* 播放控制列吸頂：往下滑讀課文時，播放/停止/慢速/盲聽/循環/雲端聲整排跟著貼在標題列下方，隨時能停。
+   top 用 --hdr-h（core.js 依實際標題高度即時量測，標題換行也不會被蓋住） */
+.ctrl-sticky{position:sticky;top:calc(var(--hdr-h,54px) + 6px);z-index:30;
+  background:rgba(255,253,248,.96);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  box-shadow:0 5px 16px rgba(0,0,0,.10)}
 
 /* 通用彈窗：取代原生 prompt()——原生彈窗排版由系統/瀏覽器控制，手機上貼長字串曾撐爆頁面寬度；
    這裡完全自己排版，input 一律 box-sizing:border-box + max-width:100%，絕不會超出螢幕。 */

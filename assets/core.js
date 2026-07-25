@@ -545,3 +545,15 @@
                 AVATARS, getAvatar, setAvatar, avatarHTML, getTargetMountain, setTargetMountain,
                 LEVEL_NAMES, PASS:85 };
 })();
+
+/* 量測固定標題列的實際高度→寫進 --hdr-h，給吸頂控制列(.ctrl-sticky)當偏移。
+   標題長換行時高度會變，用 ResizeObserver 即時跟。*/
+(function stickyHdr(){
+  function run(){
+    var h=document.querySelector('header.site'); if(!h) return;
+    var set=function(){ document.documentElement.style.setProperty('--hdr-h', h.offsetHeight+'px'); };
+    set(); window.addEventListener('resize', set); window.addEventListener('orientationchange', set);
+    if(window.ResizeObserver){ try{ new ResizeObserver(set).observe(h); }catch(e){} }
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run); else run();
+})();
