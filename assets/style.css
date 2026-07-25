@@ -37,13 +37,13 @@ header.site{
   background:var(--teal); color:#fff; padding:12px 20px 10px; position:sticky; top:0; z-index:50;
   border-bottom:4px solid var(--mango);
 }
-header.site .row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;max-width:860px;margin:0 auto}
+header.site .row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px 10px;max-width:860px;margin:0 auto}
 .brand-logo{flex:none;width:38px;height:38px;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.15))}
 .brand-hero{width:76px;height:76px;display:block;margin:0 auto 6px}
 /* min-width 防止窄屏把標題壓成逐字換行（中文字間本可斷行，flex 預設 min-width:auto 會把它壓到只剩一字寬）；
    放不下時靠 flex-wrap 讓導航鏈接掉到下一行，標題本身永遠保持整行寬度 */
 /* 長課名不再撐爆 header：字略小、行距收緊、最多兩行超出以…省略（品牌短標題不受影響） */
-header.site h1{font-family:var(--font-head);font-size:1.15rem;font-weight:600;line-height:1.28;flex:1 1 auto;min-width:180px;margin:2px 0;
+header.site h1{font-family:var(--font-head);font-size:1.08rem;font-weight:600;line-height:1.25;flex:1 1 auto;min-width:0;margin:2px 0;
   display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 header.site a{color:#fff;text-decoration:none;font-size:.9rem;opacity:.9;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.14)}
 main{max-width:860px;margin:0 auto;padding:22px 16px 90px}
@@ -76,9 +76,11 @@ nav.tabs::-webkit-scrollbar{display:none}
 .card.stitch{border-style:dashed;border-color:#D9CBB2;background:linear-gradient(#fff,#FFFDF8)}
 /* 播放控制列吸頂：往下滑讀課文時，播放/停止/慢速/盲聽/循環/雲端聲整排跟著貼在標題列下方，隨時能停。
    top 用 --hdr-h（core.js 依實際標題高度即時量測，標題換行也不會被蓋住） */
-.ctrl-sticky{position:sticky;top:calc(var(--hdr-h,54px) + 6px);z-index:30;
-  background:rgba(255,253,248,.96);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
-  box-shadow:0 5px 16px rgba(0,0,0,.10)}
+.ctrl-sticky{position:sticky;top:calc(var(--hdr-h,54px) + 4px);z-index:30;
+  background:rgba(255,253,248,.97);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px);
+  box-shadow:0 4px 14px rgba(0,0,0,.10);
+  padding:6px 8px;margin-bottom:10px}                 /* 瘦身：不佔太多畫面，把課文空間讓出來 */
+.ctrl-sticky .big-btn{padding:8px 14px;font-size:.84rem;margin:3px 3px}  /* 吸頂列按鈕小而仍好點，兩排內排完 */
 
 /* 通用彈窗：取代原生 prompt()——原生彈窗排版由系統/瀏覽器控制，手機上貼長字串曾撐爆頁面寬度；
    這裡完全自己排版，input 一律 box-sizing:border-box + max-width:100%，絕不會超出螢幕。 */
@@ -228,8 +230,8 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .rc-secbtn{border:2px solid var(--line);background:var(--card);border-radius:10px;padding:6px 14px;font-family:var(--font-head);cursor:pointer;color:var(--ink)}
 .rc-secbtn.on{border-color:var(--mango);background:var(--mango-soft);color:var(--teal-deep);font-weight:600}
 .big-btn{
-  font-family:var(--font-head);border:none;border-radius:999px;padding:15px 34px;font-size:1.05rem;font-weight:600;
-  cursor:pointer;transition:.15s;margin:6px 5px;
+  font-family:var(--font-head);border:none;border-radius:999px;padding:11px 22px;font-size:.97rem;font-weight:600;
+  cursor:pointer;transition:.15s;margin:5px 4px;
 }
 .big-btn:active{transform:scale(.95)}
 .big-btn.teal{background:var(--teal);color:#fff}
@@ -363,6 +365,12 @@ footer.site{
   text-align:center;color:var(--muted);font-size:.78rem;padding:18px;font-family:var(--font-head);
 }
 @media (max-width:520px){html{font-size:16px}.stage .target{font-size:1.12rem}}
+/* 手機：按鈕再縮一級，跟讀/連詞/背句/造句等一排排得下，主內容空間讓出來 */
+@media (max-width:480px){
+  .big-btn{padding:9px 15px;font-size:.9rem;margin:4px 3px}
+  .ctrl-sticky{padding:5px 6px}
+  .ctrl-sticky .big-btn{padding:6px 11px;font-size:.8rem;margin:3px 2px}
+}
 
 /* ===== 日語版專用（ruby 振假名 / 羅馬音） ===== */
 .jp-text{font-family:'Atkinson Hyperlegible','Hiragino Sans','Noto Sans JP','PingFang SC',sans-serif}
