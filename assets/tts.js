@@ -126,7 +126,7 @@
       /* 多句用 \x01 分隔：去句末標點、句間插短 break（縮短停頓、更連貫）；單句照舊 */
       let core;
       if(text.indexOf('\x01')>=0){
-        core = text.split('\x01').map(s=>ssmlEsc(s.replace(/[.!?。！？…、,，]+\s*$/,''))).join('<break time="220ms"/>');
+        core = text.split('\x01').map(s=>ssmlEsc(s.replace(/[.!?。！？…、,，]+\s*$/,''))).join('<break time="240ms"/>');
       } else { core = ssmlEsc(text); }
       const inner = slow ? '<prosody rate="-15%">'+core+'</prosody>' : core;
       const ssml='<speak version="1.0" xml:lang="'+lang+'"><voice name="'+voice+'">'+inner+'</voice></speak>';
