@@ -307,9 +307,10 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
   border-bottom:1px dashed var(--line);font-size:1rem;font-weight:600;font-family:inherit;color:var(--ink);
   cursor:pointer;text-align:left}
 .done-row:active{background:var(--amber-soft)}
-.done-label{flex:none}
-.done-frac{margin-left:auto;flex:none;min-width:46px;text-align:right;font-family:var(--font-head);font-size:.8rem;font-weight:500;color:var(--muted)}
-.done-row .done-bar{flex:0 0 60px;min-width:60px}
+/* 標籤可收縮(min-width:0)+過長截斷，避免整列橫向撐爆手機螢幕 */
+.done-label{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.done-frac{flex:none;min-width:44px;text-align:right;font-family:var(--font-head);font-size:.8rem;font-weight:500;color:var(--muted)}
+.done-row .done-bar{flex:0 0 52px;min-width:52px}
 .done-go{flex:none;color:var(--muted);font-size:1.3rem;line-height:1}
 .check-list li.done-summary{font-family:var(--font-head);color:var(--teal-deep);border-bottom:2px solid var(--line)}
 .check-list li.done-summary b{font-size:1.15rem}

@@ -630,7 +630,7 @@
         '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
         '<span>📊 本課總評分</span>'+
         '<span style="font-size:.85rem;color:var(--muted)">計分環節：生詞/連詞/跟讀/聽力/背句/造句</span></div>'+
-        '<div style="display:flex;gap:18px">'+
+        '<div style="display:flex;gap:18px;flex-wrap:wrap">'+
         '<span>完成度 <b style="font-size:1.3rem">'+sc.completion+'%</b> <small style="color:var(--muted)">('+sc.done+'/'+sc.n+' 題)</small></span>'+
         '<span>正確率 <b style="font-size:1.3rem;color:'+(sc.accuracy>=85?'var(--teal-deep)':sc.accuracy>=60?'var(--mango)':'var(--coral)')+'">'+sc.accuracy+'%</b> <small style="color:var(--muted)">(答對 '+sc.score+'/'+sc.done+')</small></span>'+
         '</div></li>'
