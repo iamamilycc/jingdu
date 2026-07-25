@@ -92,8 +92,10 @@
   const SILENT='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
   let _audio=null, _unlocked=false, _url=null;
   function el(){ if(!_audio){ _audio=new Audio(); _audio.preload='auto'; } return _audio; }
+  /* 首次觸控解鎖音訊；⚠️正在播放時直接視為已解鎖、絕不插靜音打斷（否則用戶滑動頁面會中斷朗讀） */
   function unlock(){ if(_unlocked) return; const a=el();
-    try{ a.src=SILENT; const p=a.play(); if(p&&p.then) p.then(()=>{ try{a.pause();}catch(e){} _unlocked=true; }).catch(()=>{}); else _unlocked=true; }catch(e){} }
+    if(a.src && a.src.indexOf('data:audio/wav')!==0 && !a.paused){ _unlocked=true; return; }
+    try{ a.src=SILENT; const p=a.play(); if(p&&p.then) p.then(()=>{ try{a.pause();}catch(e){} _unlocked=true; }).catch(()=>{ _unlocked=true; }); else _unlocked=true; }catch(e){} }
   try{ document.addEventListener('touchend', unlock, {passive:true}); document.addEventListener('click', unlock, {passive:true}); }catch(e){}
   function stop(){ try{ if(_audio) _audio.pause(); }catch(e){} }
 
@@ -121,7 +123,12 @@
     if(prov==='azure'){
       const region=azureRegion(); if(!region||!azureKey()) throw new Error('沒有 Azure key/區域');
       const voice=getAzVoice(prefix), lang=voice.split('-').slice(0,2).join('-');
-      const inner = slow ? '<prosody rate="-15%">'+ssmlEsc(text)+'</prosody>' : ssmlEsc(text);
+      /* 多句用 \x01 分隔：去句末標點、句間插短 break（縮短停頓、更連貫）；單句照舊 */
+      let core;
+      if(text.indexOf('\x01')>=0){
+        core = text.split('\x01').map(s=>ssmlEsc(s.replace(/[.!?。！？…、,，]+\s*$/,''))).join('<break time="140ms"/>');
+      } else { core = ssmlEsc(text); }
+      const inner = slow ? '<prosody rate="-15%">'+core+'</prosody>' : core;
       const ssml='<speak version="1.0" xml:lang="'+lang+'"><voice name="'+voice+'">'+inner+'</voice></speak>';
       const doSynth=(tok)=>fetch(azTtsEP(region),{ method:'POST',
         headers:{'Authorization':'Bearer '+tok,'Content-Type':'application/ssml+xml','X-Microsoft-OutputFormat':'audio-24khz-48kbitrate-mono-mp3'},
@@ -132,12 +139,13 @@
       const blob=await resp.blob(); if(!blob||blob.size<200) throw new Error('Azure 返回音檔為空');
       return blob;
     }
+    const plain = text.replace(/\x01/g,' ');  /* 非 azure 供應商拿純文字（把句間分隔符還原成空格） */
     if(prov==='google'){
       const key=googleKey(); if(!key) throw new Error('沒有 Google key');
       const voice=getGVoice(prefix), lc=voice.split('-').slice(0,2).join('-');
       const resp=await fetch(GOOGLE_EP+'?key='+encodeURIComponent(key),{ method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({input:{text:text}, voice:{languageCode:lc, name:voice}, audioConfig:{audioEncoding:'MP3', speakingRate:slow?0.7:0.95}}) });
+        body:JSON.stringify({input:{text:plain}, voice:{languageCode:lc, name:voice}, audioConfig:{audioEncoding:'MP3', speakingRate:slow?0.7:0.95}}) });
       if(!resp.ok){ const t=await resp.text().catch(()=>''); throw new Error('Google TTS '+resp.status+' '+t.slice(0,160)); }
       const j=await resp.json(); if(!j.audioContent) throw new Error('Google 沒返回音檔');
       return b64ToBlob(j.audioContent, 'audio/mp3');
@@ -146,7 +154,7 @@
     const key=zhipuKey(); if(!key) throw new Error('還沒設定智譜 key（在「加課」頁設一次）');
     const resp=await fetch(ZHIPU_EP,{ method:'POST',
       headers:{'Authorization':'Bearer '+key, 'Content-Type':'application/json'},
-      body:JSON.stringify({model:'glm-tts', input:text, voice:getZVoice(), response_format:'wav', speed: slow?0.8:1.0}) });
+      body:JSON.stringify({model:'glm-tts', input:plain, voice:getZVoice(), response_format:'wav', speed: slow?0.8:1.0}) });
     if(!resp.ok){ const t=await resp.text().catch(()=>''); throw new Error('智譜 TTS '+resp.status+' '+t.slice(0,160)); }
     const blob=await resp.blob();
     if(!blob || blob.size<200) throw new Error('智譜返回的音檔為空');
@@ -197,7 +205,7 @@
         if(onProgress) a.ontimeupdate=()=>{ try{ onProgress(a.currentTime, a.duration||0); }catch(e){} };
         a.onended=()=>{ clean(); res(); };
         a.onerror=()=>{ clean(); rej(new Error('audio error')); };
-        const p=a.play(); if(p&&p.catch) p.catch(e=>{ clean(); rej(e); });
+        const p=a.play(); _unlocked=true; if(p&&p.catch) p.catch(e=>{ clean(); rej(e); });
       });
       return true;
     }catch(e){ return false; }

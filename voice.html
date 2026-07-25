@@ -66,8 +66,8 @@
   </div>
 
   <div class="card" id="ltCloudCard" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-    <span style="font-family:var(--font-head);font-weight:600">🧪 聽全文也用雲端語音</span>
-    <span class="hint" style="margin:0;flex:1;min-width:160px">實驗功能：整篇朗讀也用雲端母語聲（要先開上面的雲端語音）。若出現沒聲音／卡頓就關掉，會退回系統聲。</span>
+    <span style="font-family:var(--font-head);font-weight:600">📖 聽全文也用雲端語音</span>
+    <span class="hint" style="margin:0;flex:1;min-width:160px">整篇朗讀也用雲端母語聲（預設開，要先開上面的雲端語音）。課文頁播放列也有「☁️ 雲端聲」快速開關。若某台設備出問題就關掉，會退回系統聲。</span>
     <button id="ltCloudToggle" class="big-btn ghost" style="padding:9px 18px;margin:0" onclick="toggleLtCloud()"></button>
   </div>
 
@@ -279,11 +279,11 @@ window.saveCloudKey=function(){
 };
 /* 🧪 聽全文也用雲端（實驗開關） */
 function renderLtCloud(){ const b=$('#ltCloudToggle'); if(!b) return;
-  const on=localStorage.getItem('jingdu_lt_cloud')==='1';
+  const on=localStorage.getItem('jingdu_lt_cloud')!=='0';   /* 預設開 */
   b.textContent=on?'✅ 已開啟':'⭕ 未開啟'; b.classList.toggle('teal',on); b.classList.toggle('ghost',!on);
 }
 window.toggleLtCloud=function(){
-  const on=localStorage.getItem('jingdu_lt_cloud')==='1';
+  const on=localStorage.getItem('jingdu_lt_cloud')!=='0';
   localStorage.setItem('jingdu_lt_cloud', on?'0':'1');
   localStorage.setItem('jingdu_updatedAt', String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule();
   renderLtCloud();

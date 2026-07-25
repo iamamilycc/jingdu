@@ -94,10 +94,10 @@
     ltHighlight(i);
     ltSystemSpeak(i);
   }
-  function ltCloudOn(){ try{ return localStorage.getItem('jingdu_lt_cloud')==='1'; }catch(e){ return false; } }
+  function ltCloudOn(){ try{ return localStorage.getItem('jingdu_lt_cloud')!=='0'; }catch(e){ return true; } }
   /* 雲端聽全文：整篇合成一段連續音檔一次播完(iOS穩);傳原文kanji(Azure能讀漢字);進度比例高亮;失敗退回系統逐句 */
   async function ltCloudPlayAll(){
-    const sents=L.sentences.map(s=>s.jp), full=sents.join('  ');
+    const sents=L.sentences.map(s=>s.jp), full=sents.join('\x01');   /* \x01=句間分隔，雲端插短 break */
     const lens=sents.map(s=>(s||'').length+2), total=lens.reduce((a,b)=>a+b,0)||1;
     const cum=[]; let acc=0; lens.forEach((n,i)=>{ cum[i]=acc; acc+=n; });
     lt.idx=-1; ltHighlight(0);
@@ -125,6 +125,15 @@
     else ltPlayFrom(0);
   };
   function ltBtnState(btn,on){ btn.classList.toggle('mango',on); btn.classList.toggle('ghost',!on); }
+  /* 聽全文控制列加「☁️ 雲端聲」快速開關 */
+  (function injectLtCloudBtn(){
+    const pb=$('#ltPlayBtn'); if(!pb || !(window.JDTTS && JDTTS.enabled())) return;
+    const btn=document.createElement('button'); btn.type='button'; btn.className='big-btn'; btn.id='ltCloudBtn';
+    const upd=()=>{ const on=ltCloudOn(); btn.textContent='☁️ 雲端聲：'+(on?'開':'關'); ltBtnState(btn,on); };
+    btn.onclick=()=>{ localStorage.setItem('jingdu_lt_cloud', ltCloudOn()?'0':'1');
+      localStorage.setItem('jingdu_updatedAt',String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule(); upd(); };
+    upd(); pb.parentNode.appendChild(btn);
+  })();
   window.ltToggleSpeed=function(btn){ lt.slow=!lt.slow; btn.textContent='🐢 慢速：'+(lt.slow?'開':'關'); ltBtnState(btn,lt.slow); };
   window.ltToggleBlind=function(btn){ lt.blind=!lt.blind; btn.textContent='🙈 盲聽：'+(lt.blind?'開':'關'); ltBtnState(btn,lt.blind); if(ltBox) ltBox.classList.toggle('blind', lt.blind); };
   window.ltToggleLoop=function(btn){ lt.loop=!lt.loop; btn.textContent='🔁 循環：'+(lt.loop?'開':'關'); ltBtnState(btn,lt.loop); };
