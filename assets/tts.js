@@ -126,7 +126,7 @@
       /* 多句用 \x01 分隔：去句末標點、句間插短 break（縮短停頓、更連貫）；單句照舊 */
       let core;
       if(text.indexOf('\x01')>=0){
-        core = text.split('\x01').map(s=>ssmlEsc(s.replace(/[.!?。！？…、,，]+\s*$/,''))).join('<break time="140ms"/>');
+        core = text.split('\x01').map(s=>ssmlEsc(s.replace(/[.!?。！？…、,，]+\s*$/,''))).join('<break time="180ms"/>');
       } else { core = ssmlEsc(text); }
       const inner = slow ? '<prosody rate="-15%">'+core+'</prosody>' : core;
       const ssml='<speak version="1.0" xml:lang="'+lang+'"><voice name="'+voice+'">'+inner+'</voice></speak>';
@@ -166,6 +166,7 @@
     try{ if(_url){ URL.revokeObjectURL(_url); _url=null; } }catch(e){}
     _url=URL.createObjectURL(blob); a.src=_url;
     await a.play();
+    _unlocked=true;   /* 真播過音檔＝已解鎖，之後 unlock() 直接短路、永不再插靜音打斷 */
   }
 
   function voiceKeyFor(prefix){

@@ -95,9 +95,11 @@
     ltSystemSpeak(i);
   }
   function ltCloudOn(){ try{ return localStorage.getItem('jingdu_lt_cloud')!=='0'; }catch(e){ return true; } }
-  /* 雲端聽全文：整篇合成一段連續音檔一次播完(iOS穩);傳原文kanji(Azure能讀漢字);進度比例高亮;失敗退回系統逐句 */
+  /* 雲端聽全文：整篇合成一段連續音檔一次播完(iOS穩)。
+     ⚠️日語傳 R.toKana(把漢字換成注音的假名讀音)——直接傳原文會讓 Azure 把漢字+上面的假名注音都讀=讀兩遍/讀錯音；
+     用注音的假名＝作者指定的正確讀音，一遍且不會挑錯漢字讀音。進度比例高亮；失敗退回系統逐句。 */
   async function ltCloudPlayAll(){
-    const sents=L.sentences.map(s=>s.jp), full=sents.join('\x01');   /* \x01=句間分隔，雲端插短 break */
+    const sents=L.sentences.map(s=>R.toKana(s.jp)), full=sents.join('\x01');   /* \x01=句間分隔，雲端插短 break */
     const lens=sents.map(s=>(s||'').length+2), total=lens.reduce((a,b)=>a+b,0)||1;
     const cum=[]; let acc=0; lens.forEach((n,i)=>{ cum[i]=acc; acc+=n; });
     lt.idx=-1; ltHighlight(0);
@@ -260,12 +262,12 @@
   window.bdPlace=function(cid){ const k=bd.pool.findIndex(c=>c.cid===cid); if(k<0)return; bd.placed.push(bd.pool[k]); bd.pool.splice(k,1); bdRender(); };
   window.bdUnplace=function(cid){ const k=bd.placed.findIndex(c=>c.cid===cid); if(k<0)return; bd.pool.push(bd.placed[k]); bd.placed.splice(k,1); bdRender(); };
   window.bdReset=function(){ bd.pool=bd.pool.concat(bd.placed); bd.placed=[]; bdRender(); };
-  window.bdPlay=function(){ JD.speak(bdItems[bd.i].jp,false,LANG); };
+  window.bdPlay=function(){ JD.speak(R.toKana(bdItems[bd.i].jp),false,LANG); };
   window.bdCheck=function(){
     const it=bdItems[bd.i];
     if(bd.placed.length<it.words.length){ bdRender('<div class="acc-badge bad">還有詞語沒排上去哦</div>'); return; }
     const got=bd.placed.map(c=>c.w).join(''), want=it.words.join('');
-    if(got===want){ bd.results[bd.i]=true; JD.speak(it.jp,false,LANG); bdRender('<div class="acc-badge good">🎉 排對了！<br>'+JD.esc(it.jp)+'</div>'); bdMaybeDone(); JD.celebrate('good'); }
+    if(got===want){ bd.results[bd.i]=true; JD.speak(R.toKana(it.jp),false,LANG); bdRender('<div class="acc-badge good">🎉 排對了！<br>'+JD.esc(it.jp)+'</div>'); bdMaybeDone(); JD.celebrate('good'); }
     else{ bdRender('<div class="acc-badge bad">順序還不對，再試試～</div>'); JD.celebrate('try'); }
   };
   window.bdReveal=function(){
