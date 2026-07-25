@@ -72,6 +72,13 @@
   </div>
 
   <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <span style="font-family:var(--font-head);font-weight:600">📏 聽全文·句間停頓</span>
+    <input type="range" id="gapSlider" min="0" max="500" step="20" style="flex:1;min-width:150px" oninput="onGap(this.value)">
+    <span id="gapVal" style="font-family:var(--font-head);min-width:60px;text-align:right;color:var(--teal-deep)"></span>
+    <span class="hint" style="margin:0;flex-basis:100%">拖一下即時生效（雲端聽全文的句子之間停多久）。改完直接播一篇聽聽看，不用重整。</span>
+  </div>
+
+  <div class="card" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <span style="font-family:var(--font-head);font-weight:600">🎉 答題鼓勵音效</span>
     <span class="hint" style="margin:0;flex:1">做對題目時的小音效＋英文鼓勵字（很短）</span>
     <button id="sfxToggle" class="big-btn teal" style="padding:9px 18px" onclick="toggleSfx()"></button>
@@ -289,6 +296,14 @@ window.toggleLtCloud=function(){
   renderLtCloud();
 };
 renderLtCloud();
+
+/* 📏 聽全文句間停頓滑桿（即時生效） */
+function renderGap(){ const s=$('#gapSlider'), v=$('#gapVal'); if(!s||!window.JDTTS) return;
+  const g=JDTTS.ltGap(); s.value=g; if(v) v.textContent=g+'ms'; }
+window.onGap=function(val){ const g=parseInt(val,10)||0; if(window.JDTTS) JDTTS.setLtGap(g);
+  const v=$('#gapVal'); if(v) v.textContent=g+'ms';
+  localStorage.setItem('jingdu_updatedAt',String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule(); };
+renderGap();
 
 /* 英日試聽（兩顆固定按鈕） */
 document.querySelectorAll('#cloudCard [data-try]').forEach(b=>b.onclick=async()=>{

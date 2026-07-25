@@ -59,6 +59,10 @@
   }
   function setEnabled(on){ lset(NS+'gtts_on', on?'1':'0'); }
 
+  /* 聽全文句間停頓(ms)，可在聲音頁滑桿即時調；預設 260 */
+  function ltGap(){ const v=parseInt(ls(NS+'lt_gap'),10); return (v>=0&&v<=800)?v:260; }
+  function setLtGap(v){ lset(NS+'lt_gap', String(v)); }
+
   /* 各家 key */
   function zhipuKey(){ return ls(NS+'zhipu_key')||''; }
   function googleKey(){ return ls(NS+'gtts_key')||''; }
@@ -126,7 +130,7 @@
       /* 多句用 \x01 分隔：去句末標點、句間插短 break（縮短停頓、更連貫）；單句照舊 */
       let core;
       if(text.indexOf('\x01')>=0){
-        core = text.split('\x01').map(s=>ssmlEsc(s.replace(/[.!?。！？…、,，]+\s*$/,''))).join('<break time="260ms"/>');
+        core = text.split('\x01').map(s=>ssmlEsc(s.replace(/[.!?。！？…、,，]+\s*$/,''))).join('<break time="'+ltGap()+'ms"/>');
       } else { core = ssmlEsc(text); }
       const inner = slow ? '<prosody rate="-15%">'+core+'</prosody>' : core;
       const ssml='<speak version="1.0" xml:lang="'+lang+'"><voice name="'+voice+'">'+inner+'</voice></speak>';
@@ -179,7 +183,7 @@
     if(!enabled()) return false;
     text=(text||'').trim(); if(!text) return false;
     prefix=(prefix==='ja')?'ja':'en';
-    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+text;
+    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+(text.indexOf('')>=0?'g'+ltGap():'')+'|'+text;
     try{
       let blob=await cacheGet(ck);
       if(!blob){ blob=await synthBlob(text, prefix, slow); cachePut(ck, blob); }
@@ -194,7 +198,7 @@
     if(!enabled()) return false;
     text=(text||'').trim(); if(!text) return false;
     prefix=(prefix==='ja')?'ja':'en';
-    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+text;
+    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+(text.indexOf('')>=0?'g'+ltGap():'')+'|'+text;
     try{
       let blob=await cacheGet(ck);
       if(!blob){ blob=await synthBlob(text, prefix, slow); cachePut(ck, blob); }
@@ -224,6 +228,6 @@
   window.JDTTS={ getProvider,setProvider, enabled,setEnabled, providerKey,
                  zhipuKey, googleKey,setGoogleKey, azureKey,setAzureKey, azureRegion,setAzureRegion,
                  getZVoice,setZVoice, getGVoice,setGVoice, getAzVoice,setAzVoice,
-                 play, playUntilEnd, stop, test, synthBlob,
+                 play, playUntilEnd, stop, test, synthBlob, ltGap, setLtGap,
                  ZHIPU_VOICES, GOOGLE_VOICES, AZURE_VOICES };
 })();
