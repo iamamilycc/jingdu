@@ -53,6 +53,13 @@
   function resume(sec, n){ return JD.resumeIdx(L.id, sec, n); }
 
   /* ========== 0 聽全文 ========== */
+  /* 依課文類型自動預設句間停頓：對話→180；敘事/故事→300。用戶手動設值後尊重手動。 */
+  (function autoLtGap(){
+    if(!(window.JDTTS && JDTTS.setAutoGap && L.sentences)) return;
+    const spk = L.sentences.filter(s=>s.speaker).length;
+    const isDialogue = spk >= Math.max(2, L.sentences.length*0.3);
+    JDTTS.setAutoGap(isDialogue ? 180 : 300);
+  })();
   const lt = { playing:false, slow:false, blind:false, loop:false };
   const ltBox = $('#ltText');
   if(ltBox){

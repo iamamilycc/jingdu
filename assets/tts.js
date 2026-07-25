@@ -59,9 +59,20 @@
   }
   function setEnabled(on){ lset(NS+'gtts_on', on?'1':'0'); }
 
-  /* 聽全文句間停頓(ms)，可在聲音頁滑桿即時調；預設 260 */
-  function ltGap(){ const v=parseInt(ls(NS+'lt_gap'),10); return (v>=0&&v<=800)?v:260; }
-  function setLtGap(v){ lset(NS+'lt_gap', String(v)); }
+  /* 聽全文句間停頓(ms)。兩種模式：
+     - auto(預設)：每課依內容自動判斷(對話短/敘事長)，由 lesson.js 載課時 setAutoGap() 告知
+     - manual：用戶在聲音頁拖滑桿或點預設鍵→固定一個值，永久蓋過自動
+     一旦手動設值就切 manual；點「自動」鍵可切回。 */
+  var _autoGap = 260;   /* 當前課的自動建議值；非課文頁時為預設 260 */
+  function gapMode(){ return ls(NS+'lt_gap_mode')==='manual' ? 'manual' : 'auto'; }
+  function setGapAuto(){ lset(NS+'lt_gap_mode','auto'); }
+  function setAutoGap(v){ v=parseInt(v,10); if(v>=0&&v<=800) _autoGap=v; }
+  function autoGap(){ return _autoGap; }
+  function ltGap(){
+    if(gapMode()==='manual'){ const v=parseInt(ls(NS+'lt_gap'),10); return (v>=0&&v<=800)?v:260; }
+    return _autoGap;
+  }
+  function setLtGap(v){ lset(NS+'lt_gap', String(v)); lset(NS+'lt_gap_mode','manual'); }  /* 手動設值即切 manual */
 
   /* 各家 key */
   function zhipuKey(){ return ls(NS+'zhipu_key')||''; }
@@ -229,5 +240,6 @@
                  zhipuKey, googleKey,setGoogleKey, azureKey,setAzureKey, azureRegion,setAzureRegion,
                  getZVoice,setZVoice, getGVoice,setGVoice, getAzVoice,setAzVoice,
                  play, playUntilEnd, stop, test, synthBlob, ltGap, setLtGap,
+                 gapMode, setGapAuto, setAutoGap, autoGap,
                  ZHIPU_VOICES, GOOGLE_VOICES, AZURE_VOICES };
 })();

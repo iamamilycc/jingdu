@@ -35,6 +35,14 @@
   function resume(sec, n){ return JD.resumeIdx(L.id, sec, n); }
 
   /* ========== 0 聽全文（連播 + 高亮 + 盲聽 + 循環） ========== */
+  /* 依課文類型自動預設句間停頓：對話(多句帶說話人)節奏快→180；敘事/故事→300。
+     用戶若在聲音頁手動設值(切 manual)，這裡的自動值就不生效，尊重用戶選擇。 */
+  (function autoLtGap(){
+    if(!(window.JDTTS && JDTTS.setAutoGap && L.sentences)) return;
+    const spk = L.sentences.filter(s=>s.speaker).length;
+    const isDialogue = spk >= Math.max(2, L.sentences.length*0.3);
+    JDTTS.setAutoGap(isDialogue ? 180 : 300);
+  })();
   const lt = { playing:false, idx:-1, slow:false, blind:false, loop:false };
   const ltBox = $('#ltText');
   if(ltBox){
