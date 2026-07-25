@@ -558,12 +558,14 @@
     const v=mkWords[mk.i];
     box.innerHTML='<div style="font-family:var(--font-head);color:var(--muted);font-size:.9rem">第 '+(mk.i+1)+' / '+mkWords.length+' 個詞</div>'+
       '<div class="target" style="margin-top:6px"><b>'+JD.esc(v.w)+'</b><span style="color:var(--muted);font-size:.92rem;margin-left:10px">'+JD.esc(v.zh||'')+'</span>'+
-      ' <button class="btn-voice" onclick="JD.speak('+JSON.stringify(v.w)+',false)">🔊</button></div>'+
+      ' <button class="btn-voice" id="mkVoiceBtn">🔊</button></div>'+
       '<div style="margin:12px 0"><textarea id="mkInput" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="用這個詞造一句你自己的話…" '+
       'style="width:100%;min-height:72px;border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:1rem;font-family:var(--font-en)"></textarea></div>'+
       '<div><button id="mkMicBtn" class="big-btn rec" onclick="mkMic()">🎤 用說的</button>'+
       '<button class="big-btn teal" onclick="mkCheck()">✨ 檢查我的句子</button></div>'+
       '<div id="mkFb" style="margin-top:12px"></div>';
+    /* 發音鍵用 .onclick 綁定，不用內嵌 onclick——單詞若含引號(如 don't)會和屬性引號打架導致整個點擊失效 */
+    const vb=$('#mkVoiceBtn'); if(vb) vb.onclick=()=>JD.speak(v.w,false);
   }
   window.mkRestart=function(){ mk.i=0; mk.results=[]; mkRender(); };
   window.mkMic=function(){
