@@ -403,10 +403,11 @@
   /* ========== 5 背句挑戰 ========== */
   const rc={ i:0, timer:null, results:[] };
   /* 看題秒數：'auto'(依句長自動預設) 或手動 5/10/15，記在本機，英日共用；預設 auto */
-  function rcSecMode(){ const v=localStorage.getItem('jingdu_recite_sec'); return (v==='5'||v==='10'||v==='15')?v:'auto'; }
+  /* 用 sec2 新鍵：舊版純數字值會把人卡在手動；換鍵讓所有人回到「自動」預設 */
+  function rcSecMode(){ const v=localStorage.getItem('jingdu_recite_sec2'); return (v==='5'||v==='10'||v==='15')?v:'auto'; }
   function rcAutoSec(s){ const n=R.toKana(((s&&s.jp)||'')).replace(/\s/g,'').length; return Math.max(4, Math.min(18, Math.round(n*0.5))); }
   function rcSec(){ const m=rcSecMode(); return m==='auto' ? rcAutoSec(L.sentences[rc.i]) : parseInt(m,10); }
-  window.rcSetSec = function(v){ localStorage.setItem('jingdu_recite_sec', String(v)); rcRender('idle'); };
+  window.rcSetSec = function(v){ localStorage.setItem('jingdu_recite_sec2', String(v)); rcRender('idle'); };
   function stopSpeech(){ try{ speechSynthesis.cancel(); }catch(e){} if(window.JDTTS) JDTTS.stop(); }
   function rcRender(stage){
     const s=L.sentences[rc.i];

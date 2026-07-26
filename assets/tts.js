@@ -176,8 +176,11 @@
     return blob;
   }
 
+  /* iOS 16.4+：宣告這是「純播放」→ 強制走喇叭外放，不會因為之前用過麥克風被卡在聽筒小聲 */
+  function toPlaybackRoute(){ try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){} }
+
   async function playBlob(blob){
-    const a=el(); stop();
+    const a=el(); stop(); toPlaybackRoute();
     try{ if(_url){ URL.revokeObjectURL(_url); _url=null; } }catch(e){}
     _url=URL.createObjectURL(blob); a.src=_url;
     await a.play();
@@ -213,7 +216,7 @@
     try{
       let blob=await cacheGet(ck);
       if(!blob){ blob=await synthBlob(text, prefix, slow); cachePut(ck, blob); }
-      const a=el(); stop();
+      const a=el(); stop(); toPlaybackRoute();
       try{ if(_url){ URL.revokeObjectURL(_url); _url=null; } }catch(e){}
       _url=URL.createObjectURL(blob); a.src=_url;
       await new Promise((res,rej)=>{
