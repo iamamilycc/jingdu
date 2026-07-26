@@ -49,11 +49,19 @@
     ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+(s.speaker?'<b class="spk">'+JD.esc(s.speaker)+':</b> ':'')+JD.esc(s.en)+'</span>').join(' ');
     insertZhCard(ltBox, L.sentences);
   }
+  /* 自動捲動：避開頂部吸頂的標題列＋播放控制列，把當前句停在控制列正下方，手機上不會被遮住 */
+  function scrollBelowSticky(el){
+    const hdr=document.querySelector('header.site');
+    const ctrl=document.querySelector('#p-listen .ctrl-sticky');
+    const off=(hdr?hdr.offsetHeight:0)+(ctrl?ctrl.offsetHeight:0)+16;
+    const y=window.scrollY + el.getBoundingClientRect().top - off - 40;  /* 再往下留一點，看得到上一句當作上下文 */
+    window.scrollTo({top:Math.max(0,y), behavior:'smooth'});
+  }
   function ltHighlight(i){
     $$('.lt-sent').forEach((el,k)=>el.classList.toggle('now', k===i));
     $$('.lt-zh').forEach((el,k)=>el.classList.toggle('now', k===i));
     const el = document.getElementById('lt'+i);
-    if(el) el.scrollIntoView({block:'center', behavior:'smooth'});
+    if(el) scrollBelowSticky(el);
   }
   function ltAdvance(i){ if(lt.playing) setTimeout(()=>ltPlayFrom(i+1), 0); }
   /* 系統合成聲逐句朗讀（雲端沒開/失敗時的保底），保留高亮與看門狗 */

@@ -76,10 +76,18 @@
     box.parentNode.insertBefore(card, box.nextSibling);
   }
   window.ltToggleZh=function(btn){ const body=$('#ltZhBody'); const hide=body.style.display!=='none'; body.style.display=hide?'none':'block'; btn.textContent=hide?'顯示':'隱藏'; };
+  /* 自動捲動避開頂部吸頂列，把當前句停在控制列正下方，手機上不被遮住 */
+  function scrollBelowSticky(el){
+    const hdr=document.querySelector('header.site');
+    const ctrl=document.querySelector('#p-listen .ctrl-sticky');
+    const off=(hdr?hdr.offsetHeight:0)+(ctrl?ctrl.offsetHeight:0)+16;
+    const y=window.scrollY + el.getBoundingClientRect().top - off - 40;
+    window.scrollTo({top:Math.max(0,y), behavior:'smooth'});
+  }
   function ltHighlight(i){
     $$('.lt-sent').forEach((el,k)=>el.classList.toggle('now', k===i));
     $$('.lt-zh').forEach((el,k)=>el.classList.toggle('now', k===i));
-    const el=document.getElementById('lt'+i); if(el) el.scrollIntoView({block:'center',behavior:'smooth'});
+    const el=document.getElementById('lt'+i); if(el) scrollBelowSticky(el);
   }
   function ltAdvance(i){ if(lt.playing) setTimeout(()=>ltPlayFrom(i+1), 0); }
   /* 系統合成聲逐句（雲端沒開/失敗時保底）：用 kana 讓系統聲讀得準；保留高亮與看門狗 */
