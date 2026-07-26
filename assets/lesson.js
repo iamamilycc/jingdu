@@ -472,19 +472,23 @@
   };
   window.rcSkipPeek = function(){ clearInterval(rc.timer); rcMask(); };
   window.rcMask = rcMask;
+  /* 蓋句＝立刻進入錄音模式（不管從哪條路進來：不看直接背 / 看夠了 / 倒數結束），不用再點「開始背」 */
   function rcMask(){
+    stopSpeech();
     $('#rcRing').style.display='none';
-    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>按下麥克風，大聲把它背出來<br><small style="color:var(--muted)">背完停一下會自動打分，不用再按</small></div>';
+    const canRec = JD.recSupported();
+    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>'+(canRec?'🎤 正在聽你背……':'開口大聲背出來')+'<br><small style="color:var(--muted)">背完停一下自動打分；讀完也可點下面「我說完了」</small></div>';
     $('#rcBtns').innerHTML='<button id="rcRecBtn" class="big-btn rec" onclick="rcRec()">🎙️ 開始背</button>'+
       '<button class="big-btn ghost" onclick="rcPeek()">😳 忘了，看一眼</button>';
+    rcRec();
   }
   window.rcPeek = function(){ /* 看答案 = 本句計 0 分進錯題本 */
     const s = L.sentences[rc.i];
     $('#rcTarget').innerHTML = JD.esc(s.en);
     rcFinish(0, null);
   };
-  /* 不看直接背：停掉正在讀的聲音 → 蓋住句子 → 立刻進入錄音（不用再點「開始背」） */
-  window.rcDirect = function(){ stopSpeech(); clearInterval(rc.timer); rcMask(); rcRec(); };
+  /* 不看直接背：清倒數 → 蓋句（rcMask 內已停聲＋自動錄音） */
+  window.rcDirect = function(){ clearInterval(rc.timer); rcMask(); };
   window.rcRec = function(){
     startRec($('#rcRecBtn'), L.sentences[rc.i], '#rcResult', '#rcHeard', acc=>rcFinish(acc,true));
   };
