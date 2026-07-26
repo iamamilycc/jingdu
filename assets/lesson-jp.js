@@ -551,14 +551,20 @@
     }, null, LANG);
     btn.onclick=()=>{ btn.disabled=true; btn.textContent='⏳ …'; try{ rec && rec.stop(); }catch(e){} };
   };
-  function mkAfter(ok, fix, tip){
+  function mkAfter(ok, fix, tip, better, betterZh){
     mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */
     JD.celebrate(ok?'good':'try');
+    const betterHTML = better ? '<div class="eg jp-text" style="margin-top:8px">🌟 <b>地道說法</b>：'+R.toRubyHTML(JD.esc(better))+
+      (betterZh?'<br><span style="color:var(--muted);font-size:.9rem">'+JD.esc(betterZh)+'</span>':'')+
+      ' <button class="btn-voice" id="mkBetterVoice">🔊</button></div>' : '';
     $('#mkFb').innerHTML=
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
-      (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">可以這樣說：'+JD.esc(fix)+'</div>')+
+      (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">可以這樣說：'+R.toRubyHTML(JD.esc(fix))+'</div>')+
+      betterHTML+
       '<div style="margin-top:10px">'+(ok?'':'<span class="hint" style="display:block;margin-bottom:6px">改一改上面的句子，再按「檢查」試試！</span>')+
       '<button class="big-btn teal" onclick="mkNext()">下一個詞 →</button></div>';
+    /* 發音鍵用 .onclick 綁定；日語示範句傳 R.toKana 避免漢字+注音讀兩遍 */
+    const bv=$('#mkBetterVoice'); if(bv && better) bv.onclick=()=>JD.speak(R.toKana(better),false,LANG);
   }
   function mkSelfCheck(msg){
     $('#mkFb').innerHTML='<div class="acc-badge">'+JD.esc(msg)+'</div>'+
@@ -575,7 +581,7 @@
     $('#mkFb').innerHTML='<div class="acc-badge">⏳ AI 老師看句子中…</div>';
     try{
       const r=await JDGen.judgeSentence('jp', mkPlain(v.w), s);
-      mkAfter(r.ok, r.fix, r.tip);
+      mkAfter(r.ok, r.fix, r.tip, r.better, r.betterZh);
     }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
   };
   window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=false; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };  /* 跳過沒檢查=不算造對 */

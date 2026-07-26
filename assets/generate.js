@@ -312,7 +312,9 @@ ${schema}`;
         '你是親切的小學'+langName+'老師。孩子用指定單詞造了一個句子，請判斷：\n'+
         '1. 是否用上了指定單詞（複數、過去式、活用等詞形變化都算用上）\n'+
         '2. 句子語法是否基本正確（輕微拼寫、大小寫、標點問題不扣）\n'+
-        '只輸出 JSON，不要任何解釋：{"ok":true或false,"fix":"若不對，給一句修正後的句子；對則留空","tip":"一句繁體中文的鼓勵或提示，30字內"}\n\n'+
+        '最後，不管對不對，都用「同一個單詞」示範一句**更自然、更像'+langName+'母語者平常會說**的地道句子（和孩子的句子同類、難度相近，別太難）。\n'+
+        (lang==='jp' ? 'better 句的漢字要標振假名 漢字[かな]（只標漢字）。\n' : '')+
+        '只輸出 JSON，不要任何解釋：{"ok":true或false,"fix":"若不對，給一句修正後的句子；對則留空","tip":"一句繁體中文的鼓勵或提示，30字內","better":"用同一個單詞、更地道的一句示範","betterZh":"better 那句的繁體中文翻譯"}\n\n'+
         '指定單詞：'+word+'\n孩子的句子：'+sentence }
     ], null, { json:true, max_tokens:512 });
     let t = stripFences(content);
@@ -320,7 +322,7 @@ ${schema}`;
     if(a>=0 && b>a) t=t.slice(a,b+1);
     const r = JSON.parse(t);
     if(typeof r.ok!=='boolean') throw new Error('AI 返回格式不對');
-    return { ok:r.ok, fix:String(r.fix||''), tip:String(r.tip||'') };
+    return { ok:r.ok, fix:String(r.fix||''), tip:String(r.tip||''), better:String(r.better||''), betterZh:String(r.betterZh||'') };
   }
 
   /* ---- 課後小故事：只用學過的詞寫超短故事（泛讀甜點，AI 生成零版權）；結構校驗，失敗拋錯由 UI 兜底 ---- */
