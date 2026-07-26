@@ -106,7 +106,8 @@ ${schema}`;
      name 只認短的字母/CJK 開頭片段，避免誤傷正常句子（如 "Note: ..." 極罕見，可接受）。 */
   function sanitizeSpeakers(d, lang){
     const field = lang==='jp' ? 'jp' : 'en';
-    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ]{1,10})[：:]\s*/;
+    /* CJK 名字要包含振假名括號 [] 和 々（日語對話人名常寫成「田中[たなか]：」，舊正則卡在括號前，名字沒被拆出來→跟讀/背句被迫連名字一起讀，準確率暴跌） */
+    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ\[\]々]{1,24})[：:]\s*/;
     (d.sentences||[]).forEach(s=>{
       const raw = s && s[field];
       if(typeof raw!=='string') return;
@@ -290,15 +291,18 @@ ${schema}`;
      ②抄出的原文交給 fromText 走文字模型（glm-4-plus，4096 上限）生成完整精讀 JSON。
      不能一次叫視覺模型「讀圖+輸出整課JSON」——整課JSON很長，視覺模型 max_tokens 硬上限只有
      1024（實測 API 400：「max_tokens参数非法：限制数值范围[1,1024]」），會被截斷。 */
+  /* 支援多張圖片（一篇課文跨好幾頁）：dataUrl 可傳單張字串或多張陣列，按順序拼成一篇課文 */
   async function fromImage(lang, dataUrl, onProgress){
-    if(onProgress) onProgress('正在看圖識字…');
+    const urls = Array.isArray(dataUrl) ? dataUrl.filter(Boolean) : [dataUrl];
+    if(!urls.length) throw new Error('沒有圖片');
+    if(onProgress) onProgress(urls.length>1 ? ('正在看圖識字…（共 '+urls.length+' 張，按順序拼成一篇）') : '正在看圖識字…');
     const langName = lang==='jp' ? '日文' : '英文';
-    const ocr = await callApi(getVisionModel(), [
-      { role:'user', content: [
-        { type:'text', text: '請把圖片裡的'+langName+'課文一字不漏地照抄出來（不要漏詞、不要改寫、不要翻譯、不要加任何說明或標點以外的文字），只輸出課文原文本身。' },
-        { type:'image_url', image_url:{ url: dataUrl } }
-      ]}
-    ], onProgress, { max_tokens:1024 });
+    const many = urls.length>1;
+    const content = [
+      { type:'text', text: '這裡是同一篇'+langName+'課文的 '+urls.length+' '+(many?'張圖片（按先後順序就是課文的閱讀順序）':'張圖片')+'。請把'+(many?'所有圖片裡的':'圖片裡的')+langName+'課文一字不漏地照抄出來，'+(many?'按圖片順序連成一篇完整課文，':'')+'不要漏詞、不要改寫、不要翻譯、不要加任何說明。只輸出課文原文本身。' }
+    ];
+    urls.forEach(u=>content.push({ type:'image_url', image_url:{ url: u } }));
+    const ocr = await callApi(getVisionModel(), [{ role:'user', content }], onProgress, { max_tokens:2048 });
     const text = stripFences(ocr).trim();
     if(!text) throw new Error('沒能從圖片讀出文字，換張更清楚的照片試試');
     return fromText(lang, text, onProgress);

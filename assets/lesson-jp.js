@@ -11,6 +11,17 @@
   document.title = (L.title||'未命名')+' · 日語精讀';
   $('#hTitle').textContent = (L.badge ? L.badge+' · ' : '') + (L.title||'未命名');
 
+  /* 執行時防禦：舊版對話課可能把人名（含振假名「田中[たなか]：」）黏在句子開頭沒拆乾淨，
+     導致人名顯示兩次、跟讀/背句目標含人名→識別準確率暴跌。這裡進頁時再掃一遍補救，不必重新生成。 */
+  (function stripLeadingSpeakers(){
+    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ\[\]々]{1,24})[：:]\s*/;
+    (L.sentences||[]).forEach(s=>{
+      if(!s || typeof s.jp!=='string') return;
+      const m = s.jp.match(RE);
+      if(m){ if(!s.speaker) s.speaker = m[1].trim(); s.jp = s.jp.slice(m[0].length).trim(); }
+    });
+  })();
+
   /* ---------- 漢字→讀音對照表（從本課 sentences/vocab 的 base[かな] 標記自動收集） ----------
      用途：iPad 語音識別對日語通常輸出「標準漢字假名混寫」而非純假名，
      若直接拿純假名目標句比對會把正確發音誤判成錯誤。
@@ -64,7 +75,7 @@
   const ltBox = $('#ltText');
   if(ltBox){
     ltBox.classList.add('jp-text');
-    ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+(s.speaker?'<b class="spk">'+JD.esc(s.speaker)+':</b> ':'')+R.toRubyHTML(JD.esc(s.jp))+'</span>').join('　');
+    ltBox.innerHTML = L.sentences.map((s,i)=>'<span class="lt-sent" id="lt'+i+'">'+(s.speaker?'<b class="spk">'+R.toRubyHTML(JD.esc(s.speaker))+':</b> ':'')+R.toRubyHTML(JD.esc(s.jp))+'</span>').join('　');
     insertZhCard(ltBox, L.sentences);
   }
   function insertZhCard(box, sentences){
@@ -161,7 +172,7 @@
     const div=document.createElement('div');
     div.className='card sent';
     div.innerHTML=
-      '<div class="en jp-en jp-text"><span class="idx">'+(i+1)+'</span><span style="flex:1">'+(s.speaker?'<b class="spk">'+JD.esc(s.speaker)+':</b> ':'')+R.toRubyHTML(JD.esc(s.jp))+'</span>'+
+      '<div class="en jp-en jp-text"><span class="idx">'+(i+1)+'</span><span style="flex:1">'+(s.speaker?'<b class="spk">'+R.toRubyHTML(JD.esc(s.speaker))+':</b> ':'')+R.toRubyHTML(JD.esc(s.jp))+'</span>'+
       '<button class="btn-voice" aria-label="播放">🔊</button>'+
       '<button class="btn-voice slow" aria-label="慢速">慢</button></div>'+
       '<div style="margin:4px 0 0 40px" class="jp-romaji">'+JD.esc(s.romaji||'')+'</div>'+

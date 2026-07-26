@@ -8,6 +8,16 @@
   document.title = (L.title||'未命名')+' · 精讀';
   $('#hTitle').textContent = (L.badge ? L.badge+' · ' : '') + (L.title||'未命名');
 
+  /* 執行時防禦：舊對話課若把人名黏在句子開頭（Jack: ...）沒拆乾淨，跟讀/背句會被迫連名字讀。進頁再掃一遍補救。 */
+  (function stripLeadingSpeakers(){
+    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ]{1,12})[：:]\s*/;
+    (L.sentences||[]).forEach(s=>{
+      if(!s || typeof s.en!=='string') return;
+      const m = s.en.match(RE);
+      if(m){ if(!s.speaker) s.speaker = m[1].trim(); s.en = s.en.slice(m[0].length).trim(); }
+    });
+  })();
+
   /* ========== Tab 切換 ========== */
   window.switchTab = function(name){
     $$('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===name));
