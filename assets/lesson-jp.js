@@ -230,6 +230,77 @@
     vg.appendChild(c);
   });
 
+  /* ========== 2.5 生詞強化練習：換方向、多輪重複（看中文默寫讀音 / 看日文選中文），加深記憶 ========== */
+  (function vocabDrill(){
+    const host = document.getElementById('p-vocab');
+    if(!host || !L.vocab || L.vocab.length<1) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<h2 class="sec" style="margin-top:24px">🔁 生詞強化練習</h2>'+
+      '<p class="hint">一遍記不牢！換方向多練幾輪——<b>看中文默寫日文讀音</b>、<b>看日文選中文</b>。答錯的詞自動進錯題本。</p>'+
+      '<div class="progress-pills" id="vdPills"></div><div class="stage" id="vdStage"></div>';
+    host.appendChild(wrap);
+    const vd = { order:[], idx:0, mode:null, right:0, round:0 };
+    const sh = a=>{ a=a.slice(); for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); const t=a[k]; a[k]=a[j]; a[j]=t; } return a; };
+    function pills(){ const el=$('#vdPills'); if(!el) return;
+      el.innerHTML = vd.order.map((_,k)=>'<span class="pill '+(k===vd.idx?'now':(k<vd.idx?'ok':''))+'"></span>').join(''); }
+    function menu(msg){
+      $('#vdStage').innerHTML = (msg?'<div class="acc-badge good" style="margin-bottom:12px">'+JD.esc(msg)+'</div>':'')+
+        '<div class="mask-box">選一種方向開始練（可反覆練，越練越熟）</div>'+
+        '<div style="margin-top:12px"><button class="big-btn mango" onclick="vdStart(\'cn2jp\')">🀄→🇯🇵 看中文默寫讀音</button>'+
+        '<button class="big-btn teal" onclick="vdStart(\'jp2cn\')">🇯🇵→🀄 看日文選中文</button></div>';
+      $('#vdPills').innerHTML='';
+    }
+    window.vdStart = function(mode){ vd.mode=mode; vd.order=sh(L.vocab.map((_,i)=>i)); vd.idx=0; vd.right=0; vd.round++; render(); };
+    function opts4(correctIdx){
+      const others = L.vocab.map((_,i)=>i).filter(i=>i!==correctIdx && (L.vocab[i].zh||'')!==(L.vocab[correctIdx].zh||''));
+      return sh(sh(others).slice(0,3).concat([correctIdx]));
+    }
+    function render(){
+      pills();
+      const stage=$('#vdStage');
+      if(vd.idx>=vd.order.length){ menu('這一輪練完，答對 '+vd.right+' / '+vd.order.length+' 👏 再換方向或同方向多練一輪！'); return; }
+      const vi=vd.order[vd.idx], v=L.vocab[vi];
+      if(vd.mode==='cn2jp'){
+        stage.innerHTML='<div class="hint" style="margin:0 0 8px">第 '+(vd.idx+1)+' / '+vd.order.length+' · 看中文，打出日文讀音（平假名）</div>'+
+          '<div class="target"><b>'+JD.esc(v.zh)+'</b> <span style="color:var(--muted);font-size:.85rem">'+JD.esc(v.pos||'')+'</span></div>'+
+          '<div style="margin:12px 0"><input id="vdIn" type="text" placeholder="輸入平假名讀音" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:100%;box-sizing:border-box;border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:1.1rem"></div>'+
+          '<button class="big-btn mango" onclick="vdCheckCn2Jp()">✓ 檢查</button>'+
+          '<button class="big-btn ghost" onclick="vdReveal()">看答案</button>'+
+          '<div id="vdFb" style="margin-top:10px"></div>';
+        const inp=$('#vdIn'); if(inp){ inp.focus(); inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); window.vdCheckCn2Jp(); } }); }
+      } else {
+        const os=opts4(vi);
+        stage.innerHTML='<div class="hint" style="margin:0 0 8px">第 '+(vd.idx+1)+' / '+vd.order.length+' · 看日文，選中文意思</div>'+
+          '<div class="target jp-text"><b>'+R.toRubyHTML(JD.esc(v.w))+'</b> <button class="btn-voice" id="vdVoice">🔊</button></div>'+
+          '<div id="vdOpts" style="margin-top:12px">'+os.map(i=>'<button class="qz-opt" data-i="'+i+'">'+JD.esc(L.vocab[i].zh)+'</button>').join('')+'</div>'+
+          '<div id="vdFb" style="margin-top:10px"></div>';
+        const vb=$('#vdVoice'); if(vb) vb.onclick=()=>JD.speak(R.toKana(v.w),false,LANG);
+        $$('#vdOpts .qz-opt').forEach(btn=>btn.onclick=()=>vdPickJp2Cn(parseInt(btn.dataset.i), vi));
+      }
+    }
+    function afterAnswer(ok, vi){
+      const v=L.vocab[vi];
+      if(ok){ vd.right++; JD.celebrate('good'); }
+      else { JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:R.toKana(v.w), zh:v.zh, type:'word', pos:v.pos, kmap:KANJI_MAP}); JD.celebrate('try'); }
+      const fb=$('#vdFb');
+      if(fb) fb.innerHTML='<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 對了！':'💪 正解：<b>'+JD.esc(R.toKana(v.w))+'</b> = '+JD.esc(v.zh))+'</div>'+
+        '<div style="margin-top:8px"><button class="big-btn teal" onclick="vdNext()">下一個 →</button></div>';
+      $$('#vdOpts .qz-opt').forEach(b=>b.disabled=true);
+      const inp=$('#vdIn'); if(inp) inp.disabled=true;
+    }
+    window.vdCheckCn2Jp = function(){
+      const vi=vd.order[vd.idx], v=L.vocab[vi];
+      const typed=(($('#vdIn')||{}).value||'').trim();
+      if(!typed){ const i=$('#vdIn'); if(i) i.focus(); return; }
+      const want=JD.kk2hh(R.toKana(v.w)).replace(/\s/g,''), got=JD.kk2hh(typed).replace(/\s/g,'');
+      afterAnswer(got===want, vi);
+    };
+    window.vdReveal = function(){ afterAnswer(false, vd.order[vd.idx]); };
+    window.vdPickJp2Cn = function(pickI, vi){ afterAnswer((L.vocab[pickI].zh||'')===(L.vocab[vi].zh||''), vi); };
+    window.vdNext = function(){ vd.idx++; render(); };
+    menu('');
+  })();
+
   /* ========== 3 語法點 ========== */
   const gb=$('#grammarBox');
   L.grammar.forEach(g=>{

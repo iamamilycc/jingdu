@@ -227,6 +227,78 @@
     vg.appendChild(c);
   });
 
+  /* ========== 2.5 生詞強化練習：換方向、多輪重複，加深記憶 ==========
+     一遍記不牢：加「看中文默寫英文(中→英)」「看英文選中文(英→中)」兩向，可反覆練，錯的進錯題本 */
+  (function vocabDrill(){
+    const host = document.getElementById('p-vocab');
+    if(!host || !L.vocab || L.vocab.length<1) return;
+    const wrap = document.createElement('div');
+    wrap.innerHTML = '<h2 class="sec" style="margin-top:24px">🔁 生詞強化練習</h2>'+
+      '<p class="hint">一遍記不牢！換個方向多練幾輪——<b>看中文默寫英文</b>、<b>看英文選中文</b>。答錯的詞自動進錯題本，之後復盤還會再遇到。</p>'+
+      '<div class="progress-pills" id="vdPills"></div><div class="stage" id="vdStage"></div>';
+    host.appendChild(wrap);
+    const vd = { order:[], idx:0, mode:null, right:0, round:0 };
+    const sh = a=>{ a=a.slice(); for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); const t=a[k]; a[k]=a[j]; a[j]=t; } return a; };
+    function pills(){ const el=$('#vdPills'); if(!el) return;
+      el.innerHTML = vd.order.map((_,k)=>'<span class="pill '+(k===vd.idx?'now':(k<vd.idx?'ok':''))+'"></span>').join(''); }
+    function menu(msg){
+      $('#vdStage').innerHTML = (msg?'<div class="acc-badge good" style="margin-bottom:12px">'+JD.esc(msg)+'</div>':'')+
+        '<div class="mask-box">選一種方向開始練（可反覆練，越練越熟）</div>'+
+        '<div style="margin-top:12px"><button class="big-btn mango" onclick="vdStart(\'cn2en\')">🀄→🔤 看中文默寫英文</button>'+
+        '<button class="big-btn teal" onclick="vdStart(\'en2cn\')">🔤→🀄 看英文選中文</button></div>';
+      $('#vdPills').innerHTML='';
+    }
+    window.vdStart = function(mode){ vd.mode=mode; vd.order=sh(L.vocab.map((_,i)=>i)); vd.idx=0; vd.right=0; vd.round++; render(); };
+    function opts4(correctIdx){
+      const others = L.vocab.map((_,i)=>i).filter(i=>i!==correctIdx && (L.vocab[i].zh||'')!==(L.vocab[correctIdx].zh||''));
+      const pick = sh(others).slice(0,3);
+      return sh(pick.concat([correctIdx]));
+    }
+    function render(){
+      pills();
+      const stage=$('#vdStage');
+      if(vd.idx>=vd.order.length){ menu('這一輪練完，答對 '+vd.right+' / '+vd.order.length+' 👏 再換方向或同方向多練一輪！'); return; }
+      const vi=vd.order[vd.idx], v=L.vocab[vi];
+      if(vd.mode==='cn2en'){
+        stage.innerHTML='<div class="hint" style="margin:0 0 8px">第 '+(vd.idx+1)+' / '+vd.order.length+' · 看中文，默寫英文單詞</div>'+
+          '<div class="target"><b>'+JD.esc(v.zh)+'</b> <span style="color:var(--muted);font-size:.85rem">'+JD.esc(v.pos||'')+'</span></div>'+
+          '<div style="margin:12px 0"><input id="vdIn" type="text" placeholder="拼出英文單詞" autocapitalize="off" autocorrect="off" spellcheck="false" style="width:100%;box-sizing:border-box;border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:1.1rem;font-family:var(--font-en)"></div>'+
+          '<button class="big-btn mango" onclick="vdCheckCn2En()">✓ 檢查</button>'+
+          '<button class="big-btn ghost" onclick="vdReveal()">看答案</button>'+
+          '<div id="vdFb" style="margin-top:10px"></div>';
+        const inp=$('#vdIn'); if(inp){ inp.focus(); inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); window.vdCheckCn2En(); } }); }
+      } else {
+        const os=opts4(vi);
+        stage.innerHTML='<div class="hint" style="margin:0 0 8px">第 '+(vd.idx+1)+' / '+vd.order.length+' · 看英文，選中文意思</div>'+
+          '<div class="target"><b>'+JD.esc(v.w)+'</b> <button class="btn-voice" id="vdVoice">🔊</button></div>'+
+          '<div id="vdOpts" style="margin-top:12px">'+os.map(i=>'<button class="qz-opt" data-i="'+i+'">'+JD.esc(L.vocab[i].zh)+'</button>').join('')+'</div>'+
+          '<div id="vdFb" style="margin-top:10px"></div>';
+        const vb=$('#vdVoice'); if(vb) vb.onclick=()=>JD.speak(v.w,false);
+        $$('#vdOpts .qz-opt').forEach(btn=>btn.onclick=()=>vdPickEn2Cn(parseInt(btn.dataset.i), vi));
+      }
+    }
+    function afterAnswer(ok, vi){
+      const v=L.vocab[vi];
+      if(ok){ vd.right++; JD.celebrate('good'); }
+      else { JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:v.w, zh:v.zh, type:'word', pos:v.pos}); JD.celebrate('try'); }
+      const fb=$('#vdFb');
+      if(fb) fb.innerHTML='<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 對了！':'💪 正解：<b>'+JD.esc(v.w)+'</b> = '+JD.esc(v.zh))+'</div>'+
+        '<div style="margin-top:8px"><button class="big-btn teal" onclick="vdNext()">下一個 →</button></div>';
+      $$('#vdOpts .qz-opt').forEach(b=>b.disabled=true);
+      const inp=$('#vdIn'); if(inp) inp.disabled=true;
+    }
+    window.vdCheckCn2En = function(){
+      const vi=vd.order[vd.idx], v=L.vocab[vi];
+      const typed=(($('#vdIn')||{}).value||'').trim().toLowerCase().replace(/\s+/g,'');
+      if(!typed){ const i=$('#vdIn'); if(i) i.focus(); return; }
+      afterAnswer(typed===v.w.toLowerCase().replace(/\s+/g,''), vi);
+    };
+    window.vdReveal = function(){ afterAnswer(false, vd.order[vd.idx]); };
+    window.vdPickEn2Cn = function(pickI, vi){ afterAnswer((L.vocab[pickI].zh||'')===(L.vocab[vi].zh||''), vi); };
+    window.vdNext = function(){ vd.idx++; render(); };
+    menu('');
+  })();
+
   /* ========== 3 語法點 ========== */
   const gb = $('#grammarBox');
   L.grammar.forEach(g=>{
