@@ -412,9 +412,12 @@
 
   /* ========== 5 背句挑戰 ========== */
   const rc = { i:0, timer:null, results:[] };
-  /* 看題秒數（5/10/15，記在本機，英日共用）*/
-  function rcSec(){ const v=parseInt(localStorage.getItem('jingdu_recite_sec'),10); return (v===5||v===10||v===15)?v:10; }
+  /* 看題秒數：'auto'(依句長自動預設) 或手動 5/10/15，記在本機，英日共用；預設 auto */
+  function rcSecMode(){ const v=localStorage.getItem('jingdu_recite_sec'); return (v==='5'||v==='10'||v==='15')?v:'auto'; }
+  function rcAutoSec(s){ const n=((s&&s.en)||'').trim().split(/\s+/).filter(Boolean).length; return Math.max(4, Math.min(18, Math.round(n*1.2))); }
+  function rcSec(){ const m=rcSecMode(); return m==='auto' ? rcAutoSec(L.sentences[rc.i]) : parseInt(m,10); }
   window.rcSetSec = function(v){ localStorage.setItem('jingdu_recite_sec', String(v)); rcRender('idle'); };
+  function stopSpeech(){ try{ speechSynthesis.cancel(); }catch(e){} if(window.JDTTS) JDTTS.stop(); }
   function rcRender(stage){ /* stage: idle|show|masked|result */
     const s = L.sentences[rc.i];
     $('#rcPills').innerHTML = L.sentences.map((_,k)=>
@@ -422,12 +425,14 @@
     const tgt = $('#rcTarget'), ring=$('#rcRing'), btns=$('#rcBtns');
     if(stage==='idle'){
       ring.style.display='none';
-      const sec=rcSec();
+      const sec=rcSec(), mode=rcSecMode();
       tgt.innerHTML='<div class="mask-box">第 '+(rc.i+1)+' 句 · 準備好了就開始<br>先看幾秒，句子會蓋住，開口把它背出來！</div>';
-      const seg='<div class="rc-secsel">看幾秒：'+[5,10,15].map(n=>'<button class="rc-secbtn'+(n===sec?' on':'')+'" onclick="rcSetSec('+n+')">'+n+'秒</button>').join('')+'</div>';
+      const opts=[['auto','自動'],['5','5秒'],['10','10秒'],['15','15秒']];
+      const seg='<div class="rc-secsel">看幾秒：'+opts.map(o=>'<button class="rc-secbtn'+(o[0]===mode?' on':'')+'" onclick="rcSetSec(\''+o[0]+'\')">'+o[1]+'</button>').join('')+
+        (mode==='auto'?'<span class="hint" style="margin:6px 0 0;display:block">自動：這句約 '+sec+' 秒（依句子長短調整）</span>':'')+'</div>';
       btns.innerHTML=seg+
         '<button class="big-btn mango" onclick="rcStart()">👀 開始看題（'+sec+' 秒）</button>'+
-        '<button class="big-btn ghost" onclick="rcMask()">🎤 不看，直接背</button>'+
+        '<button class="big-btn ghost" onclick="rcDirect()">🎤 不看，直接背</button>'+
         '<div><button class="big-btn ghost" onclick="rcNav(-1)">上一句</button>'+
         '<button class="big-btn ghost" onclick="rcNav(1)">下一句</button></div>';
       $('#rcResult').innerHTML=''; $('#rcHeard').textContent='';
@@ -470,6 +475,8 @@
     $('#rcTarget').innerHTML = JD.esc(s.en);
     rcFinish(0, null);
   };
+  /* 不看直接背：停掉正在讀的聲音 → 蓋住句子 → 立刻進入錄音（不用再點「開始背」） */
+  window.rcDirect = function(){ stopSpeech(); clearInterval(rc.timer); rcMask(); rcRec(); };
   window.rcRec = function(){
     startRec($('#rcRecBtn'), L.sentences[rc.i], '#rcResult', '#rcHeard', acc=>rcFinish(acc,true));
   };
@@ -487,7 +494,7 @@
     $('#rcTarget').innerHTML = JD.esc(s.en);
     $('#rcBtns').innerHTML='<button class="big-btn teal" onclick="rcNav(1)">下一句 →</button>'+
       '<div style="margin-top:8px"><button class="big-btn mango" onclick="rcStart()">🔁 再看一遍</button>'+
-      '<button class="big-btn ghost" onclick="rcMask()">🎤 直接背，不看</button></div>';
+      '<button class="big-btn ghost" onclick="rcDirect()">🎤 直接背，不看</button></div>';
     $('#rcPills').innerHTML = L.sentences.map((_,k)=>
       '<span class="pill '+(k===rc.i?'now':'')+' '+(rc.results[k]==null?'':(rc.results[k]>=JD.PASS?'ok':'bad'))+'"></span>').join('');
     if(rc.results.filter(x=>x!=null).length>=L.sentences.length) done('recite');
@@ -510,10 +517,11 @@
       return;
     }
     recBusy = true;
-    if(btn){ btn.disabled=true; btn.classList.add('listening'); btn.textContent='👂 正在聽…'; }
+    /* 一鍵制：同一顆按鈕開始錄音後就變成「我說完了」，再點一次＝停止打分，不用另一顆按鈕 */
+    const restart = ()=>startRec(btn, sent, resultSel, heardSel, onAcc);
     const rec = JD.listen((text, err)=>{
       recBusy = false;
-      if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次'; }
+      if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次'; btn.onclick=restart; }
       if(err && !text){
         const msg = err==='not-allowed' ? '麥克風權限被拒絕：請在 設定→Safari→麥克風 允許'
                   : err==='silence' ? '沒聽到聲音，再大聲一點試試'
@@ -530,11 +538,12 @@
       $(heardSel).textContent = '你說的是：'+text;
       onAcc(r.accuracy);
     });
-    /* 說完主動點「我說完了」立即打分，不必等軟件盲目檢測靜音（那才是慢幾秒的根源） */
-    $(resultSel).innerHTML='<div class="acc-badge">👂 開始讀吧！讀完就點「我說完了」馬上打分</div>'+
-      '<div style="margin-top:8px"><button class="big-btn teal recdone">✅ 我說完了</button></div>';
-    const _db=$(resultSel).querySelector('.recdone');
-    if(_db) _db.onclick=()=>{ _db.disabled=true; _db.textContent='⏳ 打分中…'; try{ rec && rec.stop(); }catch(e){} };
+    /* 同一顆錄音按鈕變成「我說完了」：讀完點它立即打分（不用等軟件盲測靜音，也不用另一顆鍵） */
+    if(btn){
+      btn.disabled=false; btn.classList.add('listening'); btn.textContent='✅ 我說完了（點我打分）';
+      btn.onclick=()=>{ btn.disabled=true; btn.textContent='⏳ 打分中…'; try{ rec && rec.stop(); }catch(e){} };
+    }
+    $(resultSel).innerHTML='<div class="acc-badge">👂 開始讀吧！讀完就點上面「✅ 我說完了」馬上打分</div>';
   }
 
   /* ========== 5.6 造句挑戰（用本課生詞說自己的話；AI 老師判，無 key/出錯走自評兜底） ========== */
@@ -570,12 +579,15 @@
   window.mkRestart=function(){ mk.i=0; mk.results=[]; mkRender(); };
   window.mkMic=function(){
     const btn=$('#mkMicBtn');
+    if(recBusy) return;
     if(!JD.recSupported()){ $('#mkFb').innerHTML='<div class="acc-badge bad">此設備不支援語音輸入，用打字吧</div>'; return; }
-    btn.classList.add('listening'); btn.textContent='👂 正在聽…'; btn.disabled=true;
-    $('#mkFb').innerHTML='<div class="acc-badge">👂 說完就點「我說完了」，或停一下自動結束</div>'+
-      '<div style="margin-top:6px"><button class="big-btn teal" id="mkDoneBtn">✅ 我說完了</button></div>';
+    recBusy=true;
+    /* 一鍵制：同一顆「用說的」按鈕開始後就變「我說完了」，再點一次＝停止收音 */
+    btn.classList.add('listening'); btn.textContent='✅ 我說完了（點我）'; btn.disabled=false;
+    $('#mkFb').innerHTML='<div class="acc-badge">👂 說完就點上面「✅ 我說完了」（或停一下自動結束）</div>';
     const rec = JD.listen((text, err)=>{
-      btn.classList.remove('listening'); btn.textContent='🎤 用說的'; btn.disabled=false;
+      recBusy=false;
+      btn.classList.remove('listening'); btn.textContent='🎤 用說的'; btn.disabled=false; btn.onclick=window.mkMic;
       if(text){ const t=$('#mkInput'); t.value=(t.value?t.value+' ':'')+text; $('#mkFb').innerHTML=''; }
       else {
         const msg = err==='not-allowed' ? '麥克風權限被拒絕：請在 設定→Safari→麥克風 允許'
@@ -585,8 +597,7 @@
         $('#mkFb').innerHTML='<div class="acc-badge bad">'+msg+'</div>';
       }
     }, null, 'en-US');
-    const db=$('#mkDoneBtn');
-    if(db) db.onclick=()=>{ db.disabled=true; db.textContent='⏳ …'; try{ rec && rec.stop(); }catch(e){} };
+    btn.onclick=()=>{ btn.disabled=true; btn.textContent='⏳ …'; try{ rec && rec.stop(); }catch(e){} };
   };
   function mkAfter(ok, fix, tip){
     mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */

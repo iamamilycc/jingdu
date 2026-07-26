@@ -112,9 +112,9 @@ PAGE = """<!DOCTYPE html>
     <div class="stage">
       <div class="ring" id="rcRing" style="display:none"></div>
       <div class="target" id="rcTarget"></div>
-      <div id="rcBtns" style="margin-top:12px"></div>
       <div id="rcResult" style="margin-top:14px"></div>
       <div class="heard" id="rcHeard"></div>
+      <div id="rcBtns" style="margin-top:12px"></div>
     </div>
   </section>
 
