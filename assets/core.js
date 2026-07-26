@@ -360,6 +360,8 @@
   /* 系統合成聲（Web Speech）——雲端語音沒開/失敗時的保底 */
   function systemSpeak(text, slow, lang){
     if(!('speechSynthesis' in window)) return;
+    /* iOS 16.4+：宣告純播放→強制走喇叭外放，避免剛錄過音被卡在聽筒小聲（與雲端播放一致） */
+    try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang=lang;
