@@ -431,13 +431,10 @@
     function clearT(){ clearTimeout(silenceT); clearTimeout(hardT); }
     /* 統一收尾：只要聽到過任何內容（哪怕只是臨時結果）就用它打分，
        絕不因為引擎沒吐「最終結果」就把用戶說的話丟掉。 */
-    /* 徹底釋放麥克風：iOS 用過語音識別後會把音訊路由卡在「聽筒」，之後聽全文/朗讀會變很小聲；
-       stop 只結束識別、abort 才真正放掉麥克風，兩個都叫，讓系統盡快把路由交回喇叭 */
-    function release(){ try{ r.stop(); }catch(e){} try{ r.abort(); }catch(e){} }
     function done(){
       if(got) return; got=true; clearT();
+      try{ r.stop(); }catch(e){}
       const t=interim.trim();
-      release();
       if(t) cb(t, null); else cb(null, 'silence');
     }
     /* 自己做靜音偵測：說完約 3 秒沒有新內容就當結束。
@@ -454,12 +451,14 @@
         if(res.isFinal){ let best=''; for(const alt of res){ if(alt.transcript.length>best.length) best=alt.transcript; } fin+=best; }
         else intr+=res[0].transcript;
       }
-      if(fin){ interim=fin; got=true; clearT(); release(); cb(fin.trim(), null); return; }  /* 有最終結果立即返回 + 放掉麥克風 */
+      if(fin){ interim=fin; got=true; clearT(); cb(fin.trim(), null); return; }  /* 有最終結果立即返回 */
       if(intr){ interim=intr; armSilence(); }  /* 有新語音就重置靜音計時，別在用戶還在說時掐斷 */
     };
     r.onerror = e=>{ if(got) return; got=true; clearT(); cb(null, e.error||'error'); };
     r.onend = ()=>{ if(onstate) onstate('end'); if(got) return;
       got=true; clearT(); const t=interim.trim(); cb(t? t : null, t? null : 'silence'); };  /* 引擎自己結束時也優先用臨時結果 */
+    /* 錄音前把音訊模式設回「可錄音」——否則聽全文播放時設過的 'playback'(純播放)會把麥克風關掉，導致收不到聲、結果全錯 */
+    try{ if(navigator.audioSession) navigator.audioSession.type='play-and-record'; }catch(e){}
     try{ r.start(); if(onstate) onstate('start'); }catch(err){ clearT(); if(!got){ got=true; cb(null,'start-failed'); } }
     return r;
   }

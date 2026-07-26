@@ -303,6 +303,8 @@
     $('#spkPills').innerHTML=L.sentences.map((_,k)=>'<span class="pill '+(k===spk.i?'now':(spk.results[k]==null?'':(spk.results[k]>=JD.PASS?'ok':'bad')))+'"></span>').join('');
     $('#spkTarget').innerHTML='<span class="jp-target jp-text">'+R.toRubyHTML(JD.esc(s.jp))+'</span>';
     $('#spkResult').innerHTML=''; $('#spkHeard').textContent='';
+    /* 換句時把錄音鍵重置回「跟讀」＋綁回 spkRec（讀當前句）；否則合併鍵留著上一句閉包會對錯句子 */
+    const rb=$('#spkRecBtn'); if(rb){ rb.textContent='🎙️ 跟讀'; rb.classList.remove('listening'); rb.disabled=false; rb.onclick=window.spkRec; }
   }
   window.spkPlay=()=>JD.speak(R.toKana(L.sentences[spk.i].jp),false,LANG);
   window.spkPlaySlow=()=>JD.speak(R.toKana(L.sentences[spk.i].jp),true,LANG);

@@ -311,6 +311,8 @@
     $('#spkTarget').innerHTML = JD.esc(s.en);
     $('#spkResult').innerHTML='';
     $('#spkHeard').textContent='';
+    /* 換句時把錄音鍵重置回「跟讀」＋綁回 spkRec（讀當前句）；否則合併鍵留著上一句的「再試一次」閉包會對錯句子 */
+    const rb=$('#spkRecBtn'); if(rb){ rb.textContent='🎙️ 跟讀'; rb.classList.remove('listening'); rb.disabled=false; rb.onclick=window.spkRec; }
   }
   window.spkPlay = ()=>JD.speak(L.sentences[spk.i].en,false);
   window.spkPlaySlow = ()=>JD.speak(L.sentences[spk.i].en,true);
