@@ -621,6 +621,7 @@
     box.innerHTML='<div style="font-family:var(--font-head);color:var(--muted);font-size:.9rem">第 '+(mk.i+1)+' / '+mkWords.length+' 個詞</div>'+
       '<div class="target jp-text" style="margin-top:6px"><b>'+R.toRubyHTML(JD.esc(v.w))+'</b><span style="color:var(--muted);font-size:.92rem;margin-left:10px">'+JD.esc(v.zh||'')+'</span></div>'+
       '<div style="margin-top:6px"><button class="btn-voice" id="mkVoiceBtn">🔊</button></div>'+
+      ((JD.getMkMin&&JD.getMkMin()>0)?'<div class="hint" style="margin:6px 0 0;color:var(--teal-deep)">✏️ 這句要<b>至少 '+JD.getMkMin()+' 個詞</b>（家長設定）</div>':'')+
       '<div style="margin:12px 0"><textarea id="mkInput" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="用這個詞造一句你自己的話…" '+
       'style="width:100%;min-height:72px;border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:1rem"></textarea></div>'+
       '<div><button id="mkMicBtn" class="big-btn rec" onclick="mkMic()">🎤 用說的</button>'+
@@ -674,6 +675,10 @@
     const v=mkWords[mk.i];
     const s=($('#mkInput')&&$('#mkInput').value||'').trim();
     if(!s){ $('#mkFb').innerHTML='<div class="acc-badge bad">先寫一句話（或按 🎤 用說的）</div>'; return; }
+    /* 家長控制：造句最少詞數。日文沒空格，按「字數」折算（約每詞1.6字），不達標先擋下重寫 */
+    const minW = JD.getMkMin ? JD.getMkMin() : 0;
+    if(minW>0){ const need=Math.round(minW*1.6), got=s.replace(/\s/g,'').length;
+      if(got<need){ $('#mkFb').innerHTML='<div class="acc-badge bad">句子太短了，家長設了<b>每句至少 '+minW+' 個詞</b>（約 '+need+' 字）。再多寫一點，讓句子更完整 💪</div>'; return; } }
     if(!window.JDGen || !JDGen.getKey()){ mkSelfCheck('沒設定 AI Key，這關改用自評'); return; }
     $('#mkFb').innerHTML='<div class="acc-badge">⏳ AI 老師看句子中…</div>';
     try{

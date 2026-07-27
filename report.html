@@ -213,15 +213,25 @@ function renderParent(){
 
   // 已解鎖：顯示規則選項
   const strict=gate==='strict';
+  const mk=JD.getMkMin();
+  function mkMinOpt(val,title,desc,cur){ const on=(parseInt(val,10)===cur);
+    return '<div class="gate-opt mk-opt'+(on?' on':'')+'" data-m="'+val+'"><span style="font-size:1.3rem">'+(on?'🟢':'⚪')+'</span>'+
+      '<span><b>'+title+'</b><br><span class="hint" style="margin:0">'+desc+'</span></span></div>'; }
   box.innerHTML='<b style="font-family:var(--font-head)">複習規則（上新課的條件）</b>'+
     '<div class="gate-opt'+(!strict?' on':'')+'" data-g="free"><span style="font-size:1.3rem">'+(!strict?'🟢':'⚪')+'</span>'+
       '<span><b>可以直接上新課</b><br><span class="hint" style="margin:0">不強制複習，孩子隨時能開新課（預設）</span></span></div>'+
     '<div class="gate-opt'+(strict?' on':'')+'" data-g="strict"><span style="font-size:1.3rem">'+(strict?'🟢':'⚪')+'</span>'+
       '<span><b>必須複習完才能上新課</b><br><span class="hint" style="margin:0">有到期複習沒清完時，「加新課」和沒開始的新課會鎖住，先去復盤</span></span></div>'+
-    '<div class="seg-row" style="margin-top:12px">'+
+    '<b style="font-family:var(--font-head);display:block;margin-top:18px">造句最少詞數（避免每次都造太簡單的句子）</b>'+
+    '<p class="hint" style="margin:4px 0 0">英文按單詞數算；日文按句子長度折算。不達標會提示重寫，不算完成。</p>'+
+    mkMinOpt('0','不限制','隨意長度（預設）', mk)+
+    mkMinOpt('5','每句至少 5 個單詞','句子要有點內容', mk)+
+    mkMinOpt('8','每句至少 8 個單詞','逼孩子造更完整、更長的句子', mk)+
+    '<div class="seg-row" style="margin-top:16px">'+
       '<button class="big-btn ghost" id="repinBtn" style="margin:0">重設密碼</button>'+
       '<button class="big-btn ghost" id="lockBtn" style="margin:0">完成，鎖回去</button></div>';
   box.querySelectorAll('.gate-opt').forEach(o=>o.onclick=()=>{ JD.setGate(o.dataset.g); renderParent(); });
+  box.querySelectorAll('.mk-opt').forEach(o=>o.onclick=()=>{ JD.setMkMin(parseInt(o.dataset.m,10)); renderParent(); });
   $('#repinBtn').onclick=()=>{ unlocked=false; panelMode='setpin'; renderParent(); };
   $('#lockBtn').onclick=()=>{ unlocked=false; panelMode=''; renderParent(); };
 }

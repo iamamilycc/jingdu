@@ -314,6 +314,9 @@
   function checkParentPin(pin){ return !!load('parent_pin','') && load('parent_pin','')===hashPin(pin); }
   function getGate(){ return load('parent_gate','free')==='strict' ? 'strict' : 'free'; }
   function setGate(g){ save('parent_gate', g==='strict'?'strict':'free'); }
+  /* 造句最少詞數（家長控制）：0=不限制(預設)、5、8。避免孩子每次都造太短太簡單的句子 */
+  function getMkMin(){ const v=parseInt(load('mk_minwords','0'),10); return (v===5||v===8)?v:0; }
+  function setMkMin(n){ save('mk_minwords', String(n===5?5:n===8?8:0)); }
   /* 是否該擋住「上新課」：strict 模式且該語言有到期複習沒清完，回傳該語言到期數(0=不擋)。
      分語言判斷，避免用英語版時被日語到期題擋住卻被送去看不到題的複習頁。 */
   function newLessonBlockedBy(lang){
@@ -541,7 +544,7 @@
 
   window.JD = { getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, reviewPass, reviewFail,
                 dueItems, allItems, streak, daysMap, daysMapLang, langOf, touchDay,
-                parentHasPin, setParentPin, checkParentPin, getGate, setGate, newLessonBlockedBy,
+                parentHasPin, setParentPin, checkParentPin, getGate, setGate, getMkMin, setMkMin, newLessonBlockedBy,
                 speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
                 listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
                 lessonScore, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
