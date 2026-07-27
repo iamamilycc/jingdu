@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>隱私政策 · 虫虫精讀</title>
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" type="image/svg+xml" href="assets/logo.svg">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<style>
+  .doc{max-width:760px;margin:0 auto;padding:8px 4px 60px}
+  .doc h2{font-family:var(--font-head);color:var(--teal-deep);margin:22px 0 8px;font-size:1.08rem}
+  .doc p,.doc li{line-height:1.75;color:var(--ink)}
+  .doc ul{padding-left:1.2em}
+  .doc .note{background:var(--amber-soft,#FFF7E6);border:1px dashed #D9CBB2;border-radius:12px;padding:12px 14px;margin:12px 0;font-size:.9rem}
+  .doc .todo{color:var(--coral);font-weight:600}
+</style>
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="index.html">← 首頁</a>
+  <h1>隱私政策</h1>
+  <a href="terms.html">服務條款</a>
+</div></header>
+
+<main>
+<div class="doc card">
+  <p style="color:var(--muted)">生效日期：<span class="todo">【請填生效日期】</span>　·　最近更新：<span class="todo">【請填】</span></p>
+  <p>本隱私政策說明「虫虫精讀」（下稱「本工具」）如何處理你與孩子的資料。核心原則是：<b>資料以你自己的設備為主，我們（開發者）不架設伺服器、不收集、不上傳、也看不到你的任何內容。</b></p>
+
+  <h2>一、我們收集什麼？（幾乎為零）</h2>
+  <p>本工具是一個純前端網頁程式，<b>沒有後端伺服器</b>。你在使用中產生的資料只存在你自己的設備裡：</p>
+  <ul>
+    <li><b>學習資料</b>：課文、生詞、練習記錄、復習進度、打卡分數、登山進度等，全部存在瀏覽器本機（localStorage / IndexedDB）。</li>
+    <li><b>你自己填入的 API 金鑰</b>（智譜 / 微軟 Azure / Google）：只存在你本機，用於直接連到你選擇的服務商。<b>金鑰不會傳給我們，也不會寫入任何我們的伺服器或倉庫。</b></li>
+    <li><b>孩子的錄音</b>：跟讀 / 背句 / 造句的語音，是交給「瀏覽器內建的語音辨識」（在 iPhone/iPad 上由 Apple 處理、在安卓 Chrome 上由 Google 處理）即時轉成文字後比對，<b>本工具不儲存音檔、不上傳錄音</b>。</li>
+  </ul>
+
+  <h2>二、資料會不會傳到外部？（只在你主動時，且是你自己的帳號）</h2>
+  <ul>
+    <li><b>雲端朗讀（可選）</b>：若你自行開啟並填入 Azure / 智譜 / Google 金鑰，課文文字會傳到<b>你選的服務商</b>合成真人語音；這是你與服務商之間的行為，受該服務商的隱私政策約束。</li>
+    <li><b>雲備份（可選）</b>：若你自行設定 Gitee / GitHub 私人倉庫同步，學習資料會存到<b>你自己的私人倉庫</b>；只有你能存取。我們沒有你的倉庫權限。</li>
+    <li><b>AI 生成課文（可選）</b>：你拍照或貼上的課文，會用你自己的金鑰傳給你選的 AI 服務商生成精讀內容。內容由你提供、版權由你負責。</li>
+  </ul>
+  <p>除上述由你主動啟用、且指向你自己帳號的情況外，本工具<b>不會把任何資料傳送到第三方</b>，<b>不含廣告、不做用戶追蹤、不販售任何資料</b>。</p>
+
+  <h2>三、關於兒童</h2>
+  <p>本工具供家庭在家長陪同下使用。因所有資料存於本機、且不由我們收集，家長對孩子在本機產生的學習資料與錄音的使用擁有完全控制權。家長可隨時依「第五節」刪除全部資料。使用前請家長確認並同意本政策。</p>
+
+  <h2>四、我們（開發者）能看到什麼？</h2>
+  <p><b>看不到任何東西。</b>我們不營運伺服器、不接收你的資料。你的學習內容、金鑰、錄音、備份都不經過我們。</p>
+
+  <h2>五、如何刪除你的資料</h2>
+  <ul>
+    <li>刪除單一自建課：在課程目錄長按 / 點該課的 🗑 刪除。</li>
+    <li>清除全部本機資料：在瀏覽器「設定 → 清除網站資料 / 歷史記錄」中清除本站資料。</li>
+    <li>雲備份：到你自己的 Gitee / GitHub 倉庫刪除對應檔案。</li>
+  </ul>
+
+  <h2>六、第三方服務</h2>
+  <p>當你啟用相關功能時，會用到以下第三方（皆為你以自己帳號直接使用）：智譜 AI、微軟 Azure 認知服務、Google Cloud、Gitee、GitHub。它們各自的隱私政策以其官方公告為準。</p>
+
+  <h2>七、政策變更與聯絡</h2>
+  <p>本政策如有更新，會在此頁公告並更新「最近更新」日期。如有疑問請聯絡：</p>
+  <p class="todo">【請填：聯絡人 / 公司名稱 / 電子郵件 / 其他聯絡方式】</p>
+
+  <div class="note">
+    <b>給營運者的提醒（上架前請刪掉本框）：</b>下列<span class="todo">紅字</span>處必須由你填寫真實資訊：生效/更新日期、聯絡方式（姓名或公司、Email）。若要在中國大陸應用商店上架教育類 App，另需依《兒童個人信息網絡保護規定》《教育移動互聯網應用程序備案》等要求補充，建議請專業律師 / 代辦核對，並視需要提供簡體中文版本。
+  </div>
+</div>
+</main>
+<footer class="site">© 2026 iamamilycc · 虫虫精讀 jingdu</footer>
+</body>
+</html>
