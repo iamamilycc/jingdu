@@ -19,6 +19,7 @@
   <a href="jp/index.html">🎌 切換日語版</a>
 </div></header>
 <main>
+  <a class="today-card" id="todayStatus" href="review.html" style="display:none"></a>
   <a class="climb-banner" id="climbBanner" href="mountain.html" style="display:none"></a>
   <a class="streak-chip" id="streakChip" href="report.html"></a>
   <a class="due-banner" id="dueBanner" href="review.html"></a>
@@ -146,6 +147,22 @@ function renderStreak(){
   el.innerHTML = st.todayDone ? '🔥 連續學習 <b>'+st.n+'</b> 天 · 看週報 →'
     : (st.n>0 ? '🌱 已連續 '+st.n+' 天，今天學一點就續上！ · 看週報 →' : '🌱 今天還沒開始學 · 看週報 →');
 }
+/* 今日完成狀態大卡（給家長一眼判斷，用來手動控管娛樂時間）。本頁＝英語版，只看英語。
+   三態：✅完成(今天學過且到期複習清完) / 🔶差一點(學了但有到期複習) / ⏳還沒學 */
+function renderTodayStatus(){
+  const el=document.getElementById('todayStatus'); if(!el) return;
+  const d=new Date(), todayKey=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+  const studied=!!(JD.daysMapLang('en')||{})[todayKey];
+  const due=JD.dueItems().filter(it=>(it.lang||JD.langOf(it.lessonId))==='en').length;
+  el.style.display='flex'; el.classList.remove('done','partial','todo');
+  const dueHref=(document.getElementById('dueBanner')||{}).href||'review.html';
+  if(studied && due===0){ el.classList.add('done'); el.href='report.html';
+    el.innerHTML='<span class="big">✅</span><span class="t"><b>今日英語 · 完成！</b><span class="sub">今天該學的都做完了，可以放心安排休息 🎉</span></span>'; }
+  else if(studied && due>0){ el.classList.add('partial'); el.href=dueHref;
+    el.innerHTML='<span class="big">🔶</span><span class="t"><b>今日英語 · 差一點</b><span class="sub">已經學了，但還有 <b>'+due+'</b> 句複習沒清 —— 點我去復盤</span></span>'; }
+  else { el.classList.add('todo'); el.href=dueHref;
+    el.innerHTML='<span class="big">⏳</span><span class="t"><b>今日英語 · 還沒完成</b><span class="sub">今天還沒開始學英語 —— 點我開始</span></span>'; }
+}
 /* 登山橫幅：海拔>0 才顯示，爬向「你選的目標山」，與登山頁一致（原本顯示里程碑山，換目標不變） */
 function renderClimb(){
   const el=document.getElementById('climbBanner'); if(!el) return;
@@ -180,11 +197,12 @@ document.getElementById('lessonSearch').addEventListener('input', applySearch);
 
 renderUserLessons();
 renderToday();
+renderTodayStatus();
 renderStreak();
 renderClimb();
 renderAddGate();
 refreshSearchVisibility();
-window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderStreak(); renderClimb(); renderAddGate(); refreshSearchVisibility(); }; /* 雲端同步回來後刷新 */
+window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderTodayStatus(); renderStreak(); renderClimb(); renderAddGate(); refreshSearchVisibility(); }; /* 雲端同步回來後刷新 */
 </script>
 </body>
 </html>

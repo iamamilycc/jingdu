@@ -349,6 +349,16 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .streak-chip{display:block;text-align:center;font-family:var(--font-head);font-weight:600;color:var(--teal-deep);
   background:var(--green-soft);border-radius:14px;padding:9px 14px;margin-bottom:12px;text-decoration:none;font-size:.92rem}
 .streak-chip b{font-size:1.15rem}
+/* 今日完成狀態大卡：家長一眼看得到孩子今天學完沒（醒目、三態變色） */
+.today-card{display:flex;align-items:center;gap:14px;border-radius:18px;padding:15px 18px;margin-bottom:12px;
+  text-decoration:none;box-shadow:var(--shadow);border:2.5px solid transparent}
+.today-card .big{font-size:2.3rem;line-height:1;flex:none}
+.today-card .t{flex:1;min-width:0}
+.today-card .t b{font-family:var(--font-head);font-size:1.16rem;display:block}
+.today-card .t .sub{font-size:.84rem;opacity:.9;margin-top:2px;display:block;line-height:1.35}
+.today-card.done{background:linear-gradient(120deg,#dff5e3,#c6efd4);border-color:var(--green);color:var(--teal-deep)}
+.today-card.partial{background:linear-gradient(120deg,#FFF3D6,#FFE7B0);border-color:var(--mango);color:#8a5600}
+.today-card.todo{background:linear-gradient(120deg,#FFE1DA,#FFCEC2);border-color:var(--coral);color:#a53a25}
 .rp-bars{display:flex;gap:8px;align-items:flex-end;height:110px;margin-top:10px}
 .rp-bars .col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}
 .rp-bars .bar{width:70%;max-width:34px;background:var(--teal);border-radius:6px 6px 0 0;min-height:3px}
