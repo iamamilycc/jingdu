@@ -293,18 +293,24 @@
     if(!region||!key) throw new Error('no-key');
     const locale = (lang && String(lang).indexOf('ja')===0) || lang==='jp' ? 'ja-JP' : 'en-US';
     const cfg = { ReferenceText:String(referenceText||''), GradingSystem:'HundredMark', Granularity:'FullText', Dimension:'Comprehensive', EnableProsodyAssessment:true };
-    const ep='https://'+region+'.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language='+locale;
+    /* ⚠️ 必須 format=detailed：預設 simple 只回 {RecognitionStatus,DisplayText}，沒有 NBest / PronunciationAssessment，
+       四維分數就拿不到（會誤報 no-speech）。加 detailed 才有 NBest[].PronunciationAssessment。 */
+    const ep='https://'+region+'.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language='+locale+'&format=detailed';
     const resp=await fetch(ep, { method:'POST', headers:{
       'Ocp-Apim-Subscription-Key': key,
       'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
       'Pronunciation-Assessment': b64utf8(JSON.stringify(cfg)),
       'Accept': 'application/json'
     }, body: wavBlob });
-    if(!resp.ok) throw new Error('azure-'+resp.status);
+    if(!resp.ok){ let t=''; try{ t=await resp.text(); }catch(e){} throw new Error('azure-'+resp.status+(t?(' '+t.slice(0,120)):'')); }
     const j = await resp.json();
     const nb = j && j.NBest && j.NBest[0];
     const pa = nb && nb.PronunciationAssessment;
-    if(!pa) throw new Error('no-speech');   /* RecognitionStatus 非 Success / 沒說話 */
+    if(!pa){
+      /* 把 Azure 實際狀態帶出來，方便真機定位：InitialSilenceTimeout=沒收到聲音(錄音問題)；NoMatch=有聲但沒聽懂 */
+      const st = j && (j.RecognitionStatus || (j.NBest ? 'NoAssessment' : 'NoNBest'));
+      throw new Error('no-speech['+(st||'?')+(j&&j.DisplayText?':'+j.DisplayText:'')+']');
+    }
     const R0 = x => Math.max(0, Math.min(100, Math.round(x||0)));
     return {
       accuracy: R0(pa.AccuracyScore), fluency: R0(pa.FluencyScore),
@@ -318,9 +324,12 @@
   async function start(referenceText, lang){
     if(!supported()) throw new Error('no-capture');
     try{ if(navigator.audioSession) navigator.audioSession.type='play-and-record'; }catch(e){}  /* iOS：開麥克風路由 */
-    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    /* ⚠️ iOS：AudioContext 必須在「使用者手勢的同步階段」建立+resume，否則會停在 suspended、
+       onaudioprocess 不觸發→錄到空音訊→Azure 回 no-speech。故先建 ctx，再 await getUserMedia。 */
     const AC = window.AudioContext||window.webkitAudioContext; const ctx = new AC();
     try{ await ctx.resume(); }catch(e){}
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    try{ await ctx.resume(); }catch(e){}   /* 拿到麥克風後再確保一次 running */
     const srcNode = ctx.createMediaStreamSource(stream);
     const proc = ctx.createScriptProcessor(4096,1,1);
     const mute = ctx.createGain(); mute.gain.value=0;   /* 靜音出口，避免把麥克風回放到喇叭 */
@@ -332,6 +341,9 @@
     async function stop(){
       cleanup();
       let total=0; chunks.forEach(c=>total+=c.length);
+      /* 空音訊守衛：沒錄到聲音(iOS context 掛起/麥克風沒開)就別送 Azure，直接給明確錯，方便定位 */
+      const secs = total / (inRate||16000);
+      if(total===0 || secs < 0.25) throw new Error('empty-audio('+secs.toFixed(2)+'s)');
       const merged=new Float32Array(total); let off=0; chunks.forEach(c=>{ merged.set(c,off); off+=c.length; });
       const wav = encodeWav(downsample(merged, inRate, 16000), 16000);
       return assessBlob(wav, referenceText, lang);

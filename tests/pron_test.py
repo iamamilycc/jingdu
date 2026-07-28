@@ -71,6 +71,7 @@ def run():
         req = pg.evaluate("window.__req")
         ck('端點是 stt.speech + region', 'eastasia.stt.speech.microsoft.com' in req['url'], req['url'])
         ck('language=ja-JP', 'language=ja-JP' in req['url'], req['url'])
+        ck('⚠️format=detailed(否則沒NBest/四維分,會誤報no-speech)', 'format=detailed' in req['url'], req['url'])
         ck('帶 Ocp-Apim-Subscription-Key', req['headers'].get('Ocp-Apim-Subscription-Key') == 'testkey', req['headers'])
         ck('Content-Type 是 wav pcm 16k', 'audio/wav' in (req['headers'].get('Content-Type') or ''), req['headers'].get('Content-Type'))
         ck('body 是 Blob(WAV)', req['bodyType'] == 'Blob', req['bodyType'])
@@ -104,6 +105,10 @@ def run():
         pg.evaluate("window.fetch = async ()=>({ ok:false, status:401, json:async()=>({}) });")
         errored = pg.evaluate("""(async()=>{ try{ await JDPron.assessBlob(new Blob(['x']),'x','en'); return false; }catch(e){ return String(e.message||e); } })()""")
         ck('401 會丟錯', bool(errored) and '401' in str(errored), errored)
+        # Azure 回 200 但沒 NBest(simple格式/沒說話)→錯誤訊息帶出 RecognitionStatus 方便真機定位
+        pg.evaluate("""window.fetch = async ()=>({ ok:true, status:200, json:async()=>({ RecognitionStatus:'InitialSilenceTimeout', DisplayText:'' }) });""")
+        e2 = pg.evaluate("""(async()=>{ try{ await JDPron.assessBlob(new Blob(['x']),'x','en'); return ''; }catch(e){ return String(e.message||e); } })()""")
+        ck('無NBest→錯誤帶RecognitionStatus(InitialSilenceTimeout=沒收到聲音)', 'InitialSilenceTimeout' in str(e2), e2)
         pg.close()
 
         # ---- 整合閉環：背句 Pron 模式（mock 掉真麥克風/Azure）----
