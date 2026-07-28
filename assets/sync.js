@@ -98,9 +98,10 @@
     const c=cfg(); if(!c) return Promise.reject('nocfg');
     return getFile(c, userPath()).then(f=>{ if(!f){ sha=null; return null; } sha=f.sha; return JSON.parse(b64d(f.content)); });
   }
+  /* 回傳是否真的寫入成功（供 switchUser 判斷離線時別貿然清本機丟資料） */
   async function push(){
-    if(busy){ schedule(8000); return; }
-    const c=cfg(); if(!c) return;
+    if(busy){ schedule(8000); return false; }
+    const c=cfg(); if(!c) return false;
     busy=true;
     try{
       const content=b64e(JSON.stringify(snapshot()));
@@ -108,10 +109,12 @@
       if(newSha) sha=newSha;
       setStatus('☁️ 已備份 '+new Date().toLocaleTimeString('zh',{hour:'2-digit',minute:'2-digit'}), true);
       busy=false;
+      return true;
     }catch(e){
       busy=false;
-      if(e==='auth'){ setStatus('⚠️ 同步碼失效，請重新設定', false); return; }
+      if(e==='auth'){ setStatus('⚠️ 同步碼失效，請重新設定', false); return false; }
       setStatus('📴 離線，聯網後自動備份', false); schedule(30000);
+      return false;
     }
   }
   function schedule(delay){ if(!cfg()) return; clearTimeout(timer); timer=setTimeout(push, delay||4000); }
@@ -219,7 +222,12 @@
   }
   async function switchUser(){
     const c=cfg(); if(!c) return setup();
-    push(); /* 先把當前使用者推上雲 */
+    /* 先把當前使用者的資料推上雲並「等結果」——離線/失敗時別貿然清本機，否則還沒備份的增量會永久丟失 */
+    const pushed = await push();
+    if(!pushed){
+      const ok = window.confirm('目前似乎離線或備份失敗，切換使用者會清掉這台裝置上「還沒成功備份」的資料，可能永久丟失。\n\n仍要切換嗎？（建議先連上網、看到「已備份」再切）');
+      if(!ok) return;
+    }
     const vals = await openModal({
       title:'切換使用者',
       fields:[{key:'user', label:'切換到哪位使用者？', type:'text', placeholder:'輸入暱稱'}]

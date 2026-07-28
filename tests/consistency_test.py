@@ -177,10 +177,12 @@ def run():
             shownW = pg.evaluate("(document.querySelector('#p-make .target b')||{}).innerText||''")
             pg.evaluate("document.getElementById('mkInput').value='I like this word very much'; mkCheck()"); pg.wait_for_timeout(300)
             jw = pg.evaluate("window._judgeWord")
-            # 英語 word 直接是詞；日語 judgeSentence 收 mkPlain(去振假名)
+            # 英語 word 直接是詞；日語 judgeSentence 收 mkPlain(去振假名)=漢字底本
             if lang == 'jp':
-                base = pg.evaluate("(function(){var w=(document.querySelector('#p-make .target b')||{}).innerText||''; return w;})()")
-                ck('make 送判分的詞非空且對應顯示詞', bool(jw) and (jw in base or base.replace(' ', '') in (jw or '') or True), jw)
+                # 顯示詞去掉 <rt> 振假名 → 漢字底本；須與送判分的 jw 相等（真斷言，不可放水）
+                dispBase = pg.evaluate("""(()=>{const el=document.querySelector('#p-make .target b'); if(!el) return '';
+                    const cl=el.cloneNode(true); cl.querySelectorAll('rt').forEach(r=>r.remove()); return (cl.innerText||'').trim();})()""")
+                ck('make 送判分的詞==顯示詞(去振假名底本)', bool(jw) and jw.strip() == dispBase, '%r vs %r' % (jw, dispBase))
             else:
                 ck('make 送判分的詞==顯示詞', jw == shownW, '%r vs %r' % (jw, shownW))
 

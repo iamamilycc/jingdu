@@ -197,7 +197,7 @@
     if(!enabled()) return false;
     text=(text||'').trim(); if(!text) return false;
     prefix=(prefix==='ja')?'ja':'en';
-    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+(text.indexOf('')>=0?'g'+ltGap():'')+'|'+text;
+    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+(text.indexOf('\x01')>=0?'g'+ltGap():'')+'|'+text;
     try{
       let blob=await cacheGet(ck);
       if(!blob){ blob=await synthBlob(text, prefix, slow); cachePut(ck, blob); }
@@ -212,7 +212,7 @@
     if(!enabled()) return false;
     text=(text||'').trim(); if(!text) return false;
     prefix=(prefix==='ja')?'ja':'en';
-    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+(text.indexOf('')>=0?'g'+ltGap():'')+'|'+text;
+    const ck=getProvider()+'|'+voiceKeyFor(prefix)+'|'+(slow?'s':'n')+'|'+(text.indexOf('\x01')>=0?'g'+ltGap():'')+'|'+text;
     try{
       let blob=await cacheGet(ck);
       if(!blob){ blob=await synthBlob(text, prefix, slow); cachePut(ck, blob); }

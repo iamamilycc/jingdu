@@ -101,6 +101,21 @@ def check_speaker_space_colon():
         m = re.search(r'RE\s*=\s*/\^.*?\)\s*(\\s\*)?\[：:\]', txt)
         ck('%s speaker 正則含 \\s*[：:]' % rel, bool(m and m.group(1)), '冒號前少了 \\s*（空格+冒號會漏拆）')
 
+# ---- 規則9：切換使用者前必須先 await push（離線別貿然清本機丟資料）----
+def check_switchuser_awaits_push():
+    print('-- 規則9：sync.switchUser 先 await push + 離線確認，才清本機（防丟資料）')
+    src = read('assets/sync.js')
+    # 找 switchUser 函式體
+    joined = '\n'.join(src)
+    import re as _re
+    m = _re.search(r'function switchUser\(\)\{(.*?)\n  \}', joined, _re.S)
+    body = m.group(1) if m else ''
+    ap = body.find('await push()')
+    clear = body.find('applySnapshot')
+    ck('switchUser 有 await push()', ap >= 0, '找不到 await push()')
+    ck('await push() 在 applySnapshot(清本機) 之前', ap >= 0 and (clear < 0 or ap < clear), 'push 沒排在清本機前')
+    ck('離線/失敗有 confirm 守衛', 'confirm(' in body, '沒有 confirm 守衛')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -110,6 +125,7 @@ def main():
     check_gate_enforced_on_action()
     check_furigana_single_source()
     check_speaker_space_colon()
+    check_switchuser_awaits_push()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))
