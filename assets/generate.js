@@ -389,8 +389,10 @@ ${schema}`;
   function deleteLesson(id){
     const all = allUserLessons(); delete all[id];
     localStorage.setItem('jingdu_userlessons', JSON.stringify(all));
-    /* 連帶清掉這課的進度、錯題復盤、小故事快取，避免留孤兒數據 */
+    /* 連帶清掉這課的進度、續做位置/計分、錯題復盤、小故事快取，避免留孤兒數據
+       ⚠️ secpos_ 一定要清：登山海拔(totalCorrect)讀 secpos_，漏清會讓刪掉的課還在灌海拔 */
     localStorage.removeItem('jingdu_prog_'+id);
+    localStorage.removeItem('jingdu_secpos_'+id);
     localStorage.removeItem('jingdu_story_'+id);
     try{
       const b = JSON.parse(localStorage.getItem('jingdu_errbook')||'{}');

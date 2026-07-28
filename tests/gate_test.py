@@ -78,6 +78,13 @@ def run():
         fb4 = attempt('strict', None, 'en')
         ck('strict+無到期 → 不擋，越過門禁到生成', '__REACHED_GEN__' in fb4, fb4)
 
+        # 5) 反向對稱：strict + 只有日語到期 + 選日語 → 被擋（補 fable-5 指出的單邊缺口）
+        fb5 = attempt('strict', 'jp', 'jp')
+        ck('strict+日到期+選日 → 被復習鎖擋', ('復習鎖' in fb5) or ('先複習' in fb5) or ('去複習' in fb5), fb5)
+        # 6) 反向：strict + 只有日語到期 + 選英語 → 英語不該被日語的到期擋
+        fb6 = attempt('strict', 'jp', 'en')
+        ck('strict+只日到期+選英 → 英語不被誤擋(到生成)', '__REACHED_GEN__' in fb6, fb6)
+
         pg.close(); b.close()
 
     print('\n' + '=' * 40)

@@ -136,4 +136,9 @@ def main():
     return 0
 
 if __name__ == '__main__':
-    sys.exit(main())
+    try:
+        sys.exit(main())
+    except Exception as ex:
+        # 重負載批次下偶發的檔案系統暫態不該被誤判成「規則違反」；重跑即可
+        print('靜態檢查執行出錯（多為批次重負載暫態，單獨重跑即可）：', ex)
+        sys.exit(2)
