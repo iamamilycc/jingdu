@@ -21,9 +21,21 @@ consistency_test.py —— 虫虫精讀「一致性閉環測試」
         （自動起本機 http server；需要已 pip install playwright 且裝過 chromium）
 成功：  印「全部一致 ✅」且退出碼 0；任一項不一致退出碼 1。
 """
-import sys, os, subprocess, time, socket, http.server, threading, functools
+import sys, os, subprocess, time, socket, http.server, threading, functools, glob
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+def discover_lessons(base):
+    """自動掃描所有實體課檔（排除 view.html 動態載入器），英日全覆蓋。
+    避免只測固定一兩課、漏掉某一課才有的錯位/資料 bug。"""
+    out = []
+    for f in sorted(glob.glob(os.path.join(ROOT, 'lessons', '*.html'))):
+        if os.path.basename(f) != 'view.html':
+            out.append(('英語:' + os.path.basename(f), base + '/lessons/' + os.path.basename(f), 'en'))
+    for f in sorted(glob.glob(os.path.join(ROOT, 'jp', 'lessons', '*.html'))):
+        if os.path.basename(f) != 'view.html':
+            out.append(('日語:' + os.path.basename(f), base + '/jp/lessons/' + os.path.basename(f), 'jp'))
+    return out
 
 def free_port():
     s = socket.socket(); s.bind(('127.0.0.1', 0)); p = s.getsockname()[1]; s.close(); return p
@@ -45,10 +57,8 @@ def run():
     port = free_port(); serve(port); time.sleep(0.6)
     base = 'http://127.0.0.1:%d' % port
     errs = []
-    LESSONS = [
-        ('英語', base + '/lessons/nce2-01.html', 'en'),
-        ('日語', base + '/jp/lessons/jp-01.html', 'jp'),
-    ]
+    LESSONS = discover_lessons(base)
+    print('掃描到 %d 課：%s' % (len(LESSONS), '、'.join(l[0] for l in LESSONS)))
     with sync_playwright() as p:
         b = p.chromium.launch()
         for label, url, lang in LESSONS:
@@ -141,11 +151,16 @@ def run():
                 return {zh, hit:LESSON.vocab.some(v=>v.zh===zh)};})()""")
             ck('drill 中→外 顯示中文對應某生詞', d['hit'], d['zh'])
             pg.evaluate("vdStart('%s')" % ('jp2cn' if lang == 'jp' else 'en2cn')); pg.wait_for_timeout(150)
-            e = pg.evaluate("""(()=>{const w=(document.querySelector('#vdStage .target b')||{}).innerText||'';
-                const base=w.replace(/\\[[^\\]]*\\]/g,'');
-                const v=LESSON.vocab.find(x=>x.w===w) || LESSON.vocab.find(x=>x.w.replace(/\\[[^\\]]*\\]/g,'')===base) || (w.length? LESSON.vocab.find(x=>w.indexOf(x.w.replace(/\\[[^\\]]*\\]/g,''))>=0):null);
-                const opts=[...document.querySelectorAll('#vdOpts .qz-opt')].map(b=>b.innerText);
-                return {w, hit: !!(v && opts.includes(v.zh))};})()""")
+            # 取顯示詞的「底本」：日語去掉 <rt> 振假名節點再讀，避免 ruby innerText 把讀音夾進來
+            e = pg.evaluate("""(()=>{const el=document.querySelector('#vdStage .target b');
+                if(!el) return {w:'',hit:false};
+                const cl=el.cloneNode(true); cl.querySelectorAll('rt').forEach(r=>r.remove());
+                const base=(cl.innerText||'').replace(/\\[[^\\]]*\\]/g,'').trim();
+                const norm=s=>(s||'').replace(/\\[[^\\]]*\\]/g,'').trim();
+                const v=LESSON.vocab.find(x=>norm(x.w)===base) || LESSON.vocab.find(x=>x.w===base);
+                const opts=[...document.querySelectorAll('#vdOpts .qz-opt')].map(b=>b.innerText.trim());
+                return {w:base, foundVocab: !!v, hit: !!(v && opts.includes((v.zh||'').trim()))};})()""")
+            ck('drill 外→中 顯示詞能對回生詞', e['foundVocab'], e['w'])
             ck('drill 外→中 選項含正確中文', e['hit'], e['w'])
 
             # ---- 造句 make：顯示的詞==送判分的詞 ----

@@ -1,0 +1,106 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+static_checks.py —— 虫虫精讀「靜態源碼不變量」測試（不需瀏覽器，秒級）
+
+守住幾條「只靠讀碼就能驗、又最容易在新增功能時被漏掉」的規則。歷史上這類
+漏洞（某個播放入口忘了設 iOS 外放路由 → 錄音後播放變小聲/走聽筒）純靠人眼
+review 一再漏掉，所以固化成可重跑測試。
+
+用法：  python3 tests/static_checks.py
+成功：  印「全部通過 ✅」且退出碼 0；任一條違反退出碼 1。
+"""
+import os, re, sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+FAILS = []
+
+def ck(name, cond, detail=''):
+    print(('  ok  ' if cond else '  XX  ') + name + ('' if cond else '   <<< ' + str(detail)))
+    if not cond:
+        FAILS.append(name)
+
+def read(rel):
+    with open(os.path.join(ROOT, rel), encoding='utf-8') as f:
+        return f.read().splitlines()
+
+# ---- 規則1：每個 speechSynthesis.speak( 之前必須先設 iOS 外放路由 ----
+# 允許形式：同函式內、該 speak 之前 6 行內出現 toPlaybackRoute（core 自呼 / lesson 走 JD.toPlaybackRoute）
+def check_playback_route():
+    print('-- 規則1：每處 speechSynthesis.speak 之前都設了 iOS 外放路由（防錄音後小聲）')
+    for rel in ('assets/core.js', 'assets/lesson.js', 'assets/lesson-jp.js'):
+        lines = read(rel)
+        for i, ln in enumerate(lines):
+            if 'speechSynthesis.speak(' in ln:
+                window = '\n'.join(lines[max(0, i - 9):i + 1])
+                has = 'toPlaybackRoute' in window
+                ck('%s:%d speak 前有 toPlaybackRoute' % (rel, i + 1), has, ln.strip())
+
+# ---- 規則2：錄音入口 listen() 之前必須設 play-and-record（否則麥克風失效） ----
+def check_record_route():
+    print('-- 規則2：core.listen 內有設 play-and-record（否則 iOS 麥克風收不到）')
+    core = '\n'.join(read('assets/core.js'))
+    ck('core.js listen 設 play-and-record', "audioSession.type='play-and-record'" in core.replace(' ', '').replace('"', "'") or 'play-and-record' in core, '找不到 play-and-record 設定')
+
+# ---- 規則3：沒有硬編碼 API key（BYOK 底線） ----
+def check_no_hardcoded_key():
+    print('-- 規則3：全庫無硬編碼 API key（BYOK）')
+    pats = [re.compile(r'sk-[A-Za-z0-9]{20,}'), re.compile(r'AIza[A-Za-z0-9_\-]{30,}')]
+    hits = []
+    for dp, dn, fn in os.walk(ROOT):
+        if any(x in dp for x in ('/.git', '/release', '/__pycache__', '/node_modules')):
+            continue
+        for f in fn:
+            if not f.endswith(('.js', '.html', '.py', '.json')):
+                continue
+            p = os.path.join(dp, f)
+            try:
+                txt = open(p, encoding='utf-8', errors='ignore').read()
+            except Exception:
+                continue
+            for pat in pats:
+                if pat.search(txt):
+                    hits.append(os.path.relpath(p, ROOT))
+    ck('無硬編碼 key', not hits, hits)
+
+# ---- 規則4：日語識別回傳非日文時有攔截提示（誠實降級） ----
+def check_jp_nonjp_guard():
+    print('-- 規則4：日語背句/跟讀偵測到非日文時有攔截（不亂判 0 分、給診斷指引）')
+    jp = '\n'.join(read('assets/lesson-jp.js'))
+    ck('lesson-jp 有非日文攔截 + 診斷連結', ('jp-mic-test' in jp) and ('[一-鿿' in jp or '一-鿿' in jp or 'hasJP' in jp or '不是日文' in jp or '不含日文' in jp or '診斷' in jp), '找不到非日文攔截邏輯')
+
+# ---- 規則5：復盤等級點數對齊 INTERVALS 階數（否則高等級畫面看不出差別） ----
+def check_levelbar_dots():
+    print('-- 規則5：review.levelBar 點數 == INTERVALS 階數（艾賓浩斯滿級可辨識）')
+    core = '\n'.join(read('assets/core.js'))
+    m = re.search(r'INTERVALS\s*=\s*\[([^\]]*)\]', core)
+    n_intervals = len([x for x in m.group(1).split(',') if x.strip()]) if m else 0
+    rv = '\n'.join(read('review.html'))
+    m2 = re.search(r'for\s*\(\s*let\s+i\s*=\s*0\s*;\s*i\s*<\s*(\d+)\s*;', rv)
+    dots = int(m2.group(1)) if m2 else -1
+    ck('levelBar 點數(%d) == INTERVALS 階數(%d)' % (dots, n_intervals), dots == n_intervals, 'dots=%d intervals=%d' % (dots, n_intervals))
+
+# ---- 規則6：加新課動作處有復習鎖把關（不是只在首頁改連結） ----
+def check_gate_enforced_on_action():
+    print('-- 規則6：new.html 生成動作處呼叫 newLessonBlockedBy（門禁擋動作，繞不過）')
+    nh = '\n'.join(read('new.html'))
+    ck('new.html 生成流程檢查 newLessonBlockedBy', 'newLessonBlockedBy' in nh, '找不到門禁檢查')
+
+def main():
+    check_playback_route()
+    check_record_route()
+    check_no_hardcoded_key()
+    check_jp_nonjp_guard()
+    check_levelbar_dots()
+    check_gate_enforced_on_action()
+    print('\n' + '=' * 40)
+    if FAILS:
+        print('❌ %d 條靜態不變量被違反：' % len(FAILS))
+        for f in FAILS:
+            print('   - ' + f)
+        return 1
+    print('✅ 全部通過（iOS 音訊路由 / 麥克風路由 / 無硬編碼 key / 日語誠實降級）')
+    return 0
+
+if __name__ == '__main__':
+    sys.exit(main())

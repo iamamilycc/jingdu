@@ -52,8 +52,15 @@
   function save(key, val){
     try{
       localStorage.setItem(NS+key, JSON.stringify(val));
+      touchSync();
+    }catch(e){}
+  }
+  /* 只更新同步時間戳 + 觸發雲端備份，供「用裸 setItem 存原始字串（非 JSON）」的偏好設定共用，
+     否則改了聲音/背句秒數/音效後 updatedAt 不變，多裝置下次拉取會被舊值覆蓋、設定悄悄回退。 */
+  function touchSync(){
+    try{
       localStorage.setItem(NS+'updatedAt', String(Date.now()));
-      if(window.JDSYNC) window.JDSYNC.schedule(); /* 有開雲端備份就自動同步 */
+      if(window.JDSYNC) window.JDSYNC.schedule();
     }catch(e){}
   }
 
@@ -192,7 +199,7 @@
     else schedBeep(ac, freqs, dur);
   }
   function sfxEnabled(){ try{ return localStorage.getItem(NS+'sfx')!=='0'; }catch(e){ return true; } }
-  function setSfx(on){ try{ localStorage.setItem(NS+'sfx', on?'1':'0'); }catch(e){} }
+  function setSfx(on){ try{ localStorage.setItem(NS+'sfx', on?'1':'0'); touchSync(); }catch(e){} }
   const PRAISE = {
     great: ['Awesome!','Perfect!','Brilliant!','Unbelievable!','Fantastic!','Amazing!'],
     good:  ['Good job!','Nice!','Well done!','Great!','Keep it up!','Way to go!'],
@@ -266,7 +273,6 @@
      level 0..7 → 通過後 due = now + INTERVALS[level]；level 到 8(=INTERVALS.length) = 牢固。
      間隔遞增(30分→90天)貼近艾賓浩斯遺忘曲線+長期記憶鞏固，答錯即打回 level 0 重來。 */
   const INTERVALS = [30*60e3, 24*3600e3, 2*24*3600e3, 4*24*3600e3, 7*24*3600e3, 15*24*3600e3, 30*24*3600e3, 90*24*3600e3];
-  const LEVEL_NAMES = ['新錯題','30分鐘','1天','2天','4天','7天','15天','30天','90天‧牢固'];
 
   function getBook(){ return load('errbook', {}); }
   function setBook(b){ save('errbook', b); }
@@ -343,7 +349,7 @@
   const HIQ = /(enhanced|premium|neural|siri|natural|eloquence|\(enhanced\)|超清|增强|自然)/i;
   const NICE = /Ava|Samantha|Allison|Evan|Joelle|Nathan|Serena|Kyoko|O-ren|Hattori|Kyui|Nanami|Sayaka/i;
   function getVoicePref(prefix){ try{ return localStorage.getItem(NS+'voice_'+prefix)||''; }catch(e){ return ''; } }
-  function setVoicePref(prefix, uri){ try{ if(uri) localStorage.setItem(NS+'voice_'+prefix, uri); else localStorage.removeItem(NS+'voice_'+prefix); }catch(e){} }
+  function setVoicePref(prefix, uri){ try{ if(uri) localStorage.setItem(NS+'voice_'+prefix, uri); else localStorage.removeItem(NS+'voice_'+prefix); touchSync(); }catch(e){} }
   function pickVoice(lang){
     const prefix = lang.split('-')[0];
     const vs = voicesFor(prefix);
@@ -360,11 +366,14 @@
       .map(v=>({ name:v.name, voiceURI:v.voiceURI, local:v.localService, hiq:HIQ.test(v.name) }))
       .sort((a,b)=> (b.hiq?1:0)-(a.hiq?1:0) || a.name.localeCompare(b.name));
   }
+  /* iOS 16.4+：宣告「純播放」→ 強制走喇叭外放，避免剛錄過音被卡在聽筒小聲。
+     任何要用系統合成聲(speechSynthesis)播放的地方，speak 前都必須先呼叫這個，
+     否則 listen() 設下的 play-and-record 路由不會復原 → 播放變小聲/走聽筒（歷史 bug）。 */
+  function toPlaybackRoute(){ try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){} }
   /* 系統合成聲（Web Speech）——雲端語音沒開/失敗時的保底 */
   function systemSpeak(text, slow, lang){
     if(!('speechSynthesis' in window)) return;
-    /* iOS 16.4+：宣告純播放→強制走喇叭外放，避免剛錄過音被卡在聽筒小聲（與雲端播放一致） */
-    try{ if(navigator.audioSession) navigator.audioSession.type='playback'; }catch(e){}
+    toPlaybackRoute();
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang=lang;
@@ -388,6 +397,7 @@
   /* 試聽指定聲音（聲音設定頁用）；voiceURI 為空則用當前偏好/優選 */
   function previewVoice(lang, voiceURI){
     if(!('speechSynthesis' in window)) return;
+    toPlaybackRoute();
     speechSynthesis.cancel();
     const prefix = lang.split('-')[0];
     const sample = prefix==='ja' ? 'こんにちは、いっしょに べんきょうしましょう。' : 'Hello! Let us read this together.';
@@ -545,12 +555,12 @@
   window.JD = { getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, reviewPass, reviewFail,
                 dueItems, allItems, streak, daysMap, daysMapLang, langOf, touchDay,
                 parentHasPin, setParentPin, checkParentPin, getGate, setGate, getMkMin, setMkMin, newLessonBlockedBy,
-                speak, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
+                touchSync, speak, systemSpeak, toPlaybackRoute, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
                 listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
                 lessonScore, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
                 celebrate, praiseKind, sfxEnabled, setSfx,
                 AVATARS, getAvatar, setAvatar, avatarHTML, getTargetMountain, setTargetMountain,
-                LEVEL_NAMES, PASS:85 };
+                PASS:85 };
 })();
 
 /* 量測固定標題列的實際高度→寫進 --hdr-h，給吸頂控制列(.ctrl-sticky)當偏移。

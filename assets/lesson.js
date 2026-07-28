@@ -84,6 +84,7 @@
     u.onend=go; u.onerror=go;
     const est = text.length * (lt.slow?90:65) + 4000;
     const watchdog=setTimeout(()=>{ try{ speechSynthesis.cancel(); }catch(e){} go(); }, est);
+    try{ JD.toPlaybackRoute&&JD.toPlaybackRoute(); }catch(e){}  /* iOS：剛錄過音→設回外放，免小聲/走聽筒 */
     try{ speechSynthesis.speak(u); }catch(e){ go(); }
   }
   function ltPlayFrom(i){
@@ -440,6 +441,7 @@
     const v = JD.pickVoice('en-US'); if(v) u.voice = v;
     const nx=()=>setTimeout(()=>qzSysSpeak(idxs,k+1), 300);
     u.onend=nx; u.onerror=nx;
+    try{ JD.toPlaybackRoute&&JD.toPlaybackRoute(); }catch(e){}  /* iOS：剛錄過音→設回外放，免小聲/走聽筒 */
     speechSynthesis.speak(u);
   }
   function qzBlindText(it){ return it.play.map(i=>(L.sentences[i]||{}).en||'').join(' '); }
@@ -509,7 +511,7 @@
   function rcSecMode(){ const v=localStorage.getItem('jingdu_recite_sec2'); return (v==='5'||v==='10'||v==='15')?v:'auto'; }
   function rcAutoSec(s){ const n=((s&&s.en)||'').trim().split(/\s+/).filter(Boolean).length; return Math.max(4, Math.min(18, Math.round(n*1.2))); }
   function rcSec(){ const m=rcSecMode(); return m==='auto' ? rcAutoSec(L.sentences[rc.i]) : parseInt(m,10); }
-  window.rcSetSec = function(v){ localStorage.setItem('jingdu_recite_sec2', String(v)); rcRender('idle'); };
+  window.rcSetSec = function(v){ localStorage.setItem('jingdu_recite_sec2', String(v)); try{ JD.touchSync&&JD.touchSync(); }catch(e){} rcRender('idle'); };
   function stopSpeech(){ try{ speechSynthesis.cancel(); }catch(e){} if(window.JDTTS) JDTTS.stop(); }
   function rcRender(stage){ /* stage: idle|show|masked|result */
     const s = L.sentences[rc.i];

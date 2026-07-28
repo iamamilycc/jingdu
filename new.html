@@ -224,6 +224,23 @@ async function doGenerate(){
   const list = queue.slice();
   if(hasCurrent) list.push({ lang, text, photoDataUrls, label: currentLabel() });
 
+  /* 家長復習鎖（strict 模式）：在「生成」這個動作上真正把關，而不是只在首頁改連結。
+     這樣不管從首頁、說明頁、書籤或直接輸網址進來，只要該語言還有到期複習沒清完，就擋住加新課。 */
+  try{
+    if(window.JD && JD.newLessonBlockedBy){
+      const blocked = {};
+      list.forEach(it=>{ const d=JD.newLessonBlockedBy(it.lang); if(d>0) blocked[it.lang]=d; });
+      const langs = Object.keys(blocked);
+      if(langs.length){
+        const parts = langs.map(l=>(l==='jp'?'日語':'英語')+' '+blocked[l]+' 句');
+        const rv = langs[0]==='jp' ? 'jp/review.html' : 'review.html';
+        $('#genFb').innerHTML='<div class="acc-badge bad">🔒 家長復習鎖：要先複習完 '+JD.esc(parts.join('、'))+
+          '，才能加新課。 <a href="'+rv+'" style="color:#fff;font-weight:700;text-decoration:underline">去複習 →</a></div>';
+        return;
+      }
+    }
+  }catch(e){}
+
   if(list.length===1){
     /* 單課：跟原本一樣，成功直接跳去看這一課 */
     const one = list[0];

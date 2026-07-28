@@ -86,8 +86,10 @@ function renderExample(box, ex, lang){
 }
 
 function levelBar(lv){
+  /* 艾賓浩斯共 8 級（level 0..8，8=牢固畢業）；點數要對齊 INTERVALS.length，
+     否則 level 6/7/8 三階畫面相同、看不出「快牢固」和「已牢固」。 */
   let h='<span class="lv">';
-  for(let i=0;i<6;i++) h+='<i class="'+(i<lv?'on':'')+'"></i>';
+  for(let i=0;i<8;i++) h+='<i class="'+(i<lv?'on':'')+'"></i>';
   return h+'</span>';
 }
 function render(){

@@ -20,9 +20,11 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT  = os.path.join(ROOT, 'release')
 
 # 整個排除（不進發佈版）：開發檔、版權教材原始資料、內部文件、版本控制
-EXCLUDE_DIRS  = {'.git', '__pycache__', 'docs', 'release',
+EXCLUDE_DIRS  = {'.git', '__pycache__', 'docs', 'release', 'tests',
                  os.path.join('lessons', 'data'),
                  os.path.join('jp', 'lessons', 'data')}
+# 注意：jp-mic-test.html 不能排除——它是日語識別失敗時給家長的診斷頁，
+# lesson-jp.js 有連結指過去（../../jp-mic-test.html），排除會讓買家點連結 404。
 EXCLUDE_FILES = {'make_release.py', 'build_lessons.py', 'build_lessons_jp.py',
                  'azure-test.html', '.gitignore', '.DS_Store'}
 # 有版權的已生成課文頁（樣式：內建教材）
