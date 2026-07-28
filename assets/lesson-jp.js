@@ -522,22 +522,22 @@
     const total=rcSec(); let left=total; const C=2*Math.PI*30;
     ring.innerHTML='<svg width="66" height="66"><circle class="bg" cx="33" cy="33" r="30"/><circle class="fg" cx="33" cy="33" r="30" stroke-dasharray="'+C+'" stroke-dashoffset="0"/></svg><span id="rcSec">'+total+'</span>';
     const fg=ring.querySelector('.fg');
-    rc.timer=setInterval(()=>{ left--; $('#rcSec').textContent=left; fg.style.strokeDashoffset=C*(total-left)/total; if(left<=0){ clearInterval(rc.timer); rcMask(false); } },1000);  /* 倒數自動結束＝非手勢，不自動錄音(iOS麥克風需手勢) */
+    rc.timer=setInterval(()=>{ left--; $('#rcSec').textContent=left; fg.style.strokeDashoffset=C*(total-left)/total; if(left<=0){ clearInterval(rc.timer); rcMask(); } },1000);
   };
-  window.rcSkipPeek = function(){ clearInterval(rc.timer); rcMask(true); };  /* 點擊觸發＝手勢安全 */
+  window.rcSkipPeek = function(){ clearInterval(rc.timer); rcMask(); };
   window.rcMask = rcMask;
-  /* 蓋句。autoRec=true(點擊直接背/看夠了進來)立刻錄音；倒數自動結束(false)只顯示「開始背」讓用戶點(iOS 手勢限制) */
-  function rcMask(autoRec){
+  /* 蓋句＝立刻開始錄音，只有一顆按鈕(一進來就是「我說完了」)，不再「先開始背再我說完了」兩步 */
+  function rcMask(){
     stopSpeech();
     $('#rcRing').style.display='none';
     const canRec = JD.recSupported();
-    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>'+(autoRec&&canRec?'🎤 正在聽你背……':'按「開始背」，大聲背出來')+'<br><small style="color:var(--muted)">背完停一下自動打分；讀完也可點下面「我說完了」</small></div>';
+    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>'+(canRec?'🎤 正在聽你背……讀完點下面「我說完了」':'開口大聲背出來')+'<br><small style="color:var(--muted)">背完停一下也會自動打分</small></div>';
     $('#rcBtns').innerHTML='<button id="rcRecBtn" class="big-btn rec" onclick="rcRec()">🎙️ 開始背</button><button class="big-btn ghost" onclick="rcPeek()">😳 忘了，看一眼</button>';
-    if(autoRec) rcRec();
+    rcRec();
   }
   window.rcPeek=function(){ const s=L.sentences[rc.i]; $('#rcTarget').innerHTML='<span class="jp-target jp-text">'+R.toRubyHTML(JD.esc(s.jp))+'</span>'; rcFinish(0,null); };
-  /* 不看直接背：點擊觸發＝手勢安全 → 蓋句＋自動錄音 */
-  window.rcDirect=function(){ clearInterval(rc.timer); rcMask(true); };
+  /* 不看直接背 → 蓋句＋自動錄音 */
+  window.rcDirect=function(){ clearInterval(rc.timer); rcMask(); };
   window.rcRec=function(){ startRec($('#rcRecBtn'), L.sentences[rc.i], '#rcResult', '#rcHeard', acc=>rcFinish(acc,true)); };
   function rcFinish(acc, showedResult){
     const s=L.sentences[rc.i]; rc.results[rc.i]=Math.max(rc.results[rc.i]||0, acc);  /* 取最高準確率 */
@@ -567,7 +567,7 @@
     /* 一鍵制：同一顆按鈕開始錄音後就變「我說完了」，再點一次＝停止打分 */
     const restart = ()=>startRec(btn, sent, resultSel, heardSel, onAcc);
     const rec = JD.listen((text, err)=>{
-      if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次'; btn.onclick=restart; }
+      if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent=(err && !text)?'🎙️ 開始背':'🎙️ 再試一次'; btn.onclick=restart; }
       if(err && !text){
         /* 日語語音識別在 iPad Safari 上常不可用（未開日語聽寫 / 不支援日語），
            不論哪種錯都給「自評按鈕」讓孩子能繼續，不被卡死 */

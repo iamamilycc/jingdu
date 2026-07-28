@@ -552,28 +552,29 @@
       left--;
       $('#rcSec').textContent=left;
       fg.style.strokeDashoffset = C*(total-left)/total;
-      if(left<=0){ clearInterval(rc.timer); rcMask(false); }  /* 倒數自動結束＝非用戶手勢：iOS 麥克風需手勢啟動，故不自動錄音，顯示「開始背」讓用戶點 */
+      if(left<=0){ clearInterval(rc.timer); rcMask(); }
     },1000);
   };
-  window.rcSkipPeek = function(){ clearInterval(rc.timer); rcMask(true); };  /* 點擊觸發＝手勢安全，自動錄音 */
+  window.rcSkipPeek = function(){ clearInterval(rc.timer); rcMask(); };
   window.rcMask = rcMask;
-  /* 蓋句。autoRec=true（由點擊「直接背/看夠了」進來）立刻錄音；倒數自動結束(false)只顯示「開始背」讓用戶點(iOS 手勢限制) */
-  function rcMask(autoRec){
-    stopSpeech();
+  /* 蓋句＝立刻開始錄音（不管從哪條路進來），只有一顆按鈕：一進來就是「✅ 我說完了」，讀完點它/停一下就打分。
+     不再有「先點開始背、再點我說完了」兩步。若某台 iPhone 沒自動起錄，按鈕會變「🎙️ 開始背」點一下即可。 */
+  function rcMask(){
+    stopSpeech(); recBusy=false;   /* 清掉可能卡住的錄音鎖，確保這次一定能開始 */
     $('#rcRing').style.display='none';
     const canRec = JD.recSupported();
-    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>'+(autoRec&&canRec?'🎤 正在聽你背……':'按「開始背」，大聲背出來')+'<br><small style="color:var(--muted)">背完停一下自動打分；讀完也可點下面「我說完了」</small></div>';
+    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>'+(canRec?'🎤 正在聽你背……讀完點下面「我說完了」':'開口大聲背出來')+'<br><small style="color:var(--muted)">背完停一下也會自動打分</small></div>';
     $('#rcBtns').innerHTML='<button id="rcRecBtn" class="big-btn rec" onclick="rcRec()">🎙️ 開始背</button>'+
       '<button class="big-btn ghost" onclick="rcPeek()">😳 忘了，看一眼</button>';
-    if(autoRec) rcRec();
+    rcRec();
   }
   window.rcPeek = function(){ /* 看答案 = 本句計 0 分進錯題本 */
     const s = L.sentences[rc.i];
     $('#rcTarget').innerHTML = JD.esc(s.en);
     rcFinish(0, null);
   };
-  /* 不看直接背：點擊觸發＝手勢安全 → 蓋句＋自動錄音 */
-  window.rcDirect = function(){ clearInterval(rc.timer); rcMask(true); };
+  /* 不看直接背 → 蓋句＋自動錄音 */
+  window.rcDirect = function(){ clearInterval(rc.timer); rcMask(); };
   window.rcRec = function(){
     startRec($('#rcRecBtn'), L.sentences[rc.i], '#rcResult', '#rcHeard', acc=>rcFinish(acc,true));
   };
@@ -618,7 +619,8 @@
     const restart = ()=>startRec(btn, sent, resultSel, heardSel, onAcc);
     const rec = JD.listen((text, err)=>{
       recBusy = false;
-      if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次'; btn.onclick=restart; }
+      /* 沒起成錄音(權限/手勢/中斷)→按鈕回「開始背」讓用戶一點就重錄；有內容才叫「再試一次」 */
+      if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent=(err && !text)?'🎙️ 開始背':'🎙️ 再試一次'; btn.onclick=restart; }
       if(err && !text){
         const msg = err==='not-allowed' ? '麥克風權限被拒絕：請在 設定→Safari→麥克風 允許'
                   : err==='silence' ? '沒聽到聲音，再大聲一點試試'
