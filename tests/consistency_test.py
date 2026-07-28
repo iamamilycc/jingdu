@@ -85,6 +85,8 @@ def run():
               JD.listen=(cb)=>({ stop:()=>cb((%s)?'おはよう':'x', null), abort:()=>{} });
               JD.compare=(target)=>{ window._cmp=target; return {accuracy:90,tokens:[{w:'x',st:'ok'}]}; };
               JD.compareJP=(target)=>{ window._cmp=target; return {accuracy:90,tokens:[{w:'x',st:'ok'}]}; };
+              /* 日語背句/跟讀改走 compareJPReading(jp, 識別文字, map)；捕捉其比對的當前句(轉假名後與朗讀同形) */
+              JD.compareJPReading=(jp)=>{ window._cmp=(window.JDRuby?window.JDRuby.toKana(jp):jp); return {accuracy:90,tokens:[{w:'x',st:'ok'}]}; };
             """ % ('true' if lang == 'jp' else 'false'))
 
             # ---- 跟讀 speak ----

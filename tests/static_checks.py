@@ -86,6 +86,21 @@ def check_gate_enforced_on_action():
     nh = '\n'.join(read('new.html'))
     ck('new.html 生成流程檢查 newLessonBlockedBy', 'newLessonBlockedBy' in nh, '找不到門禁檢查')
 
+# ---- 規則7：振假名解析單一真源（漢字表別自寫貪婪正則，否則 key 被假名污染）----
+def check_furigana_single_source():
+    print('-- 規則7：collectKanjiMap 走 R.kanjiReadings，不自寫貪婪 [^[]]+ 振假名正則')
+    jp = '\n'.join(read('assets/lesson-jp.js'))
+    ck('collectKanjiMap 用 R.kanjiReadings', 'kanjiReadings' in jp, '找不到 kanjiReadings')
+    ck('不再有貪婪 [^\\[\\]]+ 漢字表正則', '[^\\[\\]]+\\[' not in jp, '仍有貪婪振假名正則(會污染漢字表key)')
+
+# ---- 規則8：說話人正則允許冒號前有空格（「サンス ：」也要拆）----
+def check_speaker_space_colon():
+    print('-- 規則8：speaker 正則允許冒號前空格（\\s*[：:]）')
+    for rel in ('assets/lesson.js', 'assets/lesson-jp.js', 'assets/generate.js'):
+        txt = '\n'.join(read(rel))
+        m = re.search(r'RE\s*=\s*/\^.*?\)\s*(\\s\*)?\[：:\]', txt)
+        ck('%s speaker 正則含 \\s*[：:]' % rel, bool(m and m.group(1)), '冒號前少了 \\s*（空格+冒號會漏拆）')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -93,6 +108,8 @@ def main():
     check_jp_nonjp_guard()
     check_levelbar_dots()
     check_gate_enforced_on_action()
+    check_furigana_single_source()
+    check_speaker_space_colon()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))

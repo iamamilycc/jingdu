@@ -107,7 +107,7 @@ ${schema}`;
   function sanitizeSpeakers(d, lang){
     const field = lang==='jp' ? 'jp' : 'en';
     /* CJK 名字要包含振假名括號 [] 和 々（日語對話人名常寫成「田中[たなか]：」，舊正則卡在括號前，名字沒被拆出來→跟讀/背句被迫連名字一起讀，準確率暴跌） */
-    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ\[\]々]{1,24})[：:]\s*/;
+    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ\[\]々]{1,24})\s*[：:]\s*/;
     (d.sentences||[]).forEach(s=>{
       const raw = s && s[field];
       if(typeof raw!=='string') return;

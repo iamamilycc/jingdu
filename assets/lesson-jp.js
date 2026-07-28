@@ -14,7 +14,7 @@
   /* 執行時防禦：舊版對話課可能把人名（含振假名「田中[たなか]：」）黏在句子開頭沒拆乾淨，
      導致人名顯示兩次、跟讀/背句目標含人名→識別準確率暴跌。這裡進頁時再掃一遍補救，不必重新生成。 */
   (function stripLeadingSpeakers(){
-    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ\[\]々]{1,24})[：:]\s*/;
+    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ\[\]々]{1,24})\s*[：:]\s*/;
     (L.sentences||[]).forEach(s=>{
       if(!s || typeof s.jp!=='string') return;
       const m = s.jp.match(RE);
@@ -30,17 +30,13 @@
         需要用戶在 iPad 實測後回饋準確率，不準的話可切換自評按鈕。 */
   const KANJI_MAP = {};
   function collectKanjiMap(text){
-    const re = /([^\[\]]+)\[([^\[\]]+)\]/g; let m;
-    while((m=re.exec(text))){ if(m[1].length>=1) KANJI_MAP[m[1]] = m[2]; }
+    /* 用 ruby.js 的單一真源解析（只吃緊貼括號前的漢字）；別自己另寫正則，
+       舊的貪婪 [^\[\]]+ 會把前面的假名吃進 key（「これからお世話」），映射就全錯了 */
+    (R.kanjiReadings ? R.kanjiReadings(text) : []).forEach(([k,v])=>{ if(k) KANJI_MAP[k] = v; });
   }
   L.sentences.forEach(s=>collectKanjiMap(s.jp||''));
   (L.vocab||[]).forEach(v=>{ collectKanjiMap(v.w||''); collectKanjiMap(v.eg||''); });
-  const KANJI_KEYS = Object.keys(KANJI_MAP).sort((a,b)=>b.length-a.length); /* 長的先換，避免子串誤替換 */
-  function normRecognized(text){
-    let t = text||'';
-    for(const k of KANJI_KEYS) t = t.split(k).join(KANJI_MAP[k]);
-    return t;
-  }
+  /* 漢字→假名的映射與取高分邏輯已收進 JD.compareJPReading(jp, 識別文字, KANJI_MAP)，這裡只負責建表 */
 
   window.switchTab = function(name){
     $$('.tab-btn').forEach(b=>b.classList.toggle('active', b.dataset.t===name));
@@ -158,14 +154,15 @@
   (function injectLtCloudBtn(){
     const pb=$('#ltPlayBtn'); if(!pb || !(window.JDTTS && JDTTS.enabled())) return;
     const btn=document.createElement('button'); btn.type='button'; btn.className='big-btn'; btn.id='ltCloudBtn';
-    const upd=()=>{ const on=ltCloudOn(); btn.textContent='☁️ 雲端聲：'+(on?'開':'關'); ltBtnState(btn,on); };
+    const upd=()=>{ const on=ltCloudOn(); btn.textContent='☁️ 雲端'; ltBtnState(btn,on); };
     btn.onclick=()=>{ localStorage.setItem('jingdu_lt_cloud', ltCloudOn()?'0':'1');
       localStorage.setItem('jingdu_updatedAt',String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule(); upd(); };
     upd(); pb.parentNode.appendChild(btn);
   })();
-  window.ltToggleSpeed=function(btn){ lt.slow=!lt.slow; btn.textContent='🐢 慢速：'+(lt.slow?'開':'關'); ltBtnState(btn,lt.slow); };
-  window.ltToggleBlind=function(btn){ lt.blind=!lt.blind; btn.textContent='🙈 盲聽：'+(lt.blind?'開':'關'); ltBtnState(btn,lt.blind); if(ltBox) ltBox.classList.toggle('blind', lt.blind); };
-  window.ltToggleLoop=function(btn){ lt.loop=!lt.loop; btn.textContent='🔁 循環：'+(lt.loop?'開':'關'); ltBtnState(btn,lt.loop); };
+  /* 標籤只留「圖示+兩字」，開/關靠顏色，控制列一排排完不佔正文 */
+  window.ltToggleSpeed=function(btn){ lt.slow=!lt.slow; btn.textContent='🐢 慢速'; ltBtnState(btn,lt.slow); };
+  window.ltToggleBlind=function(btn){ lt.blind=!lt.blind; btn.textContent='🙈 盲聽'; ltBtnState(btn,lt.blind); if(ltBox) ltBox.classList.toggle('blind', lt.blind); };
+  window.ltToggleLoop=function(btn){ lt.loop=!lt.loop; btn.textContent='🔁 循環'; ltBtnState(btn,lt.loop); };
 
   /* ========== 1 逐句精讀 ========== */
   const readBox=$('#readList');
@@ -600,7 +597,7 @@
         $(heardSel).textContent = '';
         return;
       }
-      const r = JD.compareJP(R.toKana(sent.jp), normRecognized(text));
+      const r = JD.compareJPReading(sent.jp, text, KANJI_MAP);
       $(resultSel).innerHTML =
         '<div class="result-words jp-text">'+r.tokens.map(t=>'<span class="rw '+({ok:'ok',miss:'miss',bad:'bad'}[t.st])+'">'+JD.esc(t.w)+'</span>').join('')+'</div>'+
         '<div class="acc-badge '+(r.accuracy>=JD.PASS?'good':'bad')+'">'+(r.accuracy>=JD.PASS?'🎉':'💪')+' 準確率 '+r.accuracy+'%</div>';

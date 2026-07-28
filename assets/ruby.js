@@ -17,5 +17,14 @@
   function toPlain(s){
     return String(s).replace(RE, function(_, base){ return base; });
   }
-  window.JDRuby = { toRubyHTML, toKana, toPlain };
+  /* 抽出所有「漢字→讀音」對照，供語音比對把識別回來的漢字換成假名。
+     ⚠️ 必須跟 toKana 用同一條 RE（只吃緊貼括號前的漢字），否則 key 會被前面的
+     假名污染（曾把「これからお世話[せわ]」整串當成 key，導致把識別文字整段替換錯、
+     念對也對不上）。這是本檔唯一的振假名解析真源，別在別處另寫一條正則。 */
+  function kanjiReadings(s){
+    const out = []; const re = new RegExp(RE.source, 'g'); let m;
+    while((m = re.exec(String(s)))){ out.push([m[1], m[2]]); }
+    return out;
+  }
+  window.JDRuby = { toRubyHTML, toKana, toPlain, kanjiReadings };
 })();

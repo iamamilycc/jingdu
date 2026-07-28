@@ -53,9 +53,9 @@ PAGE = """<!DOCTYPE html>
     <p class="hint">整篇課文連續朗讀，讀到哪句亮哪句。想練真聽力就開「盲聽」——文字會藏起來，只用耳朵！完整聽完一遍自動打勾。</p>
     <div class="card ctrl-sticky" style="text-align:center">
       <button id="ltPlayBtn" class="big-btn teal" onclick="ltPlay()">▶️ 播放全文</button>
-      <button class="big-btn ghost" onclick="ltToggleSpeed(this)">🐢 慢速：關</button>
-      <button class="big-btn ghost" onclick="ltToggleBlind(this)">🙈 盲聽：關</button>
-      <button class="big-btn ghost" onclick="ltToggleLoop(this)">🔁 循環：關</button>
+      <button class="big-btn ghost" onclick="ltToggleSpeed(this)">🐢 慢速</button>
+      <button class="big-btn ghost" onclick="ltToggleBlind(this)">🙈 盲聽</button>
+      <button class="big-btn ghost" onclick="ltToggleLoop(this)">🔁 循環</button>
     </div>
     <div class="card stitch" id="ltText"></div>
   </section>

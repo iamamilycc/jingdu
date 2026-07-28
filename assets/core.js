@@ -540,6 +540,27 @@
     const accuracy = n ? Math.round(match/n*100) : 0;
     return {accuracy, tokens};
   }
+  /* 日語跟讀/背句專用穩健比對：孩子念對就該給高分，不受「識別回漢字還是假名」影響。
+     問題根源：iOS 日語聽寫回傳的是漢字混寫(お世話)，但課文比對目標常是純假名讀音(おせわ)，
+     漢字≠假名逐字比→念對也扣分。做法=同時比兩種形，取最高分那一種：
+       ①假名形：目標 toKana(去漢字留讀音) vs 識別文字先用課文漢字表換成假名
+       ②漢字形：目標 toPlain(留漢字) vs 識別原文（識別回漢字時這條能對上）
+     kanjiMap 是該課所有振假名彙總的 {漢字:讀音}（由 R.kanjiReadings 建，key 不被假名污染）。 */
+  function compareJPReading(jp, spoken, kanjiMap){
+    const R = window.JDRuby;
+    const raw = spoken || '';
+    let mapped = raw;
+    if(kanjiMap){
+      const keys = Object.keys(kanjiMap).sort((a,b)=>b.length-a.length); /* 長的先換，避免子串誤替換 */
+      for(const k of keys){ if(k) mapped = mapped.split(k).join(kanjiMap[k]); }
+    }
+    const cands = [
+      compareJP(R ? R.toKana(jp) : jp, mapped),   /* 假名形 vs 漢字表映射後 */
+      compareJP(R ? R.toKana(jp) : jp, raw),       /* 假名形 vs 識別原文（識別本就回假名時） */
+      compareJP(R ? R.toPlain(jp) : jp, raw)       /* 漢字形 vs 識別原文（識別回漢字時靠這條對上） */
+    ];
+    return cands.reduce((best,c)=> c.accuracy>best.accuracy ? c : best);
+  }
 
   /* ---------- 小工具 ---------- */
   function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
@@ -556,7 +577,7 @@
                 dueItems, allItems, streak, daysMap, daysMapLang, langOf, touchDay,
                 parentHasPin, setParentPin, checkParentPin, getGate, setGate, getMkMin, setMkMin, newLessonBlockedBy,
                 touchSync, speak, systemSpeak, toPlaybackRoute, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
-                listen, recSupported, injectMicTip, compare, compareJP, kk2hh, esc, fmtDue,
+                listen, recSupported, injectMicTip, compare, compareJP, compareJPReading, kk2hh, esc, fmtDue,
                 lessonScore, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
                 celebrate, praiseKind, sfxEnabled, setSfx,
                 AVATARS, getAvatar, setAvatar, avatarHTML, getTargetMountain, setTargetMountain,

@@ -10,7 +10,7 @@
 
   /* 執行時防禦：舊對話課若把人名黏在句子開頭（Jack: ...）沒拆乾淨，跟讀/背句會被迫連名字讀。進頁再掃一遍補救。 */
   (function stripLeadingSpeakers(){
-    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ]{1,12})[：:]\s*/;
+    const RE = /^([A-Za-z][A-Za-z .'’-]{0,24}|[一-鿿぀-ヿＡ-Ｚ]{1,12})\s*[：:]\s*/;
     (L.sentences||[]).forEach(s=>{
       if(!s || typeof s.en!=='string') return;
       const m = s.en.match(RE);
@@ -133,7 +133,7 @@
   (function injectLtCloudBtn(){
     const pb=$('#ltPlayBtn'); if(!pb || !(window.JDTTS && JDTTS.enabled())) return;
     const btn=document.createElement('button'); btn.type='button'; btn.className='big-btn'; btn.id='ltCloudBtn';
-    const upd=()=>{ const on=ltCloudOn(); btn.textContent='☁️ 雲端聲：'+(on?'開':'關'); ltBtnState(btn,on); };
+    const upd=()=>{ const on=ltCloudOn(); btn.textContent='☁️ 雲端'; ltBtnState(btn,on); };
     btn.onclick=()=>{ localStorage.setItem('jingdu_lt_cloud', ltCloudOn()?'0':'1');
       localStorage.setItem('jingdu_updatedAt',String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule(); upd(); };
     upd(); pb.parentNode.appendChild(btn);
@@ -148,12 +148,14 @@
     box.parentNode.insertBefore(card, box.nextSibling);
   }
   window.ltToggleZh=function(btn){ const body=$('#ltZhBody'); const hide=body.style.display!=='none'; body.style.display=hide?'none':'block'; btn.textContent=hide?'顯示':'隱藏'; };
-  window.ltToggleSpeed = function(btn){ lt.slow=!lt.slow; btn.textContent='🐢 慢速：'+(lt.slow?'開':'關'); ltBtnState(btn,lt.slow); };
+  /* 標籤只留「圖示+兩字」，開/關狀態靠顏色(ltBtnState 切 mango/ghost)表示，
+     讓吸頂控制列一排就排完、把課文空間讓出來（用戶反映控制列佔正文） */
+  window.ltToggleSpeed = function(btn){ lt.slow=!lt.slow; btn.textContent='🐢 慢速'; ltBtnState(btn,lt.slow); };
   window.ltToggleBlind = function(btn){
-    lt.blind=!lt.blind; btn.textContent='🙈 盲聽：'+(lt.blind?'開':'關'); ltBtnState(btn,lt.blind);
+    lt.blind=!lt.blind; btn.textContent='🙈 盲聽'; ltBtnState(btn,lt.blind);
     if(ltBox) ltBox.classList.toggle('blind', lt.blind);
   };
-  window.ltToggleLoop = function(btn){ lt.loop=!lt.loop; btn.textContent='🔁 循環：'+(lt.loop?'開':'關'); ltBtnState(btn,lt.loop); };
+  window.ltToggleLoop = function(btn){ lt.loop=!lt.loop; btn.textContent='🔁 循環'; ltBtnState(btn,lt.loop); };
 
   /* ========== 1 逐句精讀 ========== */
   const readBox = $('#readList');
