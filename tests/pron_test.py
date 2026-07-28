@@ -148,8 +148,33 @@ def run():
         pg.evaluate("document.getElementById('rcRecBtn').click()"); pg.wait_for_timeout(300)
         after = pg.evaluate("Object.keys(JD.getBook()).length")
         ck('低分綜合分→錯題本多一條(進復盤)', after == before + 1, '%d→%d' % (before, after))
+        pg.close()
 
-        pg.close(); b.close()
+        # ---- 自建課(view.html)也要能用發音評估 + 生詞強化(和內建課同一引擎)----
+        print('-- 自建課(view.html)：發音評估依賴齊 + 生詞強化有渲染')
+        import json as _json
+        lesson = {"id":"u-t1","lang":"jp","title":"自建測試課","badge":"日語 · 自建",
+            "sentences":[{"jp":"これからお世話[せわ]になります","zh":"以後請多關照"},
+                         {"jp":"私[わたし]は学生[がくせい]です","zh":"我是學生"}],
+            "vocab":[{"w":"世話[せわ]","zh":"關照","pos":"名詞"},{"w":"学生[がくせい]","zh":"學生","pos":"名詞"}],
+            "listening":[],"grammar":[],"_meta":{"created":1}}
+        vp = b.new_page(viewport={'width':390,'height':820})
+        verrs=[]; vp.on('pageerror', lambda e: verrs.append(str(e)))
+        vp.goto('http://127.0.0.1:%d/jp/lessons/view.html?id=u-t1' % port)
+        vp.evaluate("(l)=>localStorage.setItem('jingdu_userlessons', JSON.stringify({'u-t1':l}))", lesson)
+        vp.reload(); vp.wait_for_timeout(1600)
+        v = vp.evaluate("""(()=>({
+            engine: typeof window.switchTab==='function',
+            pron: !!(window.JDPron && JDPron.assessBlob),
+            ruby: !!(window.JDRuby && JDRuby.toPlain),
+            drill: (document.getElementById('p-vocab')||{}).innerText? document.getElementById('p-vocab').innerText.indexOf('生詞強化')>=0 : false
+        }))""")
+        ck('自建課引擎載入', v['engine'])
+        ck('自建課 JDPron 發音評估可用', v['pron'])
+        ck('自建課 ruby.toPlain(日語參考文)可用', v['ruby'])
+        ck('自建課生詞強化練習有渲染(和內建同引擎)', v['drill'])
+        ck('自建課無 JS 錯誤', len(verrs) == 0, verrs[:2])
+        vp.close(); b.close()
 
     print('\n' + '=' * 40)
     if FAILS:
