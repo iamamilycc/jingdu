@@ -21,7 +21,6 @@
   <a class="today-card" id="todayStatus" href="review.html" style="display:none"></a>
   <a class="climb-banner" id="climbBanner" href="../mountain.html" style="display:none"></a>
   <a class="streak-chip" id="streakChip" href="../report.html"></a>
-  <a class="due-banner" id="dueBanner" href="review.html"></a>
   <div class="card" id="syncCard" style="display:none"></div>
 
   <a class="due-banner" id="addBanner" href="../new.html" style="background:var(--teal);color:#fff"><span class="n">➕</span><span>拍照 / 粘貼一段日語課文，AI 自動做成精讀頁</span></a>
@@ -36,7 +35,7 @@
   <div id="userLessonList"></div>
   <p class="hint" id="searchEmpty" style="display:none">沒有符合的課文，換個關鍵字試試？</p>
 </main>
-<footer class="site">日語加油！頑張って！ 🌱<br><span style="font-size:.78rem;opacity:.7">© 2026 iamamilycc · 虫虫精讀 jingdu · 保留一切權利</span></footer>
+<footer class="site">日語加油！頑張って！ 🌱<br><span style="font-size:.78rem;opacity:.7">© 2026 iamamilycc · 虫虫精讀 jingdu · 保留一切權利</span><br><span style="font-size:.78rem;opacity:.6">版本 2026.07.28</span></footer>
 
 <script src="../assets/core.js"></script>
 <script src="../assets/sync.js"></script>
@@ -52,28 +51,20 @@ const SEC_NAME = {listen:'聽全文',read:'逐句精讀',vocab:'生詞卡',gramm
 
 /* 今日學習流：到期復盤 → 第一個沒學完的課(直達環節) → 全完成才推新課。孩子零選擇。 */
 function firstUndone(id){ const p=JD.getProgress(id); return SECS_KEYS.find(k=>!p[k]); }
-function renderToday(){
-  const banner = document.getElementById('dueBanner');
-  banner.classList.remove('zero');
-  const due = JD.dueItems().length;
-  if(due>0){
-    banner.href='review.html';
-    banner.innerHTML='<span class="n">📅</span><span>今天的學習：先復盤 <b style="font-size:1.3rem">'+due+'</b> 句 —— 點我開始！</span>';
-    return;
-  }
+/* 算出「現在該做的下一步」（動作＋連結）。給合併後的今日卡用。 */
+function todayNextStep(){
+  const due = JD.dueItems().filter(it=>(it.lang||JD.langOf(it.lessonId))==='jp').length;
+  if(due>0) return { due:due, href:'review.html', act:'先復盤 <b>'+due+'</b> 句 —— 點我開始' };
   for(const l of LESSONS){
     const k=firstUndone(l.id);
-    if(k){ banner.href=l.href+'?tab='+k;
-      banner.innerHTML='<span class="n">▶️</span><span>今天的學習：繼續「'+JD.esc(l.title)+'」· '+SEC_NAME[k]+'</span>'; return; }
+    if(k) return { due:0, href:l.href+'?tab='+k, act:'繼續「'+JD.esc(l.title)+'」· '+SEC_NAME[k] };
   }
   const ul=Object.values(JDGen.allUserLessons()).filter(x=>x.lang==='jp').sort((a,b)=>(a._meta?a._meta.created:0)-(b._meta?b._meta.created:0));
   for(const l of ul){
     const k=firstUndone(l.id);
-    if(k){ banner.href='lessons/view.html?id='+encodeURIComponent(l.id)+'&tab='+k;
-      banner.innerHTML='<span class="n">▶️</span><span>今天的學習：繼續「'+JD.esc(l.title||'未命名')+'」· '+SEC_NAME[k]+'</span>'; return; }
+    if(k) return { due:0, href:'lessons/view.html?id='+encodeURIComponent(l.id)+'&tab='+k, act:'繼續「'+JD.esc(l.title||'未命名')+'」· '+SEC_NAME[k] };
   }
-  banner.classList.add('zero'); banner.href='../new.html';
-  banner.innerHTML='<span class="n">🌿</span><span>全部學完啦！拍照 / 粘貼課文，加一課新的吧</span>';
+  return { due:0, allDone:true, href:'../new.html', act:'拍照 / 粘貼課文，加一課新的' };
 }
 function scoreChip(id){
   const sc = JD.lessonScore(id);
@@ -145,20 +136,21 @@ function renderStreak(){
   el.innerHTML = st.todayDone ? '🔥 連續學習 <b>'+st.n+'</b> 天 · 看週報 →'
     : (st.n>0 ? '🌱 已連續 '+st.n+' 天，今天學一點就續上！ · 看週報 →' : '🌱 今天還沒開始學 · 看週報 →');
 }
-/* 今日完成狀態大卡（給家長一眼判斷）。本頁＝日語版，只看日語。三態同英語版 */
+/* 今日一張卡（合併原「狀態卡」＋「今天的學習」動作條，避免兩塊重複）。本頁＝日語版。 */
 function renderTodayStatus(){
   const el=document.getElementById('todayStatus'); if(!el) return;
   const d=new Date(), todayKey=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
   const studied=!!(JD.daysMapLang('jp')||{})[todayKey];
-  const due=JD.dueItems().filter(it=>(it.lang||JD.langOf(it.lessonId))==='jp').length;
-  el.style.display='flex'; el.classList.remove('done','partial','todo');
-  const dueHref=(document.getElementById('dueBanner')||{}).href||'review.html';
-  if(studied && due===0){ el.classList.add('done'); el.href='../report.html';
-    el.innerHTML='<span class="big">✅</span><span class="t"><b>今日日語 · 完成！</b><span class="sub">今天該學的都做完了，可以放心安排休息 🎉</span></span>'; }
-  else if(studied && due>0){ el.classList.add('partial'); el.href=dueHref;
-    el.innerHTML='<span class="big">🔶</span><span class="t"><b>今日日語 · 差一點</b><span class="sub">已經學了，但還有 <b>'+due+'</b> 句複習沒清 —— 點我去復盤</span></span>'; }
-  else { el.classList.add('todo'); el.href=dueHref;
-    el.innerHTML='<span class="big">⏳</span><span class="t"><b>今日日語 · 還沒完成</b><span class="sub">今天還沒開始學日語 —— 點我開始</span></span>'; }
+  const step=todayNextStep();
+  el.style.display='flex'; el.classList.remove('done','partial','todo'); el.href=step.href;
+  if(step.due>0){ el.classList.add('partial');
+    el.innerHTML='<span class="big">📅</span><span class="t"><b>今日日語 · 先復盤</b><span class="sub">'+step.act+'</span></span>'; }
+  else if(step.allDone){ el.classList.add('done');
+    el.innerHTML='<span class="big">✅</span><span class="t"><b>今日日語 · 全部學完！</b><span class="sub">太棒了，今天可以放心休息 🎉</span></span>'; }
+  else if(studied){ el.classList.add('done');
+    el.innerHTML='<span class="big">✅</span><span class="t"><b>今日日語 · 今天學過了！</b><span class="sub">還想再練就點：'+step.act+'</span></span>'; }
+  else { el.classList.add('todo');
+    el.innerHTML='<span class="big">▶️</span><span class="t"><b>今日日語 · 開始學習</b><span class="sub">'+step.act+'</span></span>'; }
 }
 /* 登山橫幅：爬向「你選的目標山」，與登山頁一致（原本顯示里程碑山，換目標不變） */
 function renderClimb(){
@@ -193,13 +185,12 @@ function applySearch(){
 document.getElementById('lessonSearch').addEventListener('input', applySearch);
 
 renderUserLessons();
-renderToday();
 renderTodayStatus();
 renderStreak();
 renderClimb();
 renderAddGate();
 refreshSearchVisibility();
-window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderToday(); renderTodayStatus(); renderStreak(); renderClimb(); renderAddGate(); refreshSearchVisibility(); };
+window.JDSYNC_ONRESTORE = function(){ renderUserLessons(); renderTodayStatus(); renderStreak(); renderClimb(); renderAddGate(); refreshSearchVisibility(); };
 </script>
 </body>
 </html>
