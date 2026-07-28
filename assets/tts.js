@@ -246,3 +246,98 @@
                  gapMode, setGapAuto, setAutoGap, autoGap,
                  ZHIPU_VOICES, GOOGLE_VOICES, AZURE_VOICES };
 })();
+
+/* ========== JDPron：Azure 發音評估（四維打分：準確度/流利度/完整度/語調） ==========
+   純前端 REST，複用 TTS 那把 Azure key+region（jingdu_az_key / jingdu_az_region）。
+   流程：錄一小段音（WAV 16k mono 16-bit）→ POST 到 Azure 語音轉文字端點 + Pronunciation-Assessment
+        標頭 → 回四維分數。opt-in（預設關）；沒開/沒 key/失敗 → 呼叫端自動退回原本 Web Speech 單分比對。
+   計費：走「語音轉文字」，F0 免費層每月 5 小時（家用估 1 小時出頭用不完，每月刷新）。首次真跑須對帳。
+   ⚠️ 參考文字由呼叫端傳「乾淨自然文」（英文=句子；日語=去振假名的漢字文 R.toPlain），JDPron 不碰 ruby。 */
+(function(){
+  'use strict';
+  const NS='jingdu_';
+  function ls(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  function lset(k,v){ try{ if(v==null) localStorage.removeItem(k); else localStorage.setItem(k,v); }catch(e){} }
+  function azKey(){ return (ls(NS+'az_key')||'').trim(); }
+  function azRegion(){ return (ls(NS+'az_region')||'').trim().toLowerCase(); }
+  function configured(){ return !!azKey() && !!azRegion(); }
+  function isOn(){ return ls(NS+'pron_on')==='1'; }
+  function setOn(v){ lset(NS+'pron_on', v?'1':'0'); try{ if(window.JD && JD.touchSync) JD.touchSync(); }catch(e){} }
+  function enabled(){ return configured() && isOn(); }
+  function supported(){ return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext||window.webkitAudioContext)); }
+
+  /* Float32 PCM（任意採樣率）→ 16k mono 平均降採樣 */
+  function downsample(buf, inRate, outRate){
+    if(!buf.length || outRate>=inRate) return buf;
+    const ratio=inRate/outRate, outLen=Math.round(buf.length/ratio), out=new Float32Array(outLen);
+    let oi=0, ii=0;
+    while(oi<outLen){ const next=Math.round((oi+1)*ratio); let s=0,c=0; for(let i=ii;i<next&&i<buf.length;i++){ s+=buf[i]; c++; } out[oi]=c?s/c:0; oi++; ii=next; }
+    return out;
+  }
+  /* Float32 → 16-bit PCM WAV Blob */
+  function encodeWav(f32, rate){
+    const len=f32.length, ab=new ArrayBuffer(44+len*2), v=new DataView(ab);
+    const wr=(o,s)=>{ for(let i=0;i<s.length;i++) v.setUint8(o+i, s.charCodeAt(i)); };
+    wr(0,'RIFF'); v.setUint32(4,36+len*2,true); wr(8,'WAVE'); wr(12,'fmt '); v.setUint32(16,16,true);
+    v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,rate,true); v.setUint32(28,rate*2,true);
+    v.setUint16(32,2,true); v.setUint16(34,16,true); wr(36,'data'); v.setUint32(40,len*2,true);
+    let o=44; for(let i=0;i<len;i++){ let x=Math.max(-1,Math.min(1,f32[i])); v.setInt16(o, x<0?x*0x8000:x*0x7FFF, true); o+=2; }
+    return new Blob([ab], {type:'audio/wav'});
+  }
+  /* UTF-8 安全 base64（參考文字含日文，btoa 不能直接吃）*/
+  function b64utf8(str){ return btoa(unescape(encodeURIComponent(String(str)))); }
+
+  /* 把錄好的 WAV 送 Azure 評分。回 {accuracy,fluency,completeness,prosody,pron,text}（分數 0-100）。 */
+  async function assessBlob(wavBlob, referenceText, lang){
+    const region=azRegion(), key=azKey();
+    if(!region||!key) throw new Error('no-key');
+    const locale = (lang && String(lang).indexOf('ja')===0) || lang==='jp' ? 'ja-JP' : 'en-US';
+    const cfg = { ReferenceText:String(referenceText||''), GradingSystem:'HundredMark', Granularity:'FullText', Dimension:'Comprehensive', EnableProsodyAssessment:true };
+    const ep='https://'+region+'.stt.speech.microsoft.com/speech/recognition/conversation/cognitiveservices/v1?language='+locale;
+    const resp=await fetch(ep, { method:'POST', headers:{
+      'Ocp-Apim-Subscription-Key': key,
+      'Content-Type': 'audio/wav; codecs=audio/pcm; samplerate=16000',
+      'Pronunciation-Assessment': b64utf8(JSON.stringify(cfg)),
+      'Accept': 'application/json'
+    }, body: wavBlob });
+    if(!resp.ok) throw new Error('azure-'+resp.status);
+    const j = await resp.json();
+    const nb = j && j.NBest && j.NBest[0];
+    const pa = nb && nb.PronunciationAssessment;
+    if(!pa) throw new Error('no-speech');   /* RecognitionStatus 非 Success / 沒說話 */
+    const R0 = x => Math.max(0, Math.min(100, Math.round(x||0)));
+    return {
+      accuracy: R0(pa.AccuracyScore), fluency: R0(pa.FluencyScore),
+      completeness: R0(pa.CompletenessScore), prosody: R0(pa.ProsodyScore),
+      pron: R0(pa.PronScore!=null?pa.PronScore:pa.PronunciationScore),
+      text: (j.DisplayText || nb.Display || nb.Lexical || '')
+    };
+  }
+
+  /* 開始錄音。回 { stop:()=>Promise<scores>, cancel:()=>void }。呼叫端在「我說完了」時 await stop()。 */
+  async function start(referenceText, lang){
+    if(!supported()) throw new Error('no-capture');
+    try{ if(navigator.audioSession) navigator.audioSession.type='play-and-record'; }catch(e){}  /* iOS：開麥克風路由 */
+    const stream = await navigator.mediaDevices.getUserMedia({audio:true});
+    const AC = window.AudioContext||window.webkitAudioContext; const ctx = new AC();
+    try{ await ctx.resume(); }catch(e){}
+    const srcNode = ctx.createMediaStreamSource(stream);
+    const proc = ctx.createScriptProcessor(4096,1,1);
+    const mute = ctx.createGain(); mute.gain.value=0;   /* 靜音出口，避免把麥克風回放到喇叭 */
+    const chunks=[]; let stopped=false;
+    proc.onaudioprocess = e=>{ if(!stopped) chunks.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
+    srcNode.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
+    const inRate = ctx.sampleRate;
+    const cleanup=()=>{ stopped=true; try{proc.disconnect();}catch(e){} try{srcNode.disconnect();}catch(e){} try{stream.getTracks().forEach(t=>t.stop());}catch(e){} try{ctx.close();}catch(e){} };
+    async function stop(){
+      cleanup();
+      let total=0; chunks.forEach(c=>total+=c.length);
+      const merged=new Float32Array(total); let off=0; chunks.forEach(c=>{ merged.set(c,off); off+=c.length; });
+      const wav = encodeWav(downsample(merged, inRate, 16000), 16000);
+      return assessBlob(wav, referenceText, lang);
+    }
+    return { stop, cancel: cleanup };
+  }
+
+  window.JDPron = { configured, enabled, on:isOn, setOn, supported, start, assessBlob, _wav:encodeWav };
+})();

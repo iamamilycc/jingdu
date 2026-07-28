@@ -530,9 +530,11 @@
     stopSpeech();
     $('#rcRing').style.display='none';
     const canRec = JD.recSupported();
-    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>'+(canRec?'🎤 正在聽你背……讀完點下面「我說完了」':'開口大聲背出來')+'<br><small style="color:var(--muted)">背完停一下也會自動打分</small></div>';
+    /* 發音評估模式要點按鈕才開麥（getUserMedia 需手勢），不能像 Web Speech 那樣自動起錄 */
+    const pron = !!(window.JDPron && JDPron.enabled() && JDPron.supported());
+    $('#rcTarget').innerHTML='<div class="mask-box">🙈 句子蓋住了！<br>'+(pron?'點下面「開始背」開麥克風，念完點「我說完了」':(canRec?'🎤 正在聽你背……讀完點下面「我說完了」':'開口大聲背出來'))+'<br><small style="color:var(--muted)">'+(pron?'發音評估：會上傳一小段錄音打四維分':'背完停一下也會自動打分')+'</small></div>';
     $('#rcBtns').innerHTML='<button id="rcRecBtn" class="big-btn rec" onclick="rcRec()">🎙️ 開始背</button><button class="big-btn ghost" onclick="rcPeek()">😳 忘了，看一眼</button>';
-    rcRec();
+    if(!pron) rcRec();   /* 非評估模式：倒數完自動起錄；評估模式：等使用者點「開始背」 */
   }
   window.rcPeek=function(){ const s=L.sentences[rc.i]; $('#rcTarget').innerHTML='<span class="jp-target jp-text">'+R.toRubyHTML(JD.esc(s.jp))+'</span>'; rcFinish(0,null); };
   /* 不看直接背 → 蓋句＋自動錄音 */
@@ -555,8 +557,42 @@
   rc.i = resume('recite', L.sentences.length);
   rcRender('idle');
 
-  /* ========== 共用：錄音 + 比對展示（用 JD.compareJP，語音 ja-JP） ========== */
-  function startRec(btn, sent, resultSel, heardSel, onAcc){
+  /* ========== 發音評估（Azure 四維：準確/流利/完整/語調）——opt-in，沒開/失敗自動退回下方 Web Speech ========== */
+  function renderPronScores(resultSel, heardSel, sc){
+    const bar=(lb,val)=>{ const col=val>=JD.PASS?'var(--green)':val>=60?'var(--mango)':'var(--coral)';
+      return '<div class="pron-row"><span class="pron-lb">'+lb+'</span><span class="pron-track"><span class="pron-fill" style="width:'+val+'%;background:'+col+'"></span></span><span class="pron-num">'+val+'</span></div>'; };
+    $(resultSel).innerHTML='<div class="pron-bars">'+bar('準確度',sc.accuracy)+bar('流利度',sc.fluency)+bar('完整度',sc.completeness)+bar('語調',sc.prosody)+'</div>'+
+      '<div class="acc-badge '+(sc.pron>=JD.PASS?'good':'bad')+'">'+(sc.pron>=JD.PASS?'🎉':'💪')+' 綜合發音 '+sc.pron+' 分</div>';
+    if(heardSel) $(heardSel).textContent = sc.text ? ('你說的是：'+sc.text) : '';
+  }
+  /* 一鍵制：按下即開麥（此函式須由使用者點擊觸發，getUserMedia 要手勢）；ctl 就緒後鈕變「我說完了」，再點=停止上傳評分 */
+  function startRecPron(btn, sent, resultSel, heardSel, onAcc){
+    const refText = R.toPlain(sent.jp);   /* 日語參考文＝去振假名的漢字自然文 */
+    $(resultSel).innerHTML='<div class="acc-badge">🎤 開麥克風中…允許後開口念，念完點「我說完了」</div>';
+    if(heardSel) $(heardSel).textContent='';
+    let ctl=null, ended=false;
+    if(btn){ btn.disabled=true; btn.classList.add('listening'); btn.textContent='⏳ 開麥克風…'; }
+    JDPron.start(refText,'ja').then(c=>{ ctl=c; if(btn){ btn.disabled=false; btn.textContent='✅ 我說完了（上傳打分）'; } })
+      .catch(err=>{ if(btn){ btn.classList.remove('listening'); } startRec(btn, sent, resultSel, heardSel, onAcc, true); });
+    if(btn) btn.onclick=async ()=>{
+      if(ended || !ctl) return;
+      ended=true; btn.disabled=true; btn.classList.remove('listening'); btn.textContent='⏳ 評分中…';
+      try{
+        const sc=await ctl.stop();
+        renderPronScores(resultSel, heardSel, sc);
+        onAcc(sc.pron);
+        btn.disabled=false; btn.textContent='🎙️ 再試一次'; btn.onclick=()=>startRecPron(btn,sent,resultSel,heardSel,onAcc);
+      }catch(e){
+        $(resultSel).innerHTML='<div class="acc-badge bad">發音評估暫時不可用（'+JD.esc(e.message||e)+'）。改用普通打分：</div>';
+        btn.disabled=false; btn.textContent='🎙️ 再試一次'; btn.onclick=()=>startRec(btn, sent, resultSel, heardSel, onAcc, true);
+      }
+    };
+  }
+  /* ========== 共用：錄音 + 比對展示（Web Speech；skipPron=true 時強制不走 Azure，供退回用） ========== */
+  function startRec(btn, sent, resultSel, heardSel, onAcc, skipPron){
+    if(!skipPron && window.JDPron && JDPron.enabled() && JDPron.supported()){
+      return startRecPron(btn, sent, resultSel, heardSel, onAcc);
+    }
     if(!JD.recSupported()){
       $(resultSel).innerHTML='<p style="margin-bottom:8px">此設備不支援語音識別。改用自評：</p>'+
         '<button class="big-btn teal" onclick="this.parentNode._ok(100)">✅ 我背對了</button>'+

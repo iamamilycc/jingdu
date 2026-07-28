@@ -65,6 +65,15 @@
     </div>
   </div>
 
+  <div class="card" id="pronCard" style="border-left:5px solid var(--mango)">
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <span style="font-family:var(--font-head);font-weight:600">🎯 發音評估（四維打分）</span>
+      <span class="hint" style="margin:0;flex:1;min-width:170px">跟讀／背句改用 <b>Azure 發音評估</b>，給「準確度・流利度・完整度・語調」四個分數（比單一準確率更專業）。要<b>上傳一小段錄音</b>到微軟評分，用上面同一把 Azure 密鑰。走語音轉文字，每月 5 小時免費，家用用不完。</span>
+      <button id="pronToggle" class="big-btn ghost" style="padding:9px 18px;margin:0" onclick="togglePron()"></button>
+    </div>
+    <div id="pronMsg" class="hint" style="margin-top:8px"></div>
+  </div>
+
   <div class="card" id="ltCloudCard" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
     <span style="font-family:var(--font-head);font-weight:600">📖 聽全文也用雲端語音</span>
     <span class="hint" style="margin:0;flex:1;min-width:160px">整篇朗讀也用雲端母語聲（預設開，要先開上面的雲端語音）。課文頁播放列也有「☁️ 雲端聲」快速開關。若某台設備出問題就關掉，會退回系統聲。</span>
@@ -264,7 +273,7 @@ window.saveAzure=function(){
   JDTTS.setAzureRegion(region);
   if(k) k.value='';
   if(!JDTTS.azureKey()){ cmsg('還沒填密鑰','var(--coral)'); return; }
-  cmsg('✅ Azure 密鑰+區域已存。按 ▶️ 試聽確認','var(--teal-deep)'); markSync(); renderCloud();
+  cmsg('✅ Azure 密鑰+區域已存。按 ▶️ 試聽確認','var(--teal-deep)'); markSync(); renderCloud(); if(typeof renderPron==='function') renderPron();
 };
 function renderCloud(){
   const t=$('#cloudToggle'); if(!t || !window.JDTTS) return;
@@ -302,6 +311,25 @@ window.toggleLtCloud=function(){
   renderLtCloud();
 };
 renderLtCloud();
+
+/* 🎯 發音評估開關（Azure 四維打分），共用 Azure 密鑰 */
+function renderPron(){
+  const btn=document.getElementById('pronToggle'); if(!btn) return;
+  const hasKey = !!(window.JDTTS && JDTTS.azureKey() && JDTTS.azureRegion());
+  const on = hasKey && window.JDPron && JDPron.on();
+  btn.textContent = on?'✅ 已開啟':'開啟';
+  btn.classList.toggle('teal',on); btn.classList.toggle('ghost',!on);
+  const msg=document.getElementById('pronMsg'); if(!msg) return;
+  if(!hasKey) msg.innerHTML='⚠️ 要先在上面「☁️ 雲端真人語音」填好 Azure 密鑰＋區域並按「存」，這裡才能開。';
+  else if(on) msg.innerHTML='已開：跟讀／背句會上傳一小段錄音給 Azure 打四維分（準確／流利／完整／語調）。<b>第一次用完，建議去 Azure 後台看一眼扣費</b>（家用估免費）。';
+  else msg.innerHTML='';
+}
+window.togglePron=function(){
+  if(!(window.JDTTS && JDTTS.azureKey() && JDTTS.azureRegion())){ renderPron(); return; }
+  if(window.JDPron) JDPron.setOn(!JDPron.on());
+  markSync(); renderPron();
+};
+renderPron();
 
 /* 📏 聽全文句間停頓滑桿（即時生效） */
 function gapManualVal(){ const x=parseInt(localStorage.getItem('jingdu_lt_gap'),10); return (x>=0&&x<=800)?x:260; }

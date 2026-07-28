@@ -251,6 +251,13 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 
 /* 比對結果 */
 .result-words{font-size:1.15rem;font-weight:700;line-height:2;display:flex;flex-wrap:wrap;gap:2px 8px;justify-content:center}
+/* 發音評估四維分數條（準確/流利/完整/語調）*/
+.pron-bars{margin:6px 0 10px;display:flex;flex-direction:column;gap:7px}
+.pron-row{display:flex;align-items:center;gap:9px}
+.pron-lb{flex:none;width:3.6em;font-family:var(--font-head);font-weight:600;font-size:.9rem;color:var(--ink)}
+.pron-track{flex:1 1 auto;min-width:0;height:11px;border-radius:6px;background:var(--line);overflow:hidden}
+.pron-fill{display:block;height:100%;border-radius:6px;transition:width .5s ease}
+.pron-num{flex:none;width:2.2em;text-align:right;font-family:var(--font-head);font-weight:700;font-size:.92rem}
 .rw{padding:1px 6px;border-radius:8px}
 .rw.ok{color:var(--green);background:var(--green-soft)}
 .rw.bad{color:var(--coral);background:var(--coral-soft);text-decoration:line-through}
