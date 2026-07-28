@@ -574,13 +574,28 @@
         const msg = err==='not-allowed' ? '麥克風權限被拒絕：請在 設定→Safari→麥克風 允許'
                   : err==='silence' ? '沒聽到聲音，再大聲一點試試'
                   : err==='timeout' ? '等了好久沒聽清，再按一次試試'
-                  : err==='language-not-supported' ? '這台設備的 Safari 目前不支援日語語音識別'
+                  : err==='language-not-supported' ? '這台設備的 Safari 目前不支援日語語音識別（沒開日語聽寫）'
                   : '日語語音識別出錯（'+err+'）';
         $(resultSel).innerHTML='<div class="acc-badge bad">'+msg+'</div>'+
-          '<p style="margin:10px 0 6px;font-size:.88rem;color:var(--muted)">聽完自己判斷背得對不對：</p>'+
+          '<p style="margin:10px 0 6px;font-size:.88rem;color:var(--muted)">👉 <a href="../../jp-mic-test.html" style="color:var(--teal-deep)">點這裡做語音診斷</a>；聽完先自己判斷背得對不對：</p>'+
           '<button class="big-btn teal" onclick="this.parentNode._ok(100)">✅ 我背對了</button>'+
           '<button class="big-btn ghost" onclick="this.parentNode._ok(0)">❌ 沒背對</button>';
         $(resultSel)._ok = onAcc;
+        return;
+      }
+      /* 設備沒開「日語聽寫」時，識別引擎常不報錯、卻用別的語言(英文/中文)硬聽日語→回傳一串非日文亂碼。
+         此時比對必然 0 分、還顯示「你說的是：某英文」，非常誤導。偵測到「識別結果完全不含日文字」就攔下，
+         不判 0，給明確指引 + 自評，讓孩子能繼續。 */
+      if(text && !/[぀-ヿ一-鿿]/.test(text)){
+        $(resultSel).innerHTML =
+          '<div class="acc-badge bad">識別到的不是日文（聽成了「'+JD.esc(text)+'」）</div>'+
+          '<p style="margin:10px 0 6px;font-size:.86rem;color:var(--muted)">多半是這台設備<b>沒開「日語聽寫」</b>，系統把日語當成別的語言聽了。開啟方法：<br>'+
+          '<b>設定 → 通用 → 鍵盤 → 鍵盤 → 加入「日文」鍵盤</b>，並確認<b>「啟用聽寫」</b>已開。開好重開本頁再試。<br>'+
+          '👉 <a href="../../jp-mic-test.html" style="color:var(--teal-deep)">點這裡做語音診斷</a>（看設備到底能不能聽日語）<br>暫時先自己判斷背得對不對：</p>'+
+          '<button class="big-btn teal" onclick="this.parentNode._ok(100)">✅ 我背對了</button>'+
+          '<button class="big-btn ghost" onclick="this.parentNode._ok(0)">❌ 沒背對</button>';
+        $(resultSel)._ok = onAcc;
+        $(heardSel).textContent = '';
         return;
       }
       const r = JD.compareJP(R.toKana(sent.jp), normRecognized(text));

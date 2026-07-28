@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>日語語音識別診斷</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  .wrap{max-width:640px;margin:0 auto;padding:6px 4px 60px}
+  .log{background:#111;color:#9fe;font-family:ui-monospace,monospace;font-size:.82rem;border-radius:12px;
+    padding:12px;margin-top:12px;white-space:pre-wrap;word-break:break-all;min-height:120px;line-height:1.5}
+  .big{font-size:1.15rem}
+  .k{color:#ffd479}
+  .ok{color:#7bed9f}.bad{color:#ff7b7b}
+</style>
+</head>
+<body>
+<header class="site"><div class="row">
+  <a href="jp/index.html">← 日語版</a>
+  <h1>日語語音識別診斷</h1>
+</div></header>
+<main>
+<div class="wrap">
+  <p class="hint">用來測「這台設備能不能做日語語音識別」。<b>請用 Safari 開，並先按一次下面的按鈕、對著麥克風念一句日語</b>（例如「おはよう ございます」）。下面會把識別到的原文、是不是日文、報什麼錯，全部原樣顯示。</p>
+  <div style="text-align:center;margin:14px 0">
+    <button class="big-btn rec big" id="micBtn" onclick="startTest()">🎤 開始測（念一句日語）</button>
+  </div>
+  <div class="log" id="log">（結果會顯示在這裡）</div>
+
+  <h2 class="sec" style="margin-top:22px">看不到日文 / 聽成英文？這樣開日語聽寫：</h2>
+  <ol class="hint" style="line-height:1.8">
+    <li>iPhone/iPad：<b>設定 → 通用 → 鍵盤 → 鍵盤 → 加入新鍵盤 → 日文</b></li>
+    <li>回到 <b>設定 → 通用 → 鍵盤</b>，確認 <b>「啟用聽寫」</b> 已打開</li>
+    <li><b>完全關閉 Safari 再重開</b>本頁，重新測一次</li>
+    <li>若還是不行：這台設備/系統版本可能不支援日語聽寫，背句就用「自評」按鈕（我背對了／沒背對）</li>
+  </ol>
+</div>
+</main>
+<script>
+var $=function(s){return document.querySelector(s);};
+var logEl=$('#log');
+function line(html){ logEl.innerHTML += html + '\n'; }
+function clear(){ logEl.innerHTML=''; }
+function hasJP(t){ return /[぀-ヿ一-鿿]/.test(t||''); }
+function startTest(){
+  clear();
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  line('1) 瀏覽器支援 SpeechRecognition：' + (SR ? '<span class="ok">是 ✅</span>' : '<span class="bad">否 ❌（這台設備/瀏覽器不支援，背句只能用自評）</span>'));
+  if(!SR) return;
+  var r = new SR();
+  r.lang='ja-JP'; r.interimResults=true; r.maxAlternatives=3; r.continuous=false;
+  line('2) 已要求語言：<span class="k">ja-JP（日語）</span>');
+  line('3) 請現在念一句日語…');
+  var btn=$('#micBtn'); btn.textContent='👂 正在聽…（念完停一下）'; btn.disabled=true;
+  var got='';
+  r.onstart=function(){ line('   → 已開始收音（onstart）'); };
+  r.onresult=function(e){
+    var fin='', intr='';
+    for(var i=0;i<e.results.length;i++){
+      var res=e.results[i];
+      if(res.isFinal){ for(var a=0;a<res.length;a++){ if(res[a].transcript.length>fin.length) fin=res[a].transcript; } }
+      else intr+=res[0].transcript;
+    }
+    if(intr) line('   臨時識別：<span class="k">'+intr+'</span>');
+    if(fin){ got=fin; }
+  };
+  r.onerror=function(e){
+    line('4) <span class="bad">出錯（onerror）：'+e.error+'</span>');
+    if(e.error==='language-not-supported') line('   → 這台設備沒有日語聽寫，請照下面步驟開啟。');
+    if(e.error==='not-allowed') line('   → 麥克風權限被拒：設定→Safari→麥克風 允許。');
+  };
+  r.onend=function(){
+    btn.textContent='🎤 再測一次'; btn.disabled=false;
+    line('5) 收音結束（onend）');
+    var t=got.trim();
+    if(!t){ line('   識別結果：<span class="bad">（空，沒聽到內容）</span>'); return; }
+    line('6) 最終識別原文：<span class="k big">'+t+'</span>');
+    line('7) 這串是不是日文（含平/片假名或漢字）：' + (hasJP(t)
+      ? '<span class="ok">是日文 ✅ —— 你的日語識別正常！背句應該能打分了。</span>'
+      : '<span class="bad">不是日文 ❌ —— 系統把日語聽成了別的語言（多半沒開日語聽寫），照下面步驟開啟後重試。</span>'));
+  };
+  try{ r.start(); }catch(err){ line('<span class="bad">啟動失敗：'+err+'</span>'); btn.textContent='🎤 再測一次'; btn.disabled=false; }
+}
+</script>
+</body>
+</html>
