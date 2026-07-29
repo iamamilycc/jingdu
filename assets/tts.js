@@ -305,17 +305,25 @@
     if(!resp.ok){ let t=''; try{ t=await resp.text(); }catch(e){} throw new Error('azure-'+resp.status+(t?(' '+t.slice(0,120)):'')); }
     const j = await resp.json();
     const nb = j && j.NBest && j.NBest[0];
-    const pa = nb && nb.PronunciationAssessment;
-    if(!pa){
+    /* ⚠️ REST v1 短音訊端點把分數「平鋪」在 NBest[0]（NBest[0].AccuracyScore/FluencyScore/CompletenessScore/PronScore）；
+       有些版本/SDK 放在 NBest[0].PronunciationAssessment 巢狀物件。兩處都認，優先有值的那個。 */
+    const pa = (nb && nb.PronunciationAssessment) || {};
+    const pick = (a, b) => a!=null ? a : b;
+    const acc  = nb ? pick(pa.AccuracyScore,     nb.AccuracyScore)     : null;
+    const flu  = nb ? pick(pa.FluencyScore,      nb.FluencyScore)      : null;
+    const comp = nb ? pick(pa.CompletenessScore, nb.CompletenessScore) : null;
+    const pros = nb ? pick(pa.ProsodyScore,      nb.ProsodyScore)      : null;   /* REST v1 可能不回語調 */
+    const prn  = nb ? pick(pick(pa.PronScore, pa.PronunciationScore), pick(nb.PronScore, nb.PronunciationScore)) : null;
+    if(!nb || (acc==null && prn==null)){
       /* 把 Azure 實際狀態帶出來，方便真機定位：InitialSilenceTimeout=沒收到聲音(錄音問題)；NoMatch=有聲但沒聽懂 */
-      const st = j && (j.RecognitionStatus || (j.NBest ? 'NoAssessment' : 'NoNBest'));
+      const st = j && (j.RecognitionStatus || (j.NBest ? 'NoScores' : 'NoNBest'));
       throw new Error('no-speech['+(st||'?')+(j&&j.DisplayText?':'+j.DisplayText:'')+']');
     }
     const R0 = x => Math.max(0, Math.min(100, Math.round(x||0)));
     return {
-      accuracy: R0(pa.AccuracyScore), fluency: R0(pa.FluencyScore),
-      completeness: R0(pa.CompletenessScore), prosody: R0(pa.ProsodyScore),
-      pron: R0(pa.PronScore!=null?pa.PronScore:pa.PronunciationScore),
+      accuracy: R0(acc), fluency: R0(flu), completeness: R0(comp),
+      prosody: R0(pros), hasProsody: (pros!=null),   /* 語調缺(REST v1不回)時前端不顯示那條 */
+      pron: R0(prn!=null ? prn : acc),
       text: (j.DisplayText || nb.Display || nb.Lexical || '')
     };
   }

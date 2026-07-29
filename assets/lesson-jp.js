@@ -561,7 +561,7 @@
   function renderPronScores(resultSel, heardSel, sc){
     const bar=(lb,val)=>{ const col=val>=JD.PASS?'var(--green)':val>=60?'var(--mango)':'var(--coral)';
       return '<div class="pron-row"><span class="pron-lb">'+lb+'</span><span class="pron-track"><span class="pron-fill" style="width:'+val+'%;background:'+col+'"></span></span><span class="pron-num">'+val+'</span></div>'; };
-    $(resultSel).innerHTML='<div class="pron-bars">'+bar('準確度',sc.accuracy)+bar('流利度',sc.fluency)+bar('完整度',sc.completeness)+bar('語調',sc.prosody)+'</div>'+
+    $(resultSel).innerHTML='<div class="pron-bars">'+bar('準確度',sc.accuracy)+bar('流利度',sc.fluency)+bar('完整度',sc.completeness)+(sc.hasProsody?bar('語調',sc.prosody):'')+'</div>'+
       '<div class="acc-badge '+(sc.pron>=JD.PASS?'good':'bad')+'">'+(sc.pron>=JD.PASS?'🎉':'💪')+' 綜合發音 '+sc.pron+' 分</div>';
     if(heardSel) $(heardSel).textContent = sc.text ? ('你說的是：'+sc.text) : '';
   }

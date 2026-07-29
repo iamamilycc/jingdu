@@ -93,13 +93,29 @@ def run():
         ck('總分 pron88', sc['pron'] == 88, sc)
         ck('識別文字回傳', sc['text'] == 'これからお世話になります', sc)
 
+        # ---- ⚠️真實 REST v1 格式：分數平鋪在 NBest[0]（非巢狀 PronunciationAssessment），且常無 ProsodyScore ----
+        print('-- 平鋪格式解析（REST v1 真實回應：NBest[0].AccuracyScore 直接、無語調）')
+        pg.evaluate("""window.fetch = async ()=>({ ok:true, status:200, json:async()=>({
+            RecognitionStatus:'Success', DisplayText:'hello world',
+            NBest:[{ Confidence:0.9, Lexical:'hello world', Display:'hello world',
+                     AccuracyScore:90, FluencyScore:88, CompletenessScore:100, PronScore:91 }] }) });""")
+        flat = pg.evaluate("JDPron.assessBlob(new Blob(['x'],{type:'audio/wav'}), 'hello world', 'en')")
+        ck('平鋪：準確90(讀 NBest[0].AccuracyScore)', flat['accuracy'] == 90, flat)
+        ck('平鋪：流利88', flat['fluency'] == 88, flat)
+        ck('平鋪：完整100', flat['completeness'] == 100, flat)
+        ck('平鋪：總分91', flat['pron'] == 91, flat)
+        ck('無語調→hasProsody=false(前端不顯示語調條)', flat['hasProsody'] == False, flat)
+
         # ---- 英語走 en-US ----
         print('-- 英語 assessBlob：language=en-US')
-        pg.evaluate("window.__req=null")
+        pg.evaluate("""window.__req=null;
+            window.fetch = async (u,o)=>{ o=o||{}; if(String(u).indexOf('stt.speech')>=0){
+                window.__req={url:String(u)}; return { ok:true, status:200, json:async()=> (%s) }; }
+                return { ok:false, status:404, json:async()=>({}) }; };""" % json.dumps(CANNED))
         pg.evaluate("JDPron.assessBlob(new Blob(['x'],{type:'audio/wav'}), 'Hello world', 'en')")
         pg.wait_for_timeout(100)
         req2 = pg.evaluate("window.__req")
-        ck('英語 language=en-US', 'language=en-US' in req2['url'], req2['url'])
+        ck('英語 language=en-US', req2 is not None and 'language=en-US' in req2['url'], req2)
 
         # ---- Azure 回錯（4xx）→ 丟錯讓呼叫端退回 ----
         print('-- Azure 失敗 → 丟錯（呼叫端好退回 Web Speech）')
@@ -120,7 +136,7 @@ def run():
           localStorage.setItem('jingdu_az_key','k'); localStorage.setItem('jingdu_az_region','eastasia');
           JDPron.setOn(true);
           JDPron.supported=()=>true;
-          JDPron.start=async()=>({ stop: async()=>({accuracy:91,fluency:82,completeness:100,prosody:75,pron:86,text:'テスト'}), cancel:()=>{} });
+          JDPron.start=async()=>({ stop: async()=>({accuracy:91,fluency:82,completeness:100,prosody:75,hasProsody:true,pron:86,text:'テスト'}), cancel:()=>{} });
         """)
         ck('enabled() true', pg.evaluate("JDPron.enabled()") == True)
         pg.evaluate("switchTab('recite'); rcRender2()"); pg.wait_for_timeout(150)
@@ -146,7 +162,7 @@ def run():
 
         # 低分要進復盤(錯題本)：綜合分 50<85 → 該句加進 errbook
         print('-- 閉環：綜合分低於 85 → 進復盤錯題本')
-        pg.evaluate("JDPron.start=async()=>({ stop: async()=>({accuracy:40,fluency:30,completeness:60,prosody:20,pron:50,text:'x'}), cancel:()=>{} });")
+        pg.evaluate("JDPron.start=async()=>({ stop: async()=>({accuracy:40,fluency:30,completeness:60,prosody:20,hasProsody:true,pron:50,text:'x'}), cancel:()=>{} });")
         before = pg.evaluate("Object.keys(JD.getBook()).length")
         pg.evaluate("rcNav(1)"); pg.wait_for_timeout(120)          # 換下一句
         pg.evaluate("rcStart()"); pg.wait_for_timeout(120); pg.evaluate("rcSkipPeek()"); pg.wait_for_timeout(150)
