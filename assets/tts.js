@@ -264,7 +264,7 @@
   function isOn(){ return ls(NS+'pron_on')==='1'; }
   function setOn(v){ lset(NS+'pron_on', v?'1':'0'); try{ if(window.JD && JD.touchSync) JD.touchSync(); }catch(e){} }
   function enabled(){ return configured() && isOn(); }
-  function supported(){ return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && (window.AudioContext||window.webkitAudioContext)); }
+  function supported(){ return !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder && (window.AudioContext||window.webkitAudioContext)); }
 
   /* Float32 PCM（任意採樣率）→ 16k mono 平均降採樣 */
   function downsample(buf, inRate, outRate){
@@ -320,33 +320,44 @@
     };
   }
 
-  /* 開始錄音。回 { stop:()=>Promise<scores>, cancel:()=>void }。呼叫端在「我說完了」時 await stop()。 */
+  /* AudioBuffer(解碼後的 PCM) → 16k mono WAV。取第一聲道，任意採樣率降到 16k。 */
+  async function bufToWav16k(arrayBuf){
+    const AC = window.AudioContext||window.webkitAudioContext; const ctx = new AC();
+    let audio;
+    try{ audio = await ctx.decodeAudioData(arrayBuf); }
+    finally{ try{ ctx.close(); }catch(e){} }
+    const ch0 = audio.getChannelData(0);
+    return { wav: encodeWav(downsample(ch0, audio.sampleRate, 16000), 16000), secs: audio.duration };
+  }
+
+  /* 開始錄音。回 { stop:()=>Promise<scores>, cancel:()=>void }。呼叫端在「我說完了」時 await stop()。
+     ⚠️ 用 MediaRecorder 錄音（iOS 可靠）——不用 ScriptProcessorNode（iOS 上常回傳靜音，會讓 Azure
+     收到空音訊回 InitialSilenceTimeout）。錄到的壓縮音(iOS=mp4/aac)用 decodeAudioData 解回 PCM 再轉 WAV。 */
   async function start(referenceText, lang){
     if(!supported()) throw new Error('no-capture');
     try{ if(navigator.audioSession) navigator.audioSession.type='play-and-record'; }catch(e){}  /* iOS：開麥克風路由 */
-    /* ⚠️ iOS：AudioContext 必須在「使用者手勢的同步階段」建立+resume，否則會停在 suspended、
-       onaudioprocess 不觸發→錄到空音訊→Azure 回 no-speech。故先建 ctx，再 await getUserMedia。 */
-    const AC = window.AudioContext||window.webkitAudioContext; const ctx = new AC();
-    try{ await ctx.resume(); }catch(e){}
     const stream = await navigator.mediaDevices.getUserMedia({audio:true});
-    try{ await ctx.resume(); }catch(e){}   /* 拿到麥克風後再確保一次 running */
-    const srcNode = ctx.createMediaStreamSource(stream);
-    const proc = ctx.createScriptProcessor(4096,1,1);
-    const mute = ctx.createGain(); mute.gain.value=0;   /* 靜音出口，避免把麥克風回放到喇叭 */
-    const chunks=[]; let stopped=false;
-    proc.onaudioprocess = e=>{ if(!stopped) chunks.push(new Float32Array(e.inputBuffer.getChannelData(0))); };
-    srcNode.connect(proc); proc.connect(mute); mute.connect(ctx.destination);
-    const inRate = ctx.sampleRate;
-    const cleanup=()=>{ stopped=true; try{proc.disconnect();}catch(e){} try{srcNode.disconnect();}catch(e){} try{stream.getTracks().forEach(t=>t.stop());}catch(e){} try{ctx.close();}catch(e){} };
+    let rec;
+    try{ rec = new MediaRecorder(stream); }
+    catch(e){ try{ stream.getTracks().forEach(t=>t.stop()); }catch(_){}; throw new Error('no-recorder'); }
+    const parts=[];
+    rec.ondataavailable = e=>{ if(e.data && e.data.size) parts.push(e.data); };
+    try{ rec.start(); }catch(e){ try{ stream.getTracks().forEach(t=>t.stop()); }catch(_){}; throw new Error('rec-start'); }
+    const killStream = ()=>{ try{ stream.getTracks().forEach(t=>t.stop()); }catch(e){} };
+    const cleanup = ()=>{ try{ if(rec.state!=='inactive') rec.stop(); }catch(e){} killStream(); };
     async function stop(){
-      cleanup();
-      let total=0; chunks.forEach(c=>total+=c.length);
-      /* 空音訊守衛：沒錄到聲音(iOS context 掛起/麥克風沒開)就別送 Azure，直接給明確錯，方便定位 */
-      const secs = total / (inRate||16000);
-      if(total===0 || secs < 0.25) throw new Error('empty-audio('+secs.toFixed(2)+'s)');
-      const merged=new Float32Array(total); let off=0; chunks.forEach(c=>{ merged.set(c,off); off+=c.length; });
-      const wav = encodeWav(downsample(merged, inRate, 16000), 16000);
-      return assessBlob(wav, referenceText, lang);
+      const blob = await new Promise((res)=>{
+        rec.onstop = ()=>res(new Blob(parts, { type: (rec.mimeType||parts[0]&&parts[0].type||'audio/mp4') }));
+        try{ rec.stop(); }catch(e){ res(new Blob(parts)); }
+      });
+      killStream();
+      if(!blob || blob.size < 200) throw new Error('empty-audio(0.00s·錄不到聲)');
+      const arr = await blob.arrayBuffer();
+      let out;
+      try{ out = await bufToWav16k(arr); }
+      catch(e){ throw new Error('decode-fail·'+(e && e.message || e)); }
+      if(!out.wav || out.secs < 0.25) throw new Error('empty-audio('+(out.secs||0).toFixed(2)+'s)');
+      return assessBlob(out.wav, referenceText, lang);
     }
     return { stop, cancel: cleanup };
   }

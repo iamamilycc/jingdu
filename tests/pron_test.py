@@ -42,7 +42,8 @@ def run():
     port = free_port(); serve(port); time.sleep(0.4)
     url = 'http://127.0.0.1:%d/jp/lessons/jp-01.html' % port
     with sync_playwright() as p:
-        b = p.chromium.launch()
+        # fake media = 假麥克風(產生一個音調)，讓 MediaRecorder 真的錄到東西、可測捕獲→解碼→WAV 路徑
+        b = p.chromium.launch(args=['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'])
         pg = b.new_page()
         pg.goto(url); pg.wait_for_timeout(900)
 
@@ -154,6 +155,29 @@ def run():
         after = pg.evaluate("Object.keys(JD.getBook()).length")
         ck('低分綜合分→錯題本多一條(進復盤)', after == before + 1, '%d→%d' % (before, after))
         pg.close()
+
+        # ---- 真捕獲路徑：MediaRecorder→decodeAudioData→WAV 非空（假麥克風，不碰 Azure）----
+        print('-- 真捕獲：MediaRecorder 錄音→解碼→WAV 非空(修 iOS 靜音根因)')
+        cp = b.new_page()
+        cp.goto(url); cp.wait_for_timeout(800)
+        cp.evaluate("""(()=>{ window.__wavSize=-1;
+            localStorage.setItem('jingdu_az_key','k'); localStorage.setItem('jingdu_az_region','eastasia');
+            // mock fetch：assessBlob 內部會 POST WAV → 捕捉 body(WAV Blob) 大小，回一份合法 NBest
+            window.fetch = async (u,o)=>{ o=o||{}; if(String(u).indexOf('stt.speech')>=0){
+                window.__wavSize = (o.body && o.body.size)||0;
+                return { ok:true, status:200, json:async()=>({DisplayText:'x',NBest:[{PronunciationAssessment:{AccuracyScore:80,FluencyScore:80,CompletenessScore:80,ProsodyScore:80,PronScore:80}}]}) };
+            } return { ok:false, status:404, json:async()=>({}) }; };
+        })()""")
+        cap = cp.evaluate("""(async()=>{
+            if(!JDPron.supported()) return {sup:false};
+            let ctl; try{ ctl = await JDPron.start('hello world','en'); }catch(e){ return {sup:true, startErr:String(e.message||e)}; }
+            await new Promise(r=>setTimeout(r, 700));   // 錄 0.7 秒假音
+            try{ await ctl.stop(); }catch(e){ return {sup:true, stopErr:String(e.message||e), wav:window.__wavSize}; }
+            return {sup:true, wav:window.__wavSize};
+        })()""")
+        ck('supported()（有 MediaRecorder）', cap.get('sup') == True, cap)
+        ck('錄到非空 WAV（>2KB，證明真收到音訊非靜音）', isinstance(cap.get('wav'), (int, float)) and cap.get('wav', 0) > 2000, cap)
+        cp.close()
 
         # ---- 自建課(view.html)也要能用發音評估 + 生詞強化(和內建課同一引擎)----
         print('-- 自建課(view.html)：發音評估依賴齊 + 生詞強化有渲染')
