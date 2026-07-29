@@ -595,3 +595,14 @@
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', run); else run();
 })();
+
+/* 手機鍵盤彈出蓋住輸入框：全站通用修法，捕捉任何 input/textarea 的 focus，
+   等鍵盤彈出動畫跑完(iOS 約需 300ms)再把它捲到畫面中間。用 capture 階段
+   (focus 不冒泡)，一次涵蓋造句／生詞強化／生詞拼寫／未來任何新輸入框，不用逐處加。 */
+(function keepInputVisibleOnFocus(){
+  document.addEventListener('focus', function(e){
+    var t = e.target;
+    if(!t || (t.tagName!=='INPUT' && t.tagName!=='TEXTAREA')) return;
+    setTimeout(function(){ try{ t.scrollIntoView({block:'center', behavior:'smooth'}); }catch(err){} }, 320);
+  }, true);
+})();

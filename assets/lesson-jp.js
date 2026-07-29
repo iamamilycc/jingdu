@@ -336,8 +336,7 @@
       const right=bd.results.filter(Boolean).length;
       box.innerHTML='<div class="stage"><div style="font-size:2.4rem">🧩</div>'+
         '<div class="acc-badge '+(right>=bdItems.length*0.8?'good':'bad')+'">排對 '+right+' / '+bdItems.length+' 句</div>'+
-        '<div style="margin-top:10px"><button class="big-btn ghost" onclick="bdNav(-1)">← 上一句</button>'+
-        '<button class="big-btn ghost" onclick="bdRestart()">再玩一遍</button></div></div>';
+        '<div style="margin-top:10px"><button class="big-btn ghost" onclick="bdRestart()">再玩一遍</button></div></div>';
       return;
     }
     const it=bdItems[bd.i];
@@ -350,9 +349,7 @@
         '<button class="big-btn mango" onclick="bdCheck()">✓ 檢查</button>'+
         '<button class="big-btn ghost" onclick="bdReset()">↺ 清空</button>'+
         '<button class="big-btn ghost" onclick="bdReveal()">看答案</button></div>'+
-      '<div id="bdFb" style="margin-top:12px">'+(fb||'')+'</div>'+
-      '<div style="margin-top:8px">'+(bd.i>0?'<button class="big-btn ghost" onclick="bdNav(-1)">← 上一句</button>':'')+
-        '<button class="big-btn ghost" onclick="bdNav(1)">下一句 →</button></div></div>';
+      '<div id="bdFb" style="margin-top:12px">'+(fb||'')+'</div></div>';
   }
   window.bdPlace=function(cid){ const k=bd.pool.findIndex(c=>c.cid===cid); if(k<0)return; bd.placed.push(bd.pool[k]); bd.pool.splice(k,1); bdRender(); };
   window.bdUnplace=function(cid){ const k=bd.placed.findIndex(c=>c.cid===cid); if(k<0)return; bd.pool.push(bd.placed[k]); bd.placed.splice(k,1); bdRender(); };
@@ -505,8 +502,7 @@
         (mode==='auto'?'<span class="hint" style="margin:6px 0 0;display:block">自動：這句約 '+sec+' 秒（依句子長短調整）</span>':'')+'</div>';
       btns.innerHTML=seg+
         '<button class="big-btn mango" onclick="rcStart()">👀 開始看題（'+sec+' 秒）</button>'+
-        '<button class="big-btn ghost" onclick="rcDirect()">🎤 不看，直接背</button>'+
-        '<div><button class="big-btn ghost" onclick="rcNav(-1)">上一句</button><button class="big-btn ghost" onclick="rcNav(1)">下一句</button></div>';
+        '<button class="big-btn ghost" onclick="rcDirect()">🎤 不看，直接背</button>';
       $('#rcResult').innerHTML=''; $('#rcHeard').textContent='';
     }
   }
@@ -737,6 +733,7 @@
     }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
   };
   window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=false; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };  /* 跳過沒檢查=不算造對 */
+  window.mkPrev=function(){ mk.i = Math.max(mk.i-1, 0); mkRender(); };
   mk.i = resume('make', mkWords.length);
   mkRender();
 
@@ -850,6 +847,19 @@
              : '<span class="hint" style="margin:0">🎉 已經是最後一課，回目錄看看有沒有新課吧</span>');
   }
   renderLessonNav();
+
+  /* 上一句/下一句：固定放在各環節「進度點」正下方，不論做到哪個階段位置都不變，不用往下滑找。
+     跟讀(speak)的上一句/下一句改放「聽一遍」兩側，不用這個。 */
+  function injectSecNav(pillsSel, prevCall, nextCall){
+    const p = $(pillsSel); if(!p || p.nextElementSibling && p.nextElementSibling.classList.contains('sec-nav')) return;
+    const nav = document.createElement('div');
+    nav.className = 'sec-nav';
+    nav.innerHTML = '<button class="big-btn ghost" onclick="'+prevCall+'">← 上一句</button><button class="big-btn ghost" onclick="'+nextCall+'">下一句 →</button>';
+    p.insertAdjacentElement('afterend', nav);
+  }
+  injectSecNav('#rcPills', 'rcNav(-1)', 'rcNav(1)');
+  injectSecNav('#bdPills', 'bdNav(-1)', 'bdNav(1)');
+  injectSecNav('#mkPills', 'mkPrev()', 'mkNext()');
 
   /* ?tab= 深連結：今日學習流可直達某環節 */
   const t0 = new URLSearchParams(location.search).get('tab');

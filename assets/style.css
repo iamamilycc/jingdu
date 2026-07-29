@@ -270,6 +270,9 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .acc-badge.bad{background:var(--coral-soft);color:var(--coral)}
 .heard{color:var(--muted);font-size:.85rem;margin-top:8px}
 .progress-pills{display:flex;gap:5px;justify-content:center;flex-wrap:wrap;margin-bottom:14px}
+/* 各環節上一句/下一句：固定在進度點正下方，不管做到哪個階段位置都不變，不用往下滑找 */
+.sec-nav{display:flex;gap:8px;justify-content:center;margin:-4px 0 14px}
+.sec-nav .big-btn{flex:1;max-width:150px;padding:8px 10px;font-size:.86rem}
 .pill{width:26px;height:10px;border-radius:6px;background:var(--line);transition:.2s}
 .pill.now{background:var(--mango)}
 .pill.ok{background:var(--green)}

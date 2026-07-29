@@ -85,17 +85,17 @@ PAGE = """<!DOCTYPE html>
     <div class="progress-pills" id="spkPills"></div>
     <div class="stage">
       <div class="target" id="spkTarget"></div>
-      <div style="margin-top:10px">
+      <div style="margin-top:10px" class="sec-nav">
+        <button class="big-btn ghost" onclick="spkNext(-1)">← 上一句</button>
         <button class="big-btn teal" onclick="spkPlay()">🔊 聽一遍</button>
+        <button class="big-btn ghost" onclick="spkNext(1)">下一句 →</button>
+      </div>
+      <div style="margin-top:8px">
         <button class="big-btn mango" onclick="spkPlaySlow()">🐢 慢速</button>
         <button id="spkRecBtn" class="big-btn rec" onclick="spkRec()">🎙️ 跟讀</button>
       </div>
       <div id="spkResult" style="margin-top:14px"></div>
       <div class="heard" id="spkHeard"></div>
-      <div style="margin-top:10px">
-        <button class="big-btn ghost" onclick="spkNext(-1)">← 上一句</button>
-        <button class="big-btn ghost" onclick="spkNext(1)">下一句 →</button>
-      </div>
     </div>
   </section>
 
