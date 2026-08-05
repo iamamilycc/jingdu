@@ -70,6 +70,7 @@
     const p = getProgress(lessonId); if(p[sec]) return p;
     p[sec] = true; save('prog_'+lessonId, p);
     touchDay(langOf(lessonId));
+    touchDaily(lessonId, sec);   /* 記入今日快照：這課今天新完成了 sec 環節 */
     return p;
   }
 
@@ -84,6 +85,7 @@
     if(cur.done===nd && cur.n===(n|0) && (cur.score||0)===ns) return;  /* 沒變化就不寫，省同步 */
     m[sec] = { done: nd, n: n|0, score: ns };
     save('secpos_'+lessonId, m);
+    touchDaily(lessonId, null);   /* 記入今日快照：這課今天有活動，刷新完整度/得分 */
   }
   /* 續做索引：第一個還沒做的項（夾在 0..n-1） */
   function resumeIdx(lessonId, sec, n){
@@ -106,6 +108,31 @@
       completion: n? Math.round(done/n*100) : 0,
       accuracy: done? Math.round(score/done*100) : 0 };
   }
+
+  /* ---------- 每日快照（給家長「日報」用）----------
+     每次環節完成(markDone)或得分更新(setSecPos)時，記一份「今天這課的狀態」：
+       daily = { 'YYYY-MM-DD': { lessonId: { secs:[今天完成的環節], completion, accuracy, done, n, lang } } }
+     ⚠️ 完整度/得分是「截至那天為止的累積值」(secpos 本就只有累積態，無法回溯每天增量)；
+        secs 是「那天新打勾完成的環節」，精確。舊資料無此記錄，日報只從本功能上線起有。
+     保留最近 120 天，超期自動清理，避免 localStorage 無限膨脹。 */
+  function pruneDaily(all){
+    const keys = Object.keys(all); if(keys.length<=120) return;
+    keys.sort(); while(keys.length>120){ delete all[keys.shift()]; }
+  }
+  function touchDaily(lessonId, sec){
+    try{
+      const all = load('daily', {});
+      const dk = dstr(new Date());
+      const day = all[dk] || (all[dk]={});
+      const rec = day[lessonId] || (day[lessonId]={ secs:[], lang:langOf(lessonId) });
+      if(sec && rec.secs.indexOf(sec)<0) rec.secs.push(sec);
+      const sc = lessonScore(lessonId);
+      rec.completion = sc.completion; rec.accuracy = sc.accuracy; rec.done = sc.done; rec.n = sc.n;
+      pruneDaily(all);
+      save('daily', all);
+    }catch(e){}
+  }
+  function getDailyLog(){ return load('daily', {}); }
 
   /* ---------- 爬山：累計全站答對題數 → 海拔（每答對1題=10米，同一題最好那次封頂在題數=只記一次，已防刷）→ 對應山峰 ---------- */
   const METERS_PER_CORRECT = 10;
@@ -635,7 +662,7 @@
                 parentHasPin, setParentPin, checkParentPin, getGate, setGate, getMkMin, setMkMin, newLessonBlockedBy,
                 touchSync, speak, systemSpeak, toPlaybackRoute, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
                 listen, recSupported, injectMicTip, compare, compareJP, compareJPReading, kk2hh, esc, fmtDue,
-                lessonScore, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
+                lessonScore, getDailyLog, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
                 celebrate, praiseKind, sfxEnabled, setSfx,
                 AVATARS, getAvatar, setAvatar, avatarHTML, getTargetMountain, setTargetMountain,
                 PASS:85 };

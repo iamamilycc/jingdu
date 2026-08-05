@@ -32,6 +32,7 @@
       <button data-v="jp">🎌 日語</button>
     </div>
     <div class="seg" id="periodSeg">
+      <button data-v="day">日報</button>
       <button data-v="week" class="on">週報</button>
       <button data-v="month">月報</button>
       <button data-v="year">年報</button>
@@ -46,7 +47,7 @@
     <p class="hint" style="margin:10px 0 0" id="volHint"></p>
   </div>
 
-  <h2 class="sec">課程進度</h2>
+  <h2 class="sec" id="lessonsTitle">課程進度</h2>
   <div id="rpLessons"></div>
 
   <h2 class="sec">復盤與錯題</h2>
@@ -67,7 +68,8 @@
 const $=s=>document.querySelector(s);
 function dstr(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
-let LANG='en', PERIOD='week';
+let LANG='en', PERIOD='week', DAY=dstr(new Date());
+const SEC_NAME={listen:'聽全文',read:'逐句',vocab:'生詞卡',grammar:'語法',build:'連詞',speak:'跟讀',quiz:'聽力題',recite:'背句',make:'造句'};
 
 function lessonName(id){
   let m;
@@ -111,7 +113,55 @@ function summary(){
   return {activeDays, actions};
 }
 
+/* 日報：某一天完成了哪些課的哪些環節、完整度、得分 */
+function renderDaily(){
+  const langName = LANG==='en'?'英語':'日語';
+  $('#volTitle').textContent = '📅 每日完成 · '+langName;
+  $('#lessonsTitle').style.display='none'; $('#rpLessons').style.display='none';
+  $('#rpStreak').style.display='none';
+  const log = JD.getDailyLog(), day = log[DAY] || {};
+  const ids = Object.keys(day).filter(id => (day[id].lang||JD.langOf(id))===LANG);
+  /* 日期導航：◀ 前一天 · 日期 · 後一天 ▶（不能超過今天） */
+  const isToday = DAY===dstr(new Date());
+  const dObj = new Date(DAY+'T00:00:00');
+  const wd = ['日','一','二','三','四','五','六'][dObj.getDay()];
+  const nav = '<div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:14px">'+
+    '<button class="big-btn ghost" style="padding:8px 14px;margin:0" onclick="dayStep(-1)">◀ 前一天</button>'+
+    '<span style="font-family:var(--font-head);font-weight:600;font-size:1.05rem">'+DAY+'（週'+wd+'）'+(isToday?' · 今天':'')+'</span>'+
+    '<button class="big-btn ghost" style="padding:8px 14px;margin:0'+(isToday?';opacity:.4;pointer-events:none':'')+'" onclick="dayStep(1)">後一天 ▶</button></div>';
+  let body;
+  if(!ids.length){
+    body = '<div class="card empty">這一天沒有'+langName+'學習紀錄'+(isToday?'（今天還沒開始學）':'')+'。<br><span class="hint">提示：日報從加入這個功能後才開始記，之前的日期沒有明細。</span></div>';
+  }else{
+    body = ids.map(id=>{
+      const r=day[id];
+      const secs=(r.secs||[]).map(s=>SEC_NAME[s]||s);
+      const doneAll = r.n && r.done>=r.n;
+      const accCol = r.accuracy>=85?'var(--teal-deep)':r.accuracy>=60?'var(--mango)':'var(--coral)';
+      return '<div class="card" style="padding:14px 16px">'+
+        '<div style="font-family:var(--font-head);font-weight:600;font-size:1.02rem">'+JD.esc(lessonName(id))+'</div>'+
+        '<div style="margin:8px 0;display:flex;gap:18px;flex-wrap:wrap;font-family:var(--font-head)">'+
+          '<span>完整度 <b style="color:'+(r.completion>=100?'var(--teal-deep)':'var(--ink)')+'">'+(r.completion||0)+'%</b>'+(doneAll?' ✅':'')+'</span>'+
+          '<span>得分 <b style="color:'+accCol+'">'+(r.accuracy||0)+'</b> 分</span>'+
+        '</div>'+
+        '<div class="hint" style="margin:0">今天做了：'+(secs.length?secs.map(s=>'<span style="display:inline-block;background:var(--green-soft);color:var(--teal-deep);border-radius:8px;padding:2px 8px;margin:2px 4px 2px 0;font-size:.85rem">'+JD.esc(s)+'</span>').join(''):'（練了但沒完成新環節）')+'</div>'+
+        '</div>';
+    }).join('');
+  }
+  $('#rpBars').outerHTML='<div id="rpBars">'+nav+body+'</div>';  /* 用 outerHTML 換掉柱狀容器內容（含 .rp-bars 樣式） */
+  $('#volHint').textContent = '完整度＝這課 6 個計分環節做了幾成（截至當天累積）；得分＝做過的裡答對幾成。“今天做了”是當天新完成的環節。';
+}
+function dayStep(delta){
+  const d=new Date(DAY+'T00:00:00'); d.setDate(d.getDate()+delta);
+  const nk=dstr(d); if(nk>dstr(new Date())) return;  /* 不能看未來 */
+  DAY=nk; render();
+}
+
 function render(){
+  if(PERIOD==='day'){ renderDaily(); return; }
+  /* 非日報：還原被日報隱藏/改寫的元素 */
+  $('#lessonsTitle').style.display=''; $('#rpLessons').style.display=''; $('#rpStreak').style.display='';
+  if(!document.querySelector('#rpBars.rp-bars')){ const b=$('#rpBars'); if(b){ b.className='rp-bars'; } }
   const langName = LANG==='en'?'英語':'日語';
   const perName = PERIOD==='week'?'近 7 天':PERIOD==='month'?'本月':'今年';
 
