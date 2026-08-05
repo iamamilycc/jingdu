@@ -103,6 +103,59 @@ def run():
         ck('清該課錯題', res['errGone'], res)
         ck('別課的錯題保留(不誤傷)', res['otherErrKept'], res)
 
+        # ---- 單詞課：isWordList 偵測 + fromText 分流 + 生成失敗兜底 ----
+        print('-- 單詞課：偵測詞表 / 走單詞課 prompt / 生成失敗自動兜底')
+        wl = pg.evaluate("""(()=>({
+            multiline: JDGen.isWordList('apple\\nbanana\\ncat\\norange'),
+            comma: JDGen.isWordList('apple, banana, cat, orange'),
+            withZh: JDGen.isWordList('apple 蘋果\\nbanana 香蕉\\ncat 貓'),
+            sentence: JDGen.isWordList('The boy went to the theatre last week.'),
+            twoSent: JDGen.isWordList('I like apples. She likes bananas too.'),
+            oneLineNoPunct: JDGen.isWordList('I have a red book')
+        }))""")
+        ck('多行詞表→是詞表', wl['multiline'] == True, wl)
+        ck('逗號詞表→是詞表', wl['comma'] == True, wl)
+        ck('帶中文注釋詞表→是詞表', wl['withZh'] == True, wl)
+        ck('正常句子→不是詞表', wl['sentence'] == False, wl)
+        ck('多句課文→不是詞表', wl['twoSent'] == False, wl)
+        ck('單行漏標點句→保守判非詞表(靠兜底)', wl['oneLineNoPunct'] == False, wl)
+
+        # fromText 分流：mock fetch 捕捉送出的 system prompt
+        good = ('{"title":"水果單詞 Fruits","level":1,'
+                '"sentences":[{"en":"I like apples.","zh":"我喜歡蘋果。","ana":"用 like 表達喜歡。"}],'
+                '"vocab":[{"w":"apple","ipa":"/ˈæpl/","pos":"n.","zh":"蘋果","eg":"I like apples."}],'
+                '"listening":[],"grammar":[]}')
+        empty = '{"title":"x","level":1,"sentences":[],"vocab":[],"listening":[],"grammar":[]}'
+        pg.evaluate("JDGen.setKey('k')")
+        # 詞表輸入 → 應走 wordsSystemPrompt（system 含「單詞精讀課」）
+        pg.evaluate("""window.__sys=[]; window.fetch=async(u,o)=>{
+            if(!o||!o.body) return { ok:true, status:200, json:async()=>({}) };
+            const b=JSON.parse(o.body); if(!b.messages) return {ok:true,status:200,json:async()=>({})};
+            window.__sys.push(b.messages[0].content);
+            return { ok:true, status:200, json:async()=>({choices:[{message:{content: %s }}]}) }; };""" % ('`'+good+'`'))
+        pg.evaluate("(async()=>{ try{ await JDGen.fromText('en','apple\\nbanana\\ncat', ()=>{}); }catch(e){ window.__err=String(e); } })()")
+        pg.wait_for_timeout(400)
+        sys1 = pg.evaluate("window.__sys")
+        ck('詞表輸入→走單詞課 prompt', any('單詞精讀課' in s for s in sys1), sys1)
+
+        # 兜底：正常句輸入但第一次生成「沒有句子」→ 自動改走單詞課重試
+        pg.evaluate("""window.__sys=[]; window.__n=0;
+            const goodJ=%s, emptyJ=%s;
+            window.fetch=async(u,o)=>{ if(!o||!o.body) return {ok:true,status:200,json:async()=>({})};
+              const b=JSON.parse(o.body); if(!b.messages) return {ok:true,status:200,json:async()=>({})};
+              window.__sys.push(b.messages[0].content); window.__n++;
+              const c = (window.__n===1) ? emptyJ : goodJ;   // 第一次回空(沒句子)，第二次回好
+              return { ok:true, status:200, json:async()=>({choices:[{message:{content:c}}]}) }; };"""
+            % ('`'+good+'`', '`'+empty+'`'))
+        # 'random blah' 不是詞表→第一次走正常 prompt(回空拋「沒有句子」)→自動兜底改走單詞課重試
+        pg.evaluate("""(async()=>{ try{ const d=await JDGen.fromText('en','random blah', ()=>{}); window.__r2={ok:true,title:d.title}; }catch(e){ window.__r2={ok:false,err:String(e)}; } })()""")
+        pg.wait_for_timeout(600)
+        sys2 = pg.evaluate("window.__sys")
+        r2 = pg.evaluate("window.__r2")
+        ck('兜底：第一次走正常 prompt', len(sys2) >= 2 and '精讀老師，為小學生製作' in sys2[0], sys2[:1])
+        ck('兜底：沒句子→第二次改走單詞課 prompt', len(sys2) >= 2 and '單詞精讀課' in sys2[1], sys2[1:2])
+        ck('兜底：最終成功回傳課(有 title)', r2 and r2.get('ok') == True, r2)
+
         pg.close(); b.close()
 
     print('\n' + '=' * 40)

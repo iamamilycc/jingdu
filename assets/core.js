@@ -480,9 +480,50 @@
 
   /* ---------- 逐詞比對（LCS 對齊） ----------
      返回 {accuracy, tokens:[{w,st}]} st: ok|miss|bad（bad=多說/說錯的詞插在對應位置） */
+  /* ---------- 語義歸一：把「意思相同、寫法不同」折成統一形 ----------
+     根治「題目 twenty、孩子念對、識別引擎回 20，字面不同被判錯」這類事故。
+     覆蓋：數字詞↔阿拉伯數字、序數、&↔and、%↔percent、無歧義高頻縮寫(Mr/Dr)。 */
+  const NUM_ONES={zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,
+    ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19};
+  const NUM_TENS={twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+  const NUM_ORD={first:1,second:2,third:3,fifth:5,eighth:8,ninth:9,twelfth:12};  /* 不規則序數 */
+  const ABBR={mr:'mister',dr:'doctor'};  /* 無歧義高頻縮寫；mrs/st 發音亂或有歧義，不做 */
+  function wordNumVal(w){
+    if(/^\d+$/.test(w)) return parseInt(w,10);
+    const m=w.match(/^(\d+)(st|nd|rd|th)$/); if(m) return parseInt(m[1],10);  /* 1st,21st */
+    if(w in NUM_ONES) return NUM_ONES[w];
+    if(w in NUM_TENS) return NUM_TENS[w];
+    if(w in NUM_ORD) return NUM_ORD[w];
+    if(/th$/.test(w)){  /* 規則序數：fourth→four、twentieth→twenty */
+      const base=w.replace(/ieth$/,'y').replace(/th$/,'');
+      if(base in NUM_ONES) return NUM_ONES[base];
+      if(base in NUM_TENS) return NUM_TENS[base];
+    }
+    return null;
+  }
+  /* 把連續的數字詞塊合併成一個阿拉伯數字（twenty→20、one hundred and twenty three→123） */
+  function foldNumbers(toks){
+    const out=[]; let i=0;
+    while(i<toks.length){
+      let j=i, total=0, cur=0, saw=false;
+      while(j<toks.length){
+        const w=toks[j];
+        if(w==='hundred'){ cur=(cur||1)*100; saw=true; j++; continue; }
+        if(w==='thousand'){ total+=(cur||1)*1000; cur=0; saw=true; j++; continue; }
+        if(w==='and' && saw && (total+cur)>=100){ j++; continue; }  /* one hundred *and* five */
+        const v=wordNumVal(w);
+        if(v!==null){ cur+=v; saw=true; j++; continue; }
+        break;
+      }
+      if(saw && j>i){ out.push(String(total+cur)); i=j; }
+      else { out.push(toks[i]); i++; }
+    }
+    return out;
+  }
   function norm(s){
-    return s.toLowerCase()
+    let toks = s.toLowerCase()
       .replace(/[’']/g,"'")
+      .replace(/&/g,' and ').replace(/%/g,' percent ')  /* 符號→詞（在剝符號之前） */
       .replace(/\bcan't\b/g,'cannot').replace(/\bwon't\b/g,'will not')
       .replace(/n't\b/g,' not').replace(/\bcan not\b/g,'cannot')
       .replace(/\bit's\b/g,'it is').replace(/\bi'm\b/g,'i am')
@@ -493,23 +534,39 @@
       .replace(/[^a-z0-9\s']/g,' ')
       /* 詞首尾的撇號是引號（'I can't hear!' 的單引號對話），剝掉；詞中間的（can't）保留 */
       .split(/\s+/).map(w=>w.replace(/^'+|'+$/g,'')).filter(Boolean);
+    toks = toks.map(w=>ABBR[w]||w);  /* 縮寫展開 */
+    return foldNumbers(toks);         /* 數字歸一 */
+  }
+  /* 目標句裡「可能識別不出的專有名詞/拼音」：非句首、首字母大寫、非數字的詞（小寫化）。
+     識別引擎聽不懂中文拼音是硬限制，這類詞 miss 時不計入分母、標 skip，不因一個聽不懂的
+     人名把整句拖到低分；但普通詞念錯照樣扣（不放水）。 */
+  function properSet(raw){
+    const set=new Set(); const words=String(raw||'').split(/\s+/);
+    for(let k=0;k<words.length;k++){
+      const w=words[k].replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,'');
+      if(k>0 && /^[A-Z]/.test(w) && !/^\d/.test(w)) set.add(w.toLowerCase());
+    }
+    return set;
   }
   function compare(target, spoken){
     const T = norm(target), S = norm(spoken||'');
+    const proper = properSet(target);
     const n=T.length, m=S.length;
     const dp = Array.from({length:n+1},()=>new Array(m+1).fill(0));
     for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)
       dp[i][j] = T[i]===S[j] ? dp[i+1][j+1]+1 : Math.max(dp[i+1][j], dp[i][j+1]);
     const tokens=[]; let i=0,j=0,match=0;
-    /* 按規範化後的 T 渲染（縮寫展開後與原句詞數可能不同，簡化處理） */
+    const missSt = w => proper.has(w) ? 'skip' : 'miss';  /* 專有名詞 miss → skip（不算錯） */
     while(i<n && j<m){
       if(T[i]===S[j]){ tokens.push({w:T[i],st:'ok'}); match++; i++; j++; }
-      else if(dp[i+1][j] >= dp[i][j+1]){ tokens.push({w:T[i],st:'miss'}); i++; }
+      else if(dp[i+1][j] >= dp[i][j+1]){ tokens.push({w:T[i],st:missSt(T[i])}); i++; }
       else { tokens.push({w:S[j],st:'bad'}); j++; } /* 多說/說錯的詞標紅，不計分 */
     }
-    while(i<n){ tokens.push({w:T[i],st:'miss'}); i++; }
+    while(i<n){ tokens.push({w:T[i],st:missSt(T[i])}); i++; }
     while(j<m){ tokens.push({w:S[j],st:'bad'}); j++; }
-    const accuracy = n ? Math.round(match/n*100) : 0;
+    const skipCount = tokens.filter(t=>t.st==='skip').length;   /* 專有名詞不計入分母 */
+    const denom = Math.max(n - skipCount, 1);
+    const accuracy = n ? Math.round(match/denom*100) : 0;
     return {accuracy, tokens};
   }
 

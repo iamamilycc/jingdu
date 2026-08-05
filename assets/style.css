@@ -262,6 +262,7 @@ h2.sec{font-family:var(--font-head);font-size:1.15rem;font-weight:600;color:var(
 .rw.ok{color:var(--green);background:var(--green-soft)}
 .rw.bad{color:var(--coral);background:var(--coral-soft);text-decoration:line-through}
 .rw.miss{color:#9A7B00;background:var(--amber-soft);border-bottom:2px dotted #C9A227}
+.rw.skip{color:var(--muted);background:transparent;opacity:.6}  /* 人名/專有詞：語音聽不出，不算錯，灰顯 */
 .acc-badge{
   font-family:var(--font-head);display:inline-flex;align-items:center;gap:8px;margin:12px auto 4px;
   padding:8px 20px;border-radius:999px;font-size:1.2rem;font-weight:700;animation:pop .4s ease;

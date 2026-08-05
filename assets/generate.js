@@ -75,6 +75,44 @@ JSON 結構：
 ${schema}`;
   }
 
+  /* 偵測「輸入是一組單詞（詞表）」而非成段課文：多行或逗號/頓號分隔、每條都是短詞、無句末標點。
+     保守判斷（明確列表才 true），避免把漏標點的句子誤判成詞表；漏判的靠 fromText 生成失敗兜底。 */
+  function isWordList(text){
+    const t = String(text||'').trim();
+    if(!t) return false;
+    let items = t.split(/[\n;；]+/).map(s=>s.trim()).filter(Boolean);
+    if(items.length < 2) items = t.split(/[,，、]+/).map(s=>s.trim()).filter(Boolean);
+    if(items.length < 2) return false;  /* 單行無分隔：可能是漏標點的句子，保守不判，靠兜底 */
+    let wordish=0;
+    items.forEach(it=>{
+      const hasSent = /[.。!！?？]/.test(it);
+      const enWords = (it.match(/[A-Za-z]+/g)||[]).length;  /* 一條詞目：英文詞≤3（允許 word+中文注釋） */
+      if(!hasSent && enWords<=3) wordish++;
+    });
+    return wordish >= Math.ceil(items.length*0.8);
+  }
+  /* 單詞課 prompt：把一組單詞做成「每詞一例句」的迷你精讀課。例句成為 sentences、
+     單詞成為 vocab——完全複用現有 9 環節（聽全文/逐句/生詞卡/生詞強化/連詞/跟讀/聽力/背句/造句），零環節改動。 */
+  function wordsSystemPrompt(lang){
+    const schema = lang==='jp' ? SCHEMA_JP : SCHEMA_EN;
+    const langName = lang==='jp' ? '日語' : '英語';
+    return `你是一位耐心的${langName}老師，為小學生做「單詞精讀課」。
+用戶會給你一組${langName}單詞（可能每個詞後面帶中文意思）。請把這組單詞做成精讀數據，嚴格按下面 JSON 結構輸出。
+
+規則：
+1. **只輸出 JSON**，不要任何解釋、不要 markdown 代碼框。
+2. 講解（ana / grammar）一律用**繁體中文**，語氣親切，重點前加 ⭐。
+3. **為每個單詞造一個例句放進 sentences**：句子要**簡單、常用、小學生水平、地道**，能幫孩子學會這個詞怎麼用。每個 sentences 對象：${lang==='jp'?'jp=例句（漢字標振假名 漢字[かな]）、romaji、zh=翻譯、ana=用 2-3 句講這個詞怎麼用':'en=例句、zh=翻譯、ana=用 2-3 句講這個詞怎麼用'}。sentences 的順序與 vocab 一一對應。
+4. **vocab = 用戶給的這組單詞**，每個給${lang==='jp'?'振假名 漢字[かな]/romaji':'準確音標'}、詞性、中文意思、eg（就用你在 sentences 造的那句）。用戶已給中文意思的，尊重它。
+5. grammar 挑 1-3 個這些單詞涉及的小語法點或常見用法（沒有明顯語法點就少給或不給）。
+6. listening 出 3-5 題，基於你造的例句，q 和 opts 都用${langName}原文（不可中文），四選一，ans 指向正確選項下標（從0開始），寫完自己核對一遍。
+7. title 起個貼切課名，如「日常水果單詞 Fruits」「動作動詞小課」。
+${lang==='jp'?'8. 日文漢字必須標振假名 漢字[かな]（只標漢字）。':''}
+
+JSON 結構：
+${schema}`;
+  }
+
   function stripFences(s){
     return s.replace(/^```(?:json)?\s*/i,'').replace(/\s*```\s*$/,'').trim();
   }
@@ -278,12 +316,29 @@ ${schema}`;
   }
 
   async function fromText(lang, text, onProgress){
-    const content = await callApi(getTextModel(), [
-      { role:'system', content: systemPrompt(lang) },
-      { role:'user', content: '課文如下：\n\n'+text+reuseHint(lang) }
-    ], onProgress, { json:true, max_tokens:4096 });
+    const wordMode = isWordList(text);
+    async function gen(useWords){
+      const content = await callApi(getTextModel(), [
+        { role:'system', content: useWords ? wordsSystemPrompt(lang) : systemPrompt(lang) },
+        { role:'user', content: useWords ? ('單詞如下：\n\n'+text) : ('課文如下：\n\n'+text+reuseHint(lang)) }
+      ], onProgress, { json:true, max_tokens:4096 });
+      return parseLesson(content, lang);
+    }
+    let d;
+    if(wordMode){
+      if(onProgress) onProgress('看起來是一組單詞，正在做成「單詞＋造句」精讀課…');
+      d = await gen(true);
+    }else{
+      try{ d = await gen(false); }
+      catch(e){
+        /* 兜底：正常生成沒有句子（很可能是沒被偵測到的詞表）→ 自動改走單詞課重試一次 */
+        if(/沒有句子|没有句子|格式有誤|太長被截斷|截斷/.test(String(e.message||e))){
+          if(onProgress) onProgress('沒有成段課文，改用「單詞＋造句」精讀課試試…');
+          d = await gen(true);
+        }else throw e;
+      }
+    }
     if(onProgress) onProgress('正在整理課文…');
-    const d = parseLesson(content, lang);
     return verifyListening(lang, d, onProgress);
   }
 
@@ -405,7 +460,7 @@ ${schema}`;
   }
 
   window.JDGen = { getKey, setKey, getTextModel, getVisionModel, setModels,
-                   fromText, fromImage, parseLesson, systemPrompt,
+                   fromText, fromImage, parseLesson, systemPrompt, isWordList, wordsSystemPrompt,
                    sanitizeListening, verifyListening, buildFallbackListening, judgeSentence, knownWords, storyFromWords, exampleFor,
                    allUserLessons, saveLesson, deleteLesson };
 })();

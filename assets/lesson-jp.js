@@ -630,9 +630,11 @@
         return;
       }
       const r = JD.compareJPReading(sent.jp, text, KANJI_MAP);
+      const hasSkip = r.tokens.some(t=>t.st==='skip');
       $(resultSel).innerHTML =
-        '<div class="result-words jp-text">'+r.tokens.map(t=>'<span class="rw '+({ok:'ok',miss:'miss',bad:'bad'}[t.st])+'">'+JD.esc(t.w)+'</span>').join('')+'</div>'+
-        '<div class="acc-badge '+(r.accuracy>=JD.PASS?'good':'bad')+'">'+(r.accuracy>=JD.PASS?'🎉':'💪')+' 準確率 '+r.accuracy+'%</div>';
+        '<div class="result-words jp-text">'+r.tokens.map(t=>'<span class="rw '+({ok:'ok',miss:'miss',bad:'bad',skip:'skip'}[t.st])+'">'+JD.esc(t.w)+'</span>').join('')+'</div>'+
+        '<div class="acc-badge '+(r.accuracy>=JD.PASS?'good':'bad')+'">'+(r.accuracy>=JD.PASS?'🎉':'💪')+' 準確率 '+r.accuracy+'%</div>'+
+        (hasSkip?'<div class="hint" style="margin:6px 0 0">灰色是人名/專有詞，聽不出來很正常，不算你錯 👍</div>':'');
       $(heardSel).textContent = '你說的是：'+text;
       onAcc(r.accuracy);
     }, undefined, LANG);
