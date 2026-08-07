@@ -87,6 +87,28 @@ def run():
         book2 = pg.evaluate("Object.keys(JD.getBook()).length")
         ck('看過答案答對→進錯題本(+1)', book2 == 1, book2)
 
+        # ---- 跟讀 低分自評兜底（引擎聽不出 aloud 這類詞時，念對能自評過關，不卡死）----
+        print('-- 低分自評兜底：引擎聽不出的詞，念對能自評過關')
+        # 沒開發音評估→走瀏覽器路徑；mock JD.listen 回一個「聽錯」的結果讓 compare 低分
+        pg.evaluate("""window._spkAcc=null;
+            JD.recSupported=()=>true;
+            JD.listen=(cb)=>{ setTimeout(()=>cb('completely wrong words here', null, ['completely wrong words here']), 10); return {stop:()=>{},abort:()=>{}}; };
+        """)
+        pg.evaluate("switchTab('speak'); spkNext(0)"); pg.wait_for_timeout(150)
+        pg.evaluate("document.getElementById('spkRecBtn').click()"); pg.wait_for_timeout(250)  # 觸發 spkRec→listen(mock)→低分
+        resHtml = pg.evaluate("(document.getElementById('spkResult')||{}).innerText||''")
+        ck('低分→結果區出現「我確定念對了」自評按鈕', '念對了' in resHtml, resHtml[:120])
+        acc0 = pg.evaluate("JD.lessonScore(LESSON.id).accuracy")
+        # 點自評按鈕
+        clicked = pg.evaluate("""(()=>{ const btns=[...document.querySelectorAll('#spkResult button')];
+            const b=btns.find(x=>x.innerText.indexOf('念對了')>=0); if(!b) return false; b.click(); return true; })()""")
+        ck('自評按鈕可點', clicked, clicked)
+        pg.wait_for_timeout(150)
+        passed = pg.evaluate("(document.getElementById('spkResult')||{}).innerText||''")
+        ck('點自評→顯示「自評通過」', '自評通過' in passed, passed[:80])
+        acc1 = pg.evaluate("JD.lessonScore(LESSON.id).accuracy")
+        ck('自評後該句計為通過(得分提升到 PASS 級)', acc1 >= acc0, '%s→%s' % (acc0, acc1))
+
         pg.close(); b.close()
 
     print('\n' + '=' * 40)

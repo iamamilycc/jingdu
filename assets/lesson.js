@@ -625,6 +625,12 @@
         const sc=await ctl.stop();
         renderPronScores(resultSel, heardSel, sc);
         onAcc(sc.pron);
+        if(sc.pron < JD.PASS){  /* Azure 發音評估也可能對某些詞評低分→給自評兜底，念對不卡死 */
+          const d=document.createElement('div'); d.style.marginTop='8px';
+          d.innerHTML='<button class="big-btn ghost">🙋 我確定念對了（有些詞就是難評分）</button>';
+          d.querySelector('button').onclick=()=>{ $(resultSel).innerHTML='<div class="acc-badge good">✅ 自評通過！念對就好 👍</div>'; onAcc(JD.PASS); };
+          $(resultSel).appendChild(d);
+        }
         btn.disabled=false; btn.textContent='🎙️ 再試一次'; btn.onclick=()=>startRecPron(btn,sent,resultSel,heardSel,onAcc);
       }catch(e){
         $(resultSel).innerHTML='<div class="acc-badge bad">發音評估暫時不可用（'+JD.esc(e.message||e)+'）。改用普通打分：</div>';
@@ -669,10 +675,17 @@
       const bc = JD.bestCompare(cands, c=>JD.compare(sent.en, c));
       const r = bc.r; text = bc.text || text;
       const hasSkip = r.tokens.some(t=>t.st==='skip');
+      const low = r.accuracy < JD.PASS;
       $(resultSel).innerHTML =
         '<div class="result-words">'+r.tokens.map(t=>'<span class="rw '+({ok:'ok',miss:'miss',bad:'bad',skip:'skip'}[t.st])+'">'+JD.esc(t.w)+'</span>').join('')+'</div>'+
         '<div class="acc-badge '+(r.accuracy>=JD.PASS?'good':'bad')+'">'+(r.accuracy>=JD.PASS?'🎉':'💪')+' 準確率 '+r.accuracy+'%</div>'+
-        (hasSkip?'<div class="hint" style="margin:6px 0 0">灰色是人名/專有詞，語音聽不出來很正常，不算你錯 👍</div>':'');
+        (hasSkip?'<div class="hint" style="margin:6px 0 0">灰色是人名/專有詞，語音聽不出來很正常，不算你錯 👍</div>':'')+
+        /* 引擎有些詞(aloud/adverb 這類)就是聽不出，念對卻低分很挫敗——給自評兜底，不卡死。想更準可在🔊聲音頁開發音評估 */
+        (low?'<div style="margin-top:8px"><button class="big-btn ghost jd-selfok">🙋 我確定念對了（有些詞語音聽不出）</button>'+
+          '<div class="hint" style="margin:6px 0 0">想更準確評分：到「🔊 聲音」頁開「🎯 發音評估」，它有正確答案參照，不靠猜。</div></div>':'');
+      if(low){ const sb=$(resultSel).querySelector('.jd-selfok'); if(sb) sb.onclick=()=>{
+        $(resultSel).innerHTML='<div class="acc-badge good">✅ 自評通過！有些詞語音聽不出很正常，你念對就好 👍</div>';
+        onAcc(JD.PASS); }; }
       $(heardSel).textContent = '你說的是：'+text;
       onAcc(r.accuracy);
     });
