@@ -468,8 +468,8 @@
     const r = new SR();
     /* interimResults=true：邊說邊出臨時結果，說完不必再等引擎確認「最終結果」（那步常拖幾秒），
        一拿到 final 立即返回；若引擎先觸發 onend 還沒 final，就用累積的臨時結果立即返回——省掉尾部等待。 */
-    r.lang=lang||'en-US'; r.interimResults=true; r.maxAlternatives=3; r.continuous=false;
-    let got=false, interim='', silenceT=null, hardT=null;
+    r.lang=lang||'en-US'; r.interimResults=true; r.maxAlternatives=5; r.continuous=false;
+    let got=false, interim='', altList=[], silenceT=null, hardT=null;  /* altList=引擎給的多個候選，供比對取最貼近題目那個 */
     function clearT(){ clearTimeout(silenceT); clearTimeout(hardT); }
     /* 統一收尾：只要聽到過任何內容（哪怕只是臨時結果）就用它打分，
        絕不因為引擎沒吐「最終結果」就把用戶說的話丟掉。 */
@@ -477,7 +477,7 @@
       if(got) return; got=true; clearT();
       try{ r.stop(); }catch(e){}
       const t=interim.trim();
-      if(t) cb(t, null); else cb(null, 'silence');
+      if(t) cb(t, null, altList.length?altList:[t]); else cb(null, 'silence', []);
     }
     /* 自己做靜音偵測：說完約 3 秒沒有新內容就當結束。
        引擎的 onend 在背景有雜音時常常不觸發（會一直以為你還在說），
@@ -485,20 +485,22 @@
     function armSilence(){ clearTimeout(silenceT); silenceT=setTimeout(()=>{ if(interim.trim()) done(); }, 3000); }
     /* 硬上限 18 秒兜底：噪音環境下引擎可能永遠不結束。到點也是「有內容就用，沒有才報 timeout」 */
     hardT = setTimeout(()=>{ if(got) return; got=true; clearT(); try{ r.stop(); r.abort(); }catch(e){}
-      const t=interim.trim(); cb(t? t : null, t? null : 'timeout'); }, 18000);
+      const t=interim.trim(); cb(t? t : null, t? null : 'timeout', t?(altList.length?altList:[t]):[]); }, 18000);
     r.onresult = e=>{
-      let fin='', intr='';
+      let fin='', intr='', cands=[];
       for(let i=0;i<e.results.length;i++){
         const res=e.results[i];
-        if(res.isFinal){ let best=''; for(const alt of res){ if(alt.transcript.length>best.length) best=alt.transcript; } fin+=best; }
+        if(res.isFinal){ let best='';
+          for(const alt of res){ if(alt.transcript.length>best.length) best=alt.transcript; cands.push(alt.transcript); }  /* 收全部候選 */
+          fin+=best; }
         else intr+=res[0].transcript;
       }
-      if(fin){ interim=fin; got=true; clearT(); cb(fin.trim(), null); return; }  /* 有最終結果立即返回 */
+      if(fin){ interim=fin; altList=cands; got=true; clearT(); cb(fin.trim(), null, altList); return; }  /* 有最終結果立即返回，附全部候選 */
       if(intr){ interim=intr; armSilence(); }  /* 有新語音就重置靜音計時，別在用戶還在說時掐斷 */
     };
-    r.onerror = e=>{ if(got) return; got=true; clearT(); cb(null, e.error||'error'); };
+    r.onerror = e=>{ if(got) return; got=true; clearT(); cb(null, e.error||'error', []); };
     r.onend = ()=>{ if(onstate) onstate('end'); if(got) return;
-      got=true; clearT(); const t=interim.trim(); cb(t? t : null, t? null : 'silence'); };  /* 引擎自己結束時也優先用臨時結果 */
+      got=true; clearT(); const t=interim.trim(); cb(t? t : null, t? null : 'silence', t?(altList.length?altList:[t]):[]); };  /* 引擎自己結束時也優先用臨時結果 */
     /* 錄音前把音訊模式設回「可錄音」——否則聽全文播放時設過的 'playback'(純播放)會把麥克風關掉，導致收不到聲、結果全錯 */
     try{ if(navigator.audioSession) navigator.audioSession.type='play-and-record'; }catch(e){}
     try{ r.start(); if(onstate) onstate('start'); }catch(err){ clearT(); if(!got){ got=true; cb(null,'start-failed'); } }
@@ -645,6 +647,15 @@
     ];
     return cands.reduce((best,c)=> c.accuracy>best.accuracy ? c : best);
   }
+  /* 多候選比對：語音引擎會給多個候選（maxAlternatives），首選未必最準——念 aloud 常首選成 allowed/a loud，
+     但正確的 aloud 往往在次選裡。對每個候選算分、取最貼近題目的那個，救回「念對卻被首選判錯」。
+     cmpFn(候選) → {accuracy,tokens}；回 {r:最佳結果, text:採用的候選文字（顯示「你說的是」）}。 */
+  function bestCompare(cands, cmpFn){
+    let best=null, bestText='';
+    (cands||[]).forEach(c=>{ if(c==null) return; const r=cmpFn(String(c)); if(!best || r.accuracy>best.accuracy){ best=r; bestText=String(c); } });
+    if(!best){ best=cmpFn(''); bestText=''; }
+    return { r:best, text:bestText };
+  }
 
   /* ---------- 小工具 ---------- */
   function esc(s){ const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
@@ -661,7 +672,7 @@
                 dueItems, allItems, streak, daysMap, daysMapLang, langOf, touchDay,
                 parentHasPin, setParentPin, checkParentPin, getGate, setGate, getMkMin, setMkMin, newLessonBlockedBy,
                 touchSync, speak, systemSpeak, toPlaybackRoute, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
-                listen, recSupported, injectMicTip, compare, compareJP, compareJPReading, kk2hh, esc, fmtDue,
+                listen, recSupported, injectMicTip, compare, compareJP, compareJPReading, bestCompare, kk2hh, esc, fmtDue,
                 lessonScore, getDailyLog, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
                 celebrate, praiseKind, sfxEnabled, setSfx,
                 AVATARS, getAvatar, setAvatar, avatarHTML, getTargetMountain, setTargetMountain,

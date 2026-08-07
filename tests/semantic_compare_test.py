@@ -89,6 +89,23 @@ def run():
         ck('完全念對 100', acc('the boy went to school', 'the boy went to school') == 100)
         ck('完全念錯 低分', acc('the boy went to school', 'a cat sat down') < 40)
 
+        # ---- ⑥ 多候選 bestCompare：引擎首選錯、正確在次選裡 → 取最貼近題目那個 ----
+        print('-- ⑥ 多候選 bestCompare：救回「念對卻首選判錯」(aloud→allowed)')
+        # 念 "read aloud"，引擎首選 "read allowed"(錯)、次選 "read aloud"(對)
+        r = pg.evaluate("""JD.bestCompare(['read allowed','read aloud','red aloud'], c=>JD.compare('read aloud', c)).r.accuracy""")
+        ck('aloud 被首選聽成 allowed，次選有 aloud → 取到 100', r == 100, r)
+        r2 = pg.evaluate("""JD.bestCompare(['the adverb here','the ad verb here'], c=>JD.compare('the adverb here', c)).r.accuracy""")
+        ck('adverb 被聽成 ad verb，正確候選在 → 100', r2 == 100, r2)
+        # 採用的候選文字要跟著是對的那個（顯示「你說的是」用它）
+        picked = pg.evaluate("""JD.bestCompare(['read allowed','read aloud'], c=>JD.compare('read aloud', c)).text""")
+        ck('採用的候選=對的那個(read aloud)', picked == 'read aloud', picked)
+        # 全部候選都錯 → 仍然低分（不放水）
+        rw = pg.evaluate("""JD.bestCompare(['a cat','a dog','a fish'], c=>JD.compare('read aloud', c)).r.accuracy""")
+        ck('候選全念錯→仍低分(<50)', rw < 50, rw)
+        # 空候選不崩
+        re = pg.evaluate("""JD.bestCompare([], c=>JD.compare('read aloud', c)).r.accuracy""")
+        ck('空候選不崩(回 0)', re == 0, re)
+
         pg.close(); b.close()
 
     print('\n' + '=' * 40)

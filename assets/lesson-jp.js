@@ -597,7 +597,7 @@
     }
     /* 一鍵制：同一顆按鈕開始錄音後就變「我說完了」，再點一次＝停止打分 */
     const restart = ()=>startRec(btn, sent, resultSel, heardSel, onAcc);
-    const rec = JD.listen((text, err)=>{
+    const rec = JD.listen((text, err, alts)=>{
       if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent=(err && !text)?'🎙️ 開始背':'🎙️ 再試一次'; btn.onclick=restart; }
       if(err && !text){
         /* 日語語音識別在 iPad Safari 上常不可用（未開日語聽寫 / 不支援日語），
@@ -617,7 +617,11 @@
       /* 設備沒開「日語聽寫」時，識別引擎常不報錯、卻用別的語言(英文/中文)硬聽日語→回傳一串非日文亂碼。
          此時比對必然 0 分、還顯示「你說的是：某英文」，非常誤導。偵測到「識別結果完全不含日文字」就攔下，
          不判 0，給明確指引 + 自評，讓孩子能繼續。 */
-      if(text && !/[぀-ヿ一-鿿]/.test(text)){
+      /* 多候選：從引擎給的候選裡挑「含日文的」那些來比對（首選可能是英文/中文亂碼，正確的日文常在次選）；
+         只有當所有候選都不含日文時，才判定「識別到的不是日文」→ 攔下給診斷指引。 */
+      const cands = (alts && alts.length) ? alts : [text];
+      const jpCands = cands.filter(c => /[぀-ヿ一-鿿]/.test(c||''));
+      if(!jpCands.length){
         $(resultSel).innerHTML =
           '<div class="acc-badge bad">識別到的不是日文（聽成了「'+JD.esc(text)+'」）</div>'+
           '<p style="margin:10px 0 6px;font-size:.86rem;color:var(--muted)">多半是這台設備<b>沒開「日語聽寫」</b>，系統把日語當成別的語言聽了。開啟方法：<br>'+
@@ -629,7 +633,8 @@
         $(heardSel).textContent = '';
         return;
       }
-      const r = JD.compareJPReading(sent.jp, text, KANJI_MAP);
+      const bc = JD.bestCompare(jpCands, c=>JD.compareJPReading(sent.jp, c, KANJI_MAP));
+      const r = bc.r; text = bc.text || text;
       const hasSkip = r.tokens.some(t=>t.st==='skip');
       $(resultSel).innerHTML =
         '<div class="result-words jp-text">'+r.tokens.map(t=>'<span class="rw '+({ok:'ok',miss:'miss',bad:'bad',skip:'skip'}[t.st])+'">'+JD.esc(t.w)+'</span>').join('')+'</div>'+

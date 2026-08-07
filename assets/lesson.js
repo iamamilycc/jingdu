@@ -651,7 +651,7 @@
     recBusy = true;
     /* 一鍵制：同一顆按鈕開始錄音後就變成「我說完了」，再點一次＝停止打分，不用另一顆按鈕 */
     const restart = ()=>startRec(btn, sent, resultSel, heardSel, onAcc);
-    const rec = JD.listen((text, err)=>{
+    const rec = JD.listen((text, err, alts)=>{
       recBusy = false;
       /* 沒起成錄音(權限/手勢/中斷)→按鈕回「開始背」讓用戶一點就重錄；有內容才叫「再試一次」 */
       if(btn){ btn.disabled=false; btn.classList.remove('listening'); btn.textContent=(err && !text)?'🎙️ 開始背':'🎙️ 再試一次'; btn.onclick=restart; }
@@ -664,7 +664,10 @@
         $(resultSel).innerHTML='<div class="acc-badge bad">'+msg+'</div>';
         return;
       }
-      const r = JD.compare(sent.en, text);
+      /* 多候選：引擎首選常把 aloud 聽成 allowed，正確的在次選裡——取最貼近題目的候選 */
+      const cands = (alts && alts.length) ? alts : [text];
+      const bc = JD.bestCompare(cands, c=>JD.compare(sent.en, c));
+      const r = bc.r; text = bc.text || text;
       const hasSkip = r.tokens.some(t=>t.st==='skip');
       $(resultSel).innerHTML =
         '<div class="result-words">'+r.tokens.map(t=>'<span class="rw '+({ok:'ok',miss:'miss',bad:'bad',skip:'skip'}[t.st])+'">'+JD.esc(t.w)+'</span>').join('')+'</div>'+
