@@ -16,12 +16,19 @@
     }
   },
   "last_audit": {
-    "at": "2026-08-09T00:01:51",
+    "at": "2026-08-09T00:17:01",
     "p0": 0,
     "p1": 14,
     "p2": 3,
-    "scanned": 102,
-    "commit": "e136f73"
+    "scanned": 104,
+    "commit": "d0a6ed0"
   },
-  "features": []
+  "features": [
+    {
+      "name": "NS 命名空間分家（雅思獨立空間）",
+      "test": "python3 tests/ns_isolation_test.py",
+      "at": "2026-08-09T00:17:00",
+      "commit": "d0a6ed0"
+    }
+  ]
 }

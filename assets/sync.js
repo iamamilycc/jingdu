@@ -246,7 +246,9 @@
   }
 
   window.JDSYNC={ schedule:schedule, setup:setup, switchUser:switchUser, init:init,
-                  _cfg:cfg, _pull:pull, _push:push, _snapshot:snapshot };
+                  _cfg:cfg, _pull:pull, _push:push, _snapshot:snapshot,
+                  /* 供測試驗證「各站備份路徑不同」——路徑撞名會讓後備份的站洗掉前一站的雲端資料 */
+                  _userPath:userPath };
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', init);
   else init();
   window.addEventListener('online', ()=>schedule(2000));
