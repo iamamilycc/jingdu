@@ -63,8 +63,24 @@ def run():
         ck('顯示 🌟 地道說法示範句', ('地道' in fb2) and ('better sentence' in fb2), fb2)
         ck('地道說法有發音鈕 #mkBetterVoice', pg.evaluate("!!document.getElementById('mkBetterVoice')"))
 
-        # 關掉 mkMin 免干擾後續
-        pg.evaluate("JD.setMkMin(0)")
+        # ---- 造句沒造對→那個詞進錯題本複盤 ----
+        print('-- 造句沒造對→進錯題本')
+        pg.evaluate("JD.setMkMin(0); localStorage.removeItem('jingdu_errbook')")
+        # mock judgeSentence 回 ok:false（沒造對）
+        pg.evaluate("""window.JDGen=Object.assign(window.JDGen||{},{ getKey:()=>'x',
+            judgeSentence: async ()=>({ok:false,fix:'try this',tip:'再想想',better:'',betterZh:''}) });""")
+        before_e = pg.evaluate("Object.keys(JD.getBook()).length")
+        pg.evaluate("switchTab('make'); mkRestart && mkRestart()"); pg.wait_for_timeout(150)
+        pg.evaluate("document.getElementById('mkInput').value='some wrong sentence'; mkCheck()"); pg.wait_for_timeout(300)
+        after_e = pg.evaluate("Object.keys(JD.getBook()).length")
+        ck('造句沒造對→錯題本多一條(進複盤)', after_e == before_e + 1, '%d→%d' % (before_e, after_e))
+        # 造對的不進錯題本
+        pg.evaluate("""window.JDGen=Object.assign(window.JDGen||{},{ getKey:()=>'x',
+            judgeSentence: async ()=>({ok:true,fix:'',tip:'好',better:'',betterZh:''}) });
+            localStorage.removeItem('jingdu_errbook'); mkRestart && mkRestart();""")
+        pg.wait_for_timeout(120)
+        pg.evaluate("document.getElementById('mkInput').value='a good correct sentence here'; mkCheck()"); pg.wait_for_timeout(300)
+        ck('造句造對→不進錯題本', pg.evaluate("Object.keys(JD.getBook()).length") == 0)
 
         # ---- 聽力題計分 ----
         print('-- 聽力題計分：直接答對計分 / 看過答案答對算錯進錯題本 / 答錯進錯題本')

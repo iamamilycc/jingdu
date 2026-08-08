@@ -753,6 +753,9 @@
   };
   function mkAfter(ok, fix, tip, better, betterZh){
     mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */
+    /* 造句沒造對→這個詞進錯題本複盤（和生詞卡不認識同 id，掌握了就靠複盤晉級掉）；造對就不加 */
+    const mv = mkWords[mk.i];
+    if(!ok && mv) JD.addError({id:'w:'+L.id+'#'+mv.w, lessonId:L.id, en:mv.w, zh:mv.zh, type:'word', pos:mv.pos});
     JD.celebrate(ok?'good':'try');
     const betterHTML = better ? '<div class="eg" style="margin-top:8px">🌟 <b>地道說法</b>：'+JD.esc(better)+
       (betterZh?'<br><span style="color:var(--muted);font-size:.9rem">'+JD.esc(betterZh)+'</span>':'')+
