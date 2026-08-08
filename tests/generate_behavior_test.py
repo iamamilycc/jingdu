@@ -156,6 +156,24 @@ def run():
         ck('兜底：沒句子→第二次改走單詞課 prompt', len(sys2) >= 2 and '單詞精讀課' in sys2[1], sys2[1:2])
         ck('兜底：最終成功回傳課(有 title)', r2 and r2.get('ok') == True, r2)
 
+        # ---- forceMode：用戶明確選「一組單詞/一篇課文」強制，覆蓋自動偵測（單行貼詞的解法）----
+        print('-- forceMode：明確選單詞/課文強制覆蓋偵測')
+        pg.evaluate("""window.__sys=[];
+            window.fetch=async(u,o)=>{ o=o||{}; if(!o.body) return {ok:true,status:200,json:async()=>({})};
+              const b=JSON.parse(o.body); if(!b.messages) return {ok:true,status:200,json:async()=>({})};
+              window.__sys.push(b.messages[0].content);
+              return {ok:true,status:200,json:async()=>({choices:[{message:{content: %s }}]})}; };""" % ('`'+good+'`'))
+        # 輸入是「一整句課文」，但 forceMode='words' 強制→應走單詞課 prompt
+        pg.evaluate("(async()=>{ try{ await JDGen.fromText('en','The boy went to the theatre last week.', ()=>{}, 'words'); }catch(e){} })()")
+        pg.wait_for_timeout(300)
+        ck("forceMode='words' 強制→句子也走單詞課 prompt", any('單詞精讀課' in s for s in pg.evaluate('window.__sys')), pg.evaluate('window.__sys'))
+        # 輸入是「詞表」，但 forceMode='text' 強制→應走課文 prompt（不走單詞課）
+        pg.evaluate("window.__sys=[]")
+        pg.evaluate("(async()=>{ try{ await JDGen.fromText('en','apple\\nbanana\\ncat', ()=>{}, 'text'); }catch(e){} })()")
+        pg.wait_for_timeout(300)
+        sysT = pg.evaluate('window.__sys')
+        ck("forceMode='text' 強制→詞表也走課文 prompt", len(sysT)>=1 and '精讀老師，為小學生製作' in sysT[0] and '單詞精讀課' not in sysT[0], sysT[:1])
+
         pg.close(); b.close()
 
     print('\n' + '=' * 40)

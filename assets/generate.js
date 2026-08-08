@@ -82,7 +82,10 @@ ${schema}`;
     if(!t) return false;
     let items = t.split(/[\n;；]+/).map(s=>s.trim()).filter(Boolean);
     if(items.length < 2) items = t.split(/[,，、]+/).map(s=>s.trim()).filter(Boolean);
-    if(items.length < 2) return false;  /* 單行無分隔：可能是漏標點的句子，保守不判，靠兜底 */
+    /* 單行無分隔（如 "apple banana cat" 或 "The boy runs fast"）：自動偵測無法可靠區分「一串詞」
+       和「漏標點的句子」，強判任一邊都會誤傷。故單行不自動判——由用戶在 new.html 明確選「🔤 一組單詞」
+       強制走單詞課（forceMode='words'），零誤判。多行/逗號分隔才自動判詞表。 */
+    if(items.length < 2) return false;
     let wordish=0;
     items.forEach(it=>{
       const hasSent = /[.。!！?？]/.test(it);
@@ -315,8 +318,9 @@ ${schema}`;
       '。寫 vocab 例句和 listening 選項時，合適的地方自然複用其中幾個幫助複習；課文原文一字不可改。）' : '';
   }
 
-  async function fromText(lang, text, onProgress){
-    const wordMode = isWordList(text);
+  async function fromText(lang, text, onProgress, forceMode){
+    /* forceMode: 'words'=強制單詞課 / 'text'=強制課文 / 其他=自動偵測。讓用戶在 new.html 明確指定，避免偵測誤判。 */
+    const wordMode = forceMode==='words' ? true : forceMode==='text' ? false : isWordList(text);
     async function gen(useWords){
       const content = await callApi(getTextModel(), [
         { role:'system', content: useWords ? wordsSystemPrompt(lang) : systemPrompt(lang) },
@@ -347,7 +351,7 @@ ${schema}`;
      不能一次叫視覺模型「讀圖+輸出整課JSON」——整課JSON很長，視覺模型 max_tokens 硬上限只有
      1024（實測 API 400：「max_tokens参数非法：限制数值范围[1,1024]」），會被截斷。 */
   /* 支援多張圖片（一篇課文跨好幾頁）：dataUrl 可傳單張字串或多張陣列，按順序拼成一篇課文 */
-  async function fromImage(lang, dataUrl, onProgress){
+  async function fromImage(lang, dataUrl, onProgress, forceMode){
     const urls = Array.isArray(dataUrl) ? dataUrl.filter(Boolean) : [dataUrl];
     if(!urls.length) throw new Error('沒有圖片');
     if(onProgress) onProgress(urls.length>1 ? ('正在看圖識字…（共 '+urls.length+' 張，按順序拼成一篇）') : '正在看圖識字…');
@@ -361,7 +365,7 @@ ${schema}`;
     const ocr = await callApi(getVisionModel(), [{ role:'user', content }], onProgress, { max_tokens:1024 });
     const text = stripFences(ocr).trim();
     if(!text) throw new Error('沒能從圖片讀出文字，換張更清楚的照片試試');
-    return fromText(lang, text, onProgress);
+    return fromText(lang, text, onProgress, forceMode);
   }
 
   /* ---- 造句判分（造句挑戰環節用；返回結構經校驗，格式不對直接拋錯讓 UI 走自評兜底） ---- */

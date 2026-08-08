@@ -53,6 +53,16 @@
     </div>
 
     <div class="gen-field">
+      <label>① 之二 · 內容類型（貼一組單詞就選「一組單詞」，會做成背單詞課）</label>
+      <div class="lang-toggle">
+        <button type="button" id="cmAuto" class="on" onclick="setContentMode('auto')">🔎 自動判斷</button>
+        <button type="button" id="cmText" onclick="setContentMode('text')">📄 一篇課文</button>
+        <button type="button" id="cmWords" onclick="setContentMode('words')">🔤 一組單詞</button>
+      </div>
+      <div class="key-hint" style="margin-top:6px">預設「自動判斷」；貼的是單詞卻被做成短文，就手動選「🔤 一組單詞」強制做背單詞課。</div>
+    </div>
+
+    <div class="gen-field">
       <label>② 智譜 API Key（只存這台設備，用來調 AI 生成 + 智譜語音）</label>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <input type="password" id="apiKey" placeholder="貼上你的智譜 key（設過一次就會記住）" style="flex:1;min-width:180px">
@@ -107,6 +117,10 @@
 const $=s=>document.querySelector(s);
 let lang='en';
 function setLang(l){ lang=l; $('#langEn').classList.toggle('on',l==='en'); $('#langJp').classList.toggle('on',l==='jp'); }
+/* 內容類型：auto=自動偵測 / text=強制課文 / words=強制單詞課。傳給 fromText/fromImage 的 forceMode。 */
+let contentMode='auto';
+function setContentMode(m){ contentMode=m;
+  $('#cmAuto').classList.toggle('on', m==='auto'); $('#cmText').classList.toggle('on', m==='text'); $('#cmWords').classList.toggle('on', m==='words'); }
 
 /* 出題品質：一鍵預設，不必自己打模型名稱。免費視覺模型固定用 glm-4v-flash，不需要用戶選。 */
 let quality = JDGen.getTextModel()==='glm-4-flash' ? 'free' : 'good';
@@ -158,7 +172,7 @@ function updateGenBtnLabel(){
 window.addToQueue = function(){
   const text = $('#pasteText').value.trim();
   if(!photoDataUrls.length && !text){ fb('先填這一課的內容，再加入清單', true); return; }
-  queue.push({ lang, text, photoDataUrls, label: currentLabel() });
+  queue.push({ lang, text, photoDataUrls, mode:contentMode, label: currentLabel() });
   photoDataUrls = []; $('#pasteText').value=''; $('#photoName').textContent='';
   $('#photo').value=''; $('#docfile').value='';
   renderQueue();
@@ -223,7 +237,7 @@ async function doGenerate(){
 
   /* 把清單裡的 + 當前這一課 合成最終要生成的列表 */
   const list = queue.slice();
-  if(hasCurrent) list.push({ lang, text, photoDataUrls, label: currentLabel() });
+  if(hasCurrent) list.push({ lang, text, photoDataUrls, mode:contentMode, label: currentLabel() });
 
   /* 家長復習鎖（strict 模式）：在「生成」這個動作上真正把關，而不是只在首頁改連結。
      這樣不管從首頁、說明頁、書籤或直接輸網址進來，只要該語言還有到期複習沒清完，就擋住加新課。 */
@@ -248,8 +262,8 @@ async function doGenerate(){
     const btn=$('#genBtn'); btn.disabled=true; const old=btn.textContent; btn.textContent='⏳ 生成中…';
     try{
       const onP = m=>fb(m);
-      const data = (one.photoDataUrls&&one.photoDataUrls.length) ? await JDGen.fromImage(one.lang, one.photoDataUrls, onP)
-                                    : await JDGen.fromText(one.lang, one.text, onP);
+      const data = (one.photoDataUrls&&one.photoDataUrls.length) ? await JDGen.fromImage(one.lang, one.photoDataUrls, onP, one.mode)
+                                    : await JDGen.fromText(one.lang, one.text, onP, one.mode);
       fb('生成成功，正在保存…');
       const id = JDGen.saveLesson(one.lang, data);
       const viewer = one.lang==='jp' ? 'jp/lessons/view.html' : 'lessons/view.html';
@@ -271,8 +285,8 @@ async function doGenerate(){
     fb('（'+(i+1)+'/'+list.length+'）'+it.label+' 生成中…');
     try{
       const onP = m=>fb('（'+(i+1)+'/'+list.length+'）'+m);
-      const data = (it.photoDataUrls&&it.photoDataUrls.length) ? await JDGen.fromImage(it.lang, it.photoDataUrls, onP)
-                                   : await JDGen.fromText(it.lang, it.text, onP);
+      const data = (it.photoDataUrls&&it.photoDataUrls.length) ? await JDGen.fromImage(it.lang, it.photoDataUrls, onP, it.mode)
+                                   : await JDGen.fromText(it.lang, it.text, onP, it.mode);
       JDGen.saveLesson(it.lang, data);
       okN++; langsDone[it.lang]=1;
       $('#batchResults').insertAdjacentHTML('beforeend',
