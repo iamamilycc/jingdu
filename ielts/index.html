@@ -6,80 +6,287 @@
 <title>雅思詞彙 · 虫虫精讀</title>
 <link rel="stylesheet" href="../assets/style.css">
 <script>
-  /* ⚠️ 必須在載入 core.js「之前」宣告，晚了 core.js 已經取好 NS 就來不及。
+  /* ⚠️ 必須在載入 core.js「之前」宣告，晚了 core.js 已取好 NS 就來不及。
      設了它，本站所有進度／錯題本／打卡都寫進 ielts_ 空間，
-     與英語精讀（jingdu_）完全分家——兩邊互不影響。
-     鎖在 tests/ns_isolation_test.py 規則3、4。 */
+     與英語精讀（jingdu_）完全分家。鎖在 tests/ns_isolation_test.py 規則3、4。 */
   window.JD_NS = 'ielts_';
 </script>
 <script src="../assets/core.js"></script>
 <script src="../assets/sync.js"></script>
+<script src="../assets/ielts-vocab.js"></script>
 <style>
-  .wrap{max-width:44rem;margin:0 auto;padding:1rem 1rem 3rem}
-  .hero{text-align:center;padding:1.5rem 0 1rem}
-  .hero h1{margin:.2rem 0;font-size:1.5rem}
-  .hero .sub{color:#666;font-size:.9rem}
-  .layers{display:grid;gap:.7rem;margin:1.2rem 0}
-  .layer{border:1px solid #e2e2e2;border-radius:12px;padding:.9rem 1rem;background:#fff}
-  .layer h3{margin:0 0 .3rem;font-size:1rem}
-  .layer p{margin:0;color:#666;font-size:.85rem;line-height:1.5}
-  .layer .n{float:right;color:#999;font-size:.85rem}
-  .todo{border:1px dashed #ccc;border-radius:12px;padding:1rem;color:#888;
-        font-size:.9rem;line-height:1.7;background:#fafafa}
-  .selfcheck{margin-top:1.5rem;font-size:.85rem;color:#666}
-  .selfcheck code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}
-  #nsState{font-weight:600}
-  .ok{color:#1a7f37}.bad{color:#c0392b}
+  .wrap{max-width:34rem;margin:0 auto;padding:1rem 1rem 3rem}
+  .top{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+  .top h1{font-size:1.15rem;margin:.4rem 0}
+  .top a{font-size:.85rem;color:#666;text-decoration:none}
+
+  .stat{display:flex;gap:.5rem;margin:.9rem 0}
+  .stat div{flex:1;border:1px solid #e6e6e6;border-radius:12px;padding:.6rem .3rem;
+            text-align:center;background:#fff}
+  .stat b{display:block;font-size:1.4rem;line-height:1.25}
+  .stat span{color:#777;font-size:.72rem}
+
+  .go{display:block;width:100%;border:0;border-radius:14px;padding:1.05rem;
+      font-size:1.05rem;font-weight:600;color:#fff;background:#2f6df6;cursor:pointer}
+  .go:disabled{background:#c9d4ea;cursor:default}
+
+  /* 卡片：單手可操作，按鈕放下方拇指區 */
+  .card{border:1px solid #e6e6e6;border-radius:16px;background:#fff;
+        padding:1.6rem 1rem;text-align:center;min-height:11rem;
+        display:flex;flex-direction:column;justify-content:center;gap:.5rem}
+  .word{font-size:2rem;font-weight:700;letter-spacing:.5px;word-break:break-word}
+  .ph{color:#888;font-size:.95rem}
+  .tr{font-size:1.02rem;line-height:1.65;color:#222;text-align:left;
+      max-height:9rem;overflow-y:auto}
+  .tagline{color:#999;font-size:.75rem}
+  .hint{color:#aaa;font-size:.8rem}
+
+  .row{display:flex;gap:.6rem;margin-top:.8rem}
+  .row button{flex:1;border-radius:12px;padding:.95rem;font-size:1rem;
+              border:1px solid #dcdcdc;background:#fff;cursor:pointer}
+  .row .no{border-color:#f0c2bc;color:#c0392b}
+  .row .yes{border-color:#bfe3c9;color:#1a7f37}
+  .row .flip{background:#2f6df6;color:#fff;border-color:#2f6df6}
+
+  .bar{height:5px;border-radius:3px;background:#eee;overflow:hidden;margin:.8rem 0 .3rem}
+  .bar i{display:block;height:100%;background:#2f6df6;width:0;transition:width .2s}
+  .meta{display:flex;justify-content:space-between;color:#999;font-size:.78rem}
+
+  .mini{display:flex;gap:.5rem;margin-top:.9rem}
+  .mini button{flex:1;border:1px solid #e6e6e6;background:#fafafa;color:#666;
+               border-radius:10px;padding:.55rem;font-size:.82rem;cursor:pointer}
+  .layers{display:grid;gap:.5rem;margin:.9rem 0}
+  .layer{border:1px solid #e9e9e9;border-radius:12px;padding:.7rem .85rem;background:#fff;
+         display:flex;align-items:center;gap:.6rem;cursor:pointer;text-align:left}
+  .layer.on{border-color:#2f6df6;background:#f5f8ff}
+  .layer b{font-size:.95rem}
+  .layer small{color:#777;display:block;margin-top:.15rem;line-height:1.45}
+  .layer .cnt{margin-left:auto;color:#999;font-size:.8rem;white-space:nowrap}
+  .hide{display:none}
+  .note{color:#888;font-size:.8rem;line-height:1.7;margin-top:1rem}
+  #nsState{font-weight:600}.ok{color:#1a7f37}.bad{color:#c0392b}
 </style>
 </head>
 <body>
 <div class="wrap">
 
-  <div class="hero">
+  <div class="top">
     <h1>雅思詞彙</h1>
-    <div class="sub">目標 6.5 · 分層背誦 · 復用艾賓浩斯復習引擎</div>
+    <a href="../index.html">← 英語精讀</a>
   </div>
 
-  <div class="layers">
-    <div class="layer"><h3>L1 基礎 <span class="n">3,263 詞</span></h3>
-      <p>中考／高考／四級級別。雅思核心詞有 <b>一半以上落在這層</b>——先補這裡的洞，比直接啃雅思詞彙書有效。</p></div>
-    <div class="layer"><h3>L2 進階 <span class="n">1,322 詞</span></h3>
-      <p>六級／考研級別。第二輪主攻。</p></div>
-    <div class="layer"><h3>L3 雅思獨有 <span class="n">786 詞</span></h3>
-      <p>不在四六級／考研範圍內的雅思詞。量比想像中少。</p></div>
-    <div class="layer"><h3>L4 學術拓展 <span class="n">629 詞</span></h3>
-      <p>托福高頻，衝 7.0 才需要。有餘力再說。</p></div>
-  </div>
+  <!-- ── 首頁：只有一個主按鈕，點下去直接開始 ── -->
+  <section id="home">
+    <div class="stat">
+      <div><b id="sDue">–</b><span>今天要背</span></div>
+      <div><b id="sLearn">–</b><span>學習中</span></div>
+      <div><b id="sSolid">–</b><span>已牢固</span></div>
+    </div>
 
-  <div class="todo">
-    <b>目前進度：Phase 2 基建完成</b><br>
-    命名空間隔離已就緒，詞彙卡功能開發中。<br>
-    詞表已備妥：6,000 詞（來源 ECDICT，MIT 授權），含音標、中文釋義、詞頻。
-  </div>
+    <button class="go" id="btnStart">載入中…</button>
 
-  <div class="selfcheck">
-    <p>隔離自檢：本站命名空間 <span id="nsState">檢查中…</span></p>
-    <p>英語精讀在 <code>jingdu_</code>，本站在 <code>ielts_</code>，兩邊資料互不干擾。</p>
-    <p><a href="../index.html">← 回英語精讀</a>　<a href="review.html">複習隊列 →</a></p>
-  </div>
+    <div class="layers" id="layers"></div>
+
+    <div class="note">
+      <b>為什麼從 L1 開始：</b>雅思核心詞有一半以上落在中考／高考／四級級別。
+      先補這層的洞，比直接啃雅思詞彙書有效。<br>
+      隔離自檢：本站空間 <span id="nsState">檢查中…</span>（與英語精讀互不干擾）
+    </div>
+  </section>
+
+  <!-- ── 背誦中 ── -->
+  <section id="study" class="hide">
+    <div class="bar"><i id="prog"></i></div>
+    <div class="meta"><span id="pos">–</span><span id="kind">–</span></div>
+
+    <div class="card">
+      <div class="word" id="cWord">–</div>
+      <div class="ph" id="cPh"></div>
+      <div class="tr hide" id="cTr"></div>
+      <div class="hint" id="cHint">想一下中文意思</div>
+      <div class="tagline" id="cTag"></div>
+    </div>
+
+    <div class="row" id="rowFlip">
+      <button class="flip" id="btnFlip">看答案</button>
+    </div>
+    <div class="row hide" id="rowJudge">
+      <button class="no" id="btnNo">不認識</button>
+      <button class="yes" id="btnYes">認識</button>
+    </div>
+
+    <div class="mini">
+      <button id="btnSkip">⏭ 這批我都會</button>
+      <button id="btnSay">🔊 發音</button>
+      <button id="btnUndo">↩︎ 撤銷上一張</button>
+      <button id="btnQuit">結束本輪</button>
+    </div>
+  </section>
+
+  <!-- ── 完成 ── -->
+  <section id="done" class="hide">
+    <div class="card">
+      <div class="word">✓</div>
+      <div class="tr" id="doneMsg" style="text-align:center"></div>
+    </div>
+    <div class="mini">
+      <button id="btnAgain">再背一輪</button>
+      <button id="btnHome">回首頁</button>
+    </div>
+  </section>
 
 </div>
 
 <script>
-  /* 自檢：確認 NS 真的分家了。一眼就能看出隔離有沒有生效，不必開 devtools。 */
-  (function(){
-    var el = document.getElementById('nsState');
-    var ok = (window.JD_NS === 'ielts_');
-    var probe = 'ielts_' + 'ns_probe';
-    try{
-      localStorage.setItem(probe, '1');
-      ok = ok && localStorage.getItem(probe) === '1'
-              && localStorage.getItem('jingdu_ns_probe') === null;
-      localStorage.removeItem(probe);
-    }catch(e){ ok = false; }
+/* 前端七律：所有事件用 id + .onclick 綁定，不在 innerHTML 裡拼字串。
+   JS 只負責呈現與呼叫引擎，不重算業務邏輯（SRS 間隔一律由 core.js 決定）。 */
+(function () {
+  var Q = [], idx = 0, flipped = false, last = null;
+  var $ = function (id) { return document.getElementById(id); };
+  var show = function (id, on) { $(id).classList[on ? 'remove' : 'add']('hide'); };
+
+  /* ---- 隔離自檢：一眼看出有沒有生效，不必開 devtools ---- */
+  (function () {
+    var el = $('nsState'), ok = (window.JD_NS === 'ielts_');
+    try {
+      localStorage.setItem('ielts_ns_probe', '1');
+      ok = ok && localStorage.getItem('jingdu_ns_probe') === null;
+      localStorage.removeItem('ielts_ns_probe');
+    } catch (e) { ok = false; }
     el.textContent = ok ? 'ielts_（已分家 ✓）' : '異常：未隔離';
     el.className = ok ? 'ok' : 'bad';
   })();
+
+  function renderStats(todayCount) {
+    var s = IELTS.stats(todayCount);
+    $('sDue').textContent = s.today;
+    $('sLearn').textContent = s.learning;
+    $('sSolid').textContent = s.solid;
+  }
+
+  function renderLayers(meta) {
+    var box = $('layers'), cur = IELTS.cfg().layer;
+    box.textContent = '';
+    [1, 2, 3, 4].forEach(function (L) {
+      var m = meta.layers[String(L)];
+      var el = document.createElement('button');
+      el.className = 'layer' + (L === cur ? ' on' : '');
+      var b = document.createElement('b'); b.textContent = 'L' + L + ' ' + m.name;
+      var s = document.createElement('small');
+      s.textContent = m.ielts_tagged ? ('其中雅思核心詞 ' + m.ielts_tagged) : '衝 7.0 才需要';
+      var c = document.createElement('span'); c.className = 'cnt'; c.textContent = m.count + ' 詞';
+      var wrapDiv = document.createElement('span'); wrapDiv.appendChild(b); wrapDiv.appendChild(s);
+      el.appendChild(wrapDiv); el.appendChild(c);
+      el.onclick = function () {
+        var c2 = IELTS.cfg(); c2.layer = L; IELTS.setCfg(c2);
+        renderLayers(meta); prepare();
+      };
+      box.appendChild(el);
+    });
+  }
+
+  function prepare() {
+    $('btnStart').disabled = true;
+    $('btnStart').textContent = '載入中…';
+    return IELTS.todayQueue().then(function (q) {
+      Q = q.all; idx = 0;
+      renderStats(Q.length);          /* 與主按鈕同一個數字，不各自算 */
+      $('btnStart').disabled = Q.length === 0;
+      $('btnStart').textContent = Q.length
+        ? ('開始今天的 ' + Q.length + ' 張卡')
+        : '今天沒有要背的了 🎉';
+    });
+  }
+
+  function paint() {
+    var w = Q[idx];
+    flipped = false;
+    $('cWord').textContent = w.w;
+    $('cPh').textContent = w.ph ? ('/' + w.ph + '/') : '';
+    $('cTr').textContent = w.tr;
+    $('cTag').textContent = (w.tags || []).join(' · ') + (w.noPh ? '　（無音標，點發音聽）' : '');
+    show('cTr', false); show('cHint', true);
+    show('rowFlip', true); show('rowJudge', false);
+    $('prog').style.width = (idx / Q.length * 100) + '%';
+    $('pos').textContent = (idx + 1) + ' / ' + Q.length;
+    var known = !!JD.getBook()[IELTS.idOf(w.w)];
+    $('kind').textContent = known ? '複習' : '新詞';
+  }
+
+  function next() {
+    idx++;
+    if (idx >= Q.length) {
+      show('study', false); show('done', true);
+      var s = IELTS.stats();
+      $('doneMsg').textContent = '本輪完成 ' + Q.length + ' 張。'
+        + '目前學習中 ' + s.learning + ' 詞，已牢固 ' + s.solid + ' 詞。'
+        + (s.due ? ('　還有 ' + s.due + ' 張到期可以繼續。') : '');
+      renderStats(0);
+      return;
+    }
+    paint();
+  }
+
+  $('btnStart').onclick = function () {
+    if (!Q.length) return;
+    show('home', false); show('study', true); paint();
+  };
+  $('btnFlip').onclick = function () {
+    flipped = true;
+    show('cTr', true); show('cHint', false);
+    show('rowFlip', false); show('rowJudge', true);
+  };
+  function judge(known) {
+    last = { word: Q[idx], known: known, at: idx };
+    IELTS.answer(Q[idx], known);
+    next();
+  }
+  $('btnYes').onclick = function () { judge(true); };
+  $('btnNo').onclick = function () { judge(false); };
+
+  /* 閉環：標錯了能改回（不是留下錯資料） */
+  $('btnUndo').onclick = function () {
+    if (!last) { alert('還沒有可撤銷的作答'); return; }
+    IELTS.undo(last.word, last.known);
+    idx = last.at; last = null;
+    show('study', true); show('done', false);
+    paint();
+  };
+  $('btnSay').onclick = function () { IELTS.say(Q[idx]); };
+
+  /* L1 前段是 be/the/of 這類最高頻詞，逐張點「認識」是浪費時間。
+     一鍵把剩下的整批標為已掌握（直接畢業，不再出現）。可從進度頁重置。 */
+  $('btnSkip').onclick = function () {
+    var rest = Q.slice(idx);
+    if (!rest.length) return;
+    if (!confirm('把接下來 ' + rest.length + ' 個詞全部標為「已掌握」？\n'
+               + '（它們會直接畢業不再出現；日後可在複習頁重置）')) return;
+    IELTS.skipBatch(rest);
+    idx = Q.length - 1;
+    next();
+  };
+
+  /* 逃生口：隨時可退出，每答一張即存，不會丟進度 */
+  $('btnQuit').onclick = function () {
+    show('study', false); show('home', true);
+    prepare();
+  };
+  $('btnAgain').onclick = function () {
+    show('done', false);
+    prepare().then(function () { if (Q.length) { show('home', false); show('study', true); paint(); } });
+  };
+  $('btnHome').onclick = function () {
+    show('done', false); show('home', true); prepare();
+  };
+
+  IELTS.loadMeta().then(function (meta) {
+    renderLayers(meta);
+    return prepare();
+  }).catch(function (e) {
+    $('btnStart').textContent = '詞表載入失敗';
+    console.error(e);
+  });
+})();
 </script>
 </body>
 </html>

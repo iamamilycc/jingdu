@@ -672,7 +672,8 @@
     return Math.ceil(diff/(24*3600e3))+' 天後';
   }
 
-  window.JD = { getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, reviewPass, reviewFail,
+  window.JD = { load, save,   /* 讓各站存自己的狀態時也走同一個命名空間，不必各自拼前綴 */
+                getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, reviewPass, reviewFail,
                 dueItems, allItems, streak, daysMap, daysMapLang, langOf, touchDay,
                 parentHasPin, setParentPin, checkParentPin, getGate, setGate, getMkMin, setMkMin, newLessonBlockedBy,
                 touchSync, speak, systemSpeak, toPlaybackRoute, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
