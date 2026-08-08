@@ -357,7 +357,8 @@ ${schema}`;
       { type:'text', text: '這裡是同一篇'+langName+'課文的 '+urls.length+' '+(many?'張圖片（按先後順序就是課文的閱讀順序）':'張圖片')+'。請把'+(many?'所有圖片裡的':'圖片裡的')+langName+'課文一字不漏地照抄出來，'+(many?'按圖片順序連成一篇完整課文，':'')+'不要漏詞、不要改寫、不要翻譯、不要加任何說明。只輸出課文原文本身。' }
     ];
     urls.forEach(u=>content.push({ type:'image_url', image_url:{ url: u } }));
-    const ocr = await callApi(getVisionModel(), [{ role:'user', content }], onProgress, { max_tokens:2048 });
+    /* ⚠️ 視覺模型 max_tokens 硬上限 1024（見上方註釋，超過報 400「限制数值范围[1,1024]」）——絕不能設 2048 */
+    const ocr = await callApi(getVisionModel(), [{ role:'user', content }], onProgress, { max_tokens:1024 });
     const text = stripFences(ocr).trim();
     if(!text) throw new Error('沒能從圖片讀出文字，換張更清楚的照片試試');
     return fromText(lang, text, onProgress);

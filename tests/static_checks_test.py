@@ -135,6 +135,17 @@ def check_recognition_parity():
         ck('%s 語音打分走 bestCompare(多候選)' % rel, 'bestCompare' in txt, '有比對卻沒走多候選=漏改')
         ck('%s 低分有自評兜底(jd-selfok)' % rel, 'jd-selfok' in txt, '有比對卻沒自評兜底=念對會卡死')
 
+# ---- 規則11：視覺模型 callApi 的 max_tokens 不准超 1024（超過→拍圖建課報 400，歷史回歸）----
+def check_vision_max_tokens():
+    print('-- 規則11：視覺模型 max_tokens ≤ 1024（防拍圖建課 400 回歸）')
+    txt = '\n'.join(read('assets/generate.js'))
+    # 找所有「和 getVisionModel() 在同一個 callApi 調用裡」的 max_tokens
+    bad = []
+    for m in re.finditer(r'getVisionModel\(\)[^;]*?max_tokens\s*:\s*(\d+)', txt, re.S):
+        if int(m.group(1)) > 1024:
+            bad.append(m.group(1))
+    ck('視覺模型 max_tokens 都 ≤ 1024', not bad, '超限值: '+str(bad))
+
 def main():
     check_playback_route()
     check_record_route()
@@ -146,6 +157,7 @@ def main():
     check_speaker_space_colon()
     check_switchuser_awaits_push()
     check_recognition_parity()
+    check_vision_max_tokens()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))
