@@ -1,0 +1,27 @@
+{
+  "project": "jingdu",
+  "created": "2026-08-08T19:36:21",
+  "kickoff_report": "/Users/iamamily/Downloads/Claude/docs/立項/立項報告-2026-08-07-jingdu-ielts.md",
+  "phase": 2,
+  "gates": {
+    "0": {
+      "passed": true,
+      "at": "2026-08-08T19:36:21",
+      "commit": "e136f73"
+    },
+    "1": {
+      "passed": true,
+      "at": "2026-08-08T23:55:54",
+      "commit": "e136f73"
+    }
+  },
+  "last_audit": {
+    "at": "2026-08-09T00:01:51",
+    "p0": 0,
+    "p1": 14,
+    "p2": 3,
+    "scanned": 102,
+    "commit": "e136f73"
+  },
+  "features": []
+}
