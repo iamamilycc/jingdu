@@ -3,7 +3,10 @@
    官方唯一網址 https://iamamilycc.github.io/jingdu ——未經書面同意禁止複製/鏡像/改作/商用。 */
 (function(){
   'use strict';
-  const NS = 'jingdu_';
+  /* storage 命名空間：頁面可在載入本檔「之前」設 window.JD_NS 來分家（如雅思站設 'ielts_'）。
+     主站不設 → 拿預設 'jingdu_'，讀寫的仍是同一批鍵，現有進度零影響。
+     ⚠️ 預設值不可改，改了等於主站資料全丟。鎖在 tests/ns_isolation_test.py 規則1。 */
+  const NS = window.JD_NS || 'jingdu_';
 
   /* 註冊 Service Worker（網絡優先）：裝一次後，普通刷新就能拿最新代碼，不必硬刷新；離線也能用。
      用 core.js 自身路徑推導站點根，兼容本地測試與 GitHub Pages 的 /jingdu/ 子路徑；失敗靜默不影響功能。 */
@@ -265,6 +268,7 @@
   function langOf(lessonId){
     if(!lessonId) return '';
     if(lessonId.indexOf('nce2-')===0) return 'en';
+    if(lessonId.indexOf('ielts-')===0) return 'en';   /* 雅思詞卡：算英語，讓打卡/連續天數在 ielts_ 空間內正常運作 */
     if(lessonId.indexOf('jp-')===0) return 'jp';
     if(lessonId.indexOf('u-')===0){
       try{ const u=JSON.parse(localStorage.getItem(NS+'userlessons')||'{}')[lessonId]; return (u&&u.lang)||''; }catch(e){ return ''; }

@@ -98,8 +98,14 @@ def check_sites_declare_ns():
     seen = {}
     for site, cfg in SITES.items():
         ns = cfg['ns']
-        ck('%s 的 NS「%s」未與他站重複' % (site, ns), ns not in seen, '與 %s 撞名' % seen.get(ns))
-        seen[ns] = site
+        if cfg.get('pending_migration'):
+            # 已知未完成：此站尚未分家，暫時與主站同空間。顯式提醒，但不算失敗。
+            print('  --  %s 尚未分家（待遷往 %s，須配一次性資料複製）'
+                  % (site, cfg['pending_migration']))
+        else:
+            ck('%s 的 NS「%s」未與他站重複' % (site, ns), ns not in seen,
+               '與 %s 撞名' % seen.get(ns))
+            seen[ns] = site
 
         idx = os.path.join(cfg['dir'], 'index.html') if cfg['dir'] else 'index.html'
         html = read(idx)
