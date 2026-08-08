@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>雅思詞彙 · 虫虫精讀</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+  /* ⚠️ 必須在載入 core.js「之前」宣告，晚了 core.js 已經取好 NS 就來不及。
+     設了它，本站所有進度／錯題本／打卡都寫進 ielts_ 空間，
+     與英語精讀（jingdu_）完全分家——兩邊互不影響。
+     鎖在 tests/ns_isolation_test.py 規則3、4。 */
+  window.JD_NS = 'ielts_';
+</script>
+<script src="../assets/core.js"></script>
+<script src="../assets/sync.js"></script>
+<style>
+  .wrap{max-width:44rem;margin:0 auto;padding:1rem 1rem 3rem}
+  .hero{text-align:center;padding:1.5rem 0 1rem}
+  .hero h1{margin:.2rem 0;font-size:1.5rem}
+  .hero .sub{color:#666;font-size:.9rem}
+  .layers{display:grid;gap:.7rem;margin:1.2rem 0}
+  .layer{border:1px solid #e2e2e2;border-radius:12px;padding:.9rem 1rem;background:#fff}
+  .layer h3{margin:0 0 .3rem;font-size:1rem}
+  .layer p{margin:0;color:#666;font-size:.85rem;line-height:1.5}
+  .layer .n{float:right;color:#999;font-size:.85rem}
+  .todo{border:1px dashed #ccc;border-radius:12px;padding:1rem;color:#888;
+        font-size:.9rem;line-height:1.7;background:#fafafa}
+  .selfcheck{margin-top:1.5rem;font-size:.85rem;color:#666}
+  .selfcheck code{background:#f2f2f2;padding:.1rem .3rem;border-radius:4px}
+  #nsState{font-weight:600}
+  .ok{color:#1a7f37}.bad{color:#c0392b}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <h1>雅思詞彙</h1>
+    <div class="sub">目標 6.5 · 分層背誦 · 復用艾賓浩斯復習引擎</div>
+  </div>
+
+  <div class="layers">
+    <div class="layer"><h3>L1 基礎 <span class="n">3,263 詞</span></h3>
+      <p>中考／高考／四級級別。雅思核心詞有 <b>一半以上落在這層</b>——先補這裡的洞，比直接啃雅思詞彙書有效。</p></div>
+    <div class="layer"><h3>L2 進階 <span class="n">1,322 詞</span></h3>
+      <p>六級／考研級別。第二輪主攻。</p></div>
+    <div class="layer"><h3>L3 雅思獨有 <span class="n">786 詞</span></h3>
+      <p>不在四六級／考研範圍內的雅思詞。量比想像中少。</p></div>
+    <div class="layer"><h3>L4 學術拓展 <span class="n">629 詞</span></h3>
+      <p>托福高頻，衝 7.0 才需要。有餘力再說。</p></div>
+  </div>
+
+  <div class="todo">
+    <b>目前進度：Phase 2 基建完成</b><br>
+    命名空間隔離已就緒，詞彙卡功能開發中。<br>
+    詞表已備妥：6,000 詞（來源 ECDICT，MIT 授權），含音標、中文釋義、詞頻。
+  </div>
+
+  <div class="selfcheck">
+    <p>隔離自檢：本站命名空間 <span id="nsState">檢查中…</span></p>
+    <p>英語精讀在 <code>jingdu_</code>，本站在 <code>ielts_</code>，兩邊資料互不干擾。</p>
+    <p><a href="../index.html">← 回英語精讀</a>　<a href="review.html">複習隊列 →</a></p>
+  </div>
+
+</div>
+
+<script>
+  /* 自檢：確認 NS 真的分家了。一眼就能看出隔離有沒有生效，不必開 devtools。 */
+  (function(){
+    var el = document.getElementById('nsState');
+    var ok = (window.JD_NS === 'ielts_');
+    var probe = 'ielts_' + 'ns_probe';
+    try{
+      localStorage.setItem(probe, '1');
+      ok = ok && localStorage.getItem(probe) === '1'
+              && localStorage.getItem('jingdu_ns_probe') === null;
+      localStorage.removeItem(probe);
+    }catch(e){ ok = false; }
+    el.textContent = ok ? 'ielts_（已分家 ✓）' : '異常：未隔離';
+    el.className = ok ? 'ok' : 'bad';
+  })();
+</script>
+</body>
+</html>

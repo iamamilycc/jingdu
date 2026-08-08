@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>雅思複習隊列 · 虫虫精讀</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+  /* 與 index.html 同一個命名空間，且同樣必須早於 core.js。 */
+  window.JD_NS = 'ielts_';
+</script>
+<script src="../assets/core.js"></script>
+<script src="../assets/sync.js"></script>
+<style>
+  .wrap{max-width:44rem;margin:0 auto;padding:1rem 1rem 3rem}
+  h1{font-size:1.3rem;margin:.6rem 0}
+  .stat{display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0}
+  .stat div{flex:1;min-width:8rem;border:1px solid #e2e2e2;border-radius:12px;
+            padding:.8rem;text-align:center;background:#fff}
+  .stat b{display:block;font-size:1.6rem;line-height:1.3}
+  .stat span{color:#666;font-size:.8rem}
+  .empty{border:1px dashed #ccc;border-radius:12px;padding:1.4rem;
+         color:#888;text-align:center;line-height:1.8;background:#fafafa}
+  .nav{margin-top:1.5rem;font-size:.9rem}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>複習隊列</h1>
+
+  <div class="stat">
+    <div><b id="due">–</b><span>今天該複習</span></div>
+    <div><b id="all">–</b><span>隊列總數</span></div>
+    <div><b id="solid">–</b><span>已牢固</span></div>
+  </div>
+
+  <div class="empty" id="empty">
+    詞彙卡功能開發中。<br>
+    這裡會顯示今天到期的詞，間隔依艾賓浩斯曲線：30分 → 1天 → 2 → 4 → 7 → 15 → 30 → 90天。
+  </div>
+
+  <div class="nav"><a href="index.html">← 回雅思首頁</a>　<a href="../index.html">回英語精讀</a></div>
+</div>
+
+<script>
+  /* 直接讀共用引擎的錯題本——因為 NS 已分家，這裡拿到的只會是 ielts_ 空間的資料，
+     不會混到英語精讀的。這也是「復用引擎但資料隔離」的實證。 */
+  (function(){
+    if(!window.JD) return;
+    var all = JD.allItems() || [];
+    document.getElementById('due').textContent = (JD.dueItems() || []).length;
+    document.getElementById('all').textContent = all.length;
+    document.getElementById('solid').textContent = all.filter(function(it){ return it.solid; }).length;
+  })();
+</script>
+</body>
+</html>

@@ -7,7 +7,8 @@
    安全：令牌僅存本機 localStorage，絕不寫入任何代碼倉庫。 */
 (function(){
   'use strict';
-  const NS='jingdu_', CFG_KEY=NS+'sync', UPD_KEY=NS+'updatedAt';
+  /* 跟 core.js 用同一個命名空間（單一真源），這樣各站只備份/還原自己空間的資料 */
+  const NS=window.JD_NS||'jingdu_', CFG_KEY=NS+'sync', UPD_KEY=NS+'updatedAt';
   let sha=null, timer=null, busy=false;
 
   function cfg(){ try{ return JSON.parse(localStorage.getItem(CFG_KEY))||null; }catch(e){ return null; } }
@@ -92,7 +93,11 @@
     const j=await r.json(); return j.content && j.content.sha;
   }
 
-  function userPath(){ const c=cfg(); return 'users/'+encodeURIComponent(c.user)+'.json'; }
+  /* 備份檔路徑必須帶命名空間，否則三站會寫同一個檔互相覆蓋（＝雲端資料被後備份的站洗掉）。
+     主站（jingdu_）維持 users/<暱稱>.json 不變，使用者現有的雲備份照樣讀得到；
+     其他站加後綴：雅思 → users/<暱稱>.ielts.json。鎖在 tests/ns_isolation_test.py 規則6。 */
+  function nsSuffix(){ return NS==='jingdu_' ? '' : '.'+NS.replace(/_$/,''); }
+  function userPath(){ const c=cfg(); return 'users/'+encodeURIComponent(c.user)+nsSuffix()+'.json'; }
 
   function pull(){
     const c=cfg(); if(!c) return Promise.reject('nocfg');
