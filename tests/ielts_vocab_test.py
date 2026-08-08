@@ -1,0 +1,144 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+ielts_vocab_test.py —— 雅思詞表資料完整性測試
+
+詞表是拿來背的，錯一個釋義就背錯一個詞，而且是背熟了才發現。所以這裡不只驗「檔案在」，
+而是驗「每一筆都能用」：欄位齊、分層與規則一致、排序正確、meta 與實際檔案對得上。
+
+⭐ 最重要的一條：**分層是用 build_vocab.layer_of() 重新算一次再比對**，不是信任 JSON 裡
+   寫的 L。這樣日後改了分層規則卻忘了重建詞表，這裡會直接紅。
+
+用法：  python3 tests/ielts_vocab_test.py
+成功：  印「全部通過 ✅」且退出碼 0。
+重建：  python3 ielts/build_vocab.py --ecdict /path/to/ecdict.csv
+"""
+import json, os, sys
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DATA = os.path.join(ROOT, 'ielts', 'data')
+sys.path.insert(0, os.path.join(ROOT, 'ielts'))
+FAILS = []
+
+
+def ck(name, cond, detail=''):
+    print(('  ok  ' if cond else '  XX  ') + name + ('' if cond else '   <<< ' + str(detail)))
+    if not cond:
+        FAILS.append(name)
+
+
+def load(fn):
+    p = os.path.join(DATA, fn)
+    if not os.path.exists(p):
+        return None
+    with open(p, encoding='utf-8') as f:
+        return json.load(f)
+
+
+def main():
+    print('== 雅思詞表資料完整性 ==')
+
+    meta = load('meta.json')
+    ck('meta.json 存在', meta is not None)
+    if meta is None:
+        print('\n❌ 詞表未建置，先跑：python3 ielts/build_vocab.py --ecdict <ecdict.csv>')
+        return 1
+
+    print('-- 來源與授權（可追溯，不能是來路不明的詞表）')
+    ck('標明來源 ECDICT', 'ECDICT' in meta.get('source', ''), meta.get('source'))
+    ck('標明授權 MIT', meta.get('license') == 'MIT', meta.get('license'))
+    ck('標明建置日期', bool(meta.get('built')), meta.get('built'))
+    ck('欄位說明齊全', len(meta.get('fields', {})) >= 8, meta.get('fields'))
+
+    print('-- 各層檔案與 schema')
+    layers, total = {}, 0
+    for L in (1, 2, 3, 4):
+        items = load('L%d.json' % L)
+        ck('L%d.json 存在' % L, items is not None)
+        if items is None:
+            continue
+        layers[L] = items
+        total += len(items)
+
+        bad_field, bad_layer, bad_ph = [], [], []
+        for r in items:
+            if not r.get('w') or not r.get('tr') or 'L' not in r or 'tags' not in r:
+                bad_field.append(r.get('w', '?'))
+            if r.get('L') != L:
+                bad_layer.append(r.get('w'))
+            # 缺音標的必須標 noPh，前端才知道要走 TTS 發音
+            if not r.get('ph') and not r.get('noPh'):
+                bad_ph.append(r.get('w'))
+        ck('L%d 每筆都有 w/tr/L/tags' % L, not bad_field, bad_field[:5])
+        ck('L%d 的 L 欄位都等於 %d' % (L, L), not bad_layer, bad_layer[:5])
+        ck('L%d 缺音標者都標了 noPh（前端走 TTS）' % L, not bad_ph, bad_ph[:5])
+
+        # 同層按詞頻排序：常用詞先背。frq=0 表示無資料，排最後。
+        keys = [(r['frq'] == 0, r['frq']) for r in items]
+        ck('L%d 依詞頻排序（常用的先背）' % L, keys == sorted(keys),
+           '前 5 筆 frq=%s' % [r['frq'] for r in items[:5]])
+
+    ck('總詞數 6000', total == 6000, total)
+
+    print('-- ⭐分層規則一致性（用規則重算一次，不信任 JSON 裡寫的 L）')
+    try:
+        from build_vocab import layer_of
+    except ImportError as e:
+        ck('可載入 build_vocab.layer_of', False, e)
+        layer_of = None
+    if layer_of:
+        wrong = []
+        for L, items in layers.items():
+            for r in items:
+                if layer_of(set(r['tags'])) != r['L']:
+                    wrong.append('%s: tags=%s 標L%d 應L%d'
+                                 % (r['w'], r['tags'], r['L'], layer_of(set(r['tags']))))
+        ck('每一筆的層級都符合 layer_of 規則', not wrong,
+           '%d 筆不符：%s' % (len(wrong), wrong[:3]))
+
+    print('-- meta 與實際檔案對得上（parity：兩處數字必須相等）')
+    for L, items in layers.items():
+        m = meta['layers'][str(L)]
+        ck('L%d 詞數 meta=實際' % L, m['count'] == len(items),
+           'meta=%d 實際=%d' % (m['count'], len(items)))
+        real_ielts = sum(1 for r in items if 'ielts' in r['tags'])
+        ck('L%d 雅思標記數 meta=實際' % L, m['ielts_tagged'] == real_ielts,
+           'meta=%d 實際=%d' % (m['ielts_tagged'], real_ielts))
+        real_noph = sum(1 for r in items if r.get('noPh'))
+        ck('L%d 缺音標數 meta=實際' % L, m['no_phonetic'] == real_noph,
+           'meta=%d 實際=%d' % (m['no_phonetic'], real_noph))
+    ck('meta 總數 = 各層加總', meta['total'] == total, '%d vs %d' % (meta['total'], total))
+
+    print('-- 業務事實（立項報告裡的關鍵發現，變了要知道）')
+    if 1 in layers and 3 in layers:
+        l1_ielts = sum(1 for r in layers[1] if 'ielts' in r['tags'])
+        ck('L1 含大量雅思詞（>1500）→ 先補基礎的策略成立', l1_ielts > 1500, l1_ielts)
+        ck('L3 雅思獨有 < 1000（真正要新學的沒想像中多）', len(layers[3]) < 1000, len(layers[3]))
+        ck('L3 每一筆都有 ielts 標記', all('ielts' in r['tags'] for r in layers[3]))
+
+    print('-- 手機載入友善（主力裝置是 iPhone）')
+    for L in (1, 2, 3, 4):
+        kb = os.path.getsize(os.path.join(DATA, 'L%d.json' % L)) / 1024
+        ck('L%d.json < 700KB（單層載入不卡）' % L, kb < 700, '%.0fKB' % kb)
+
+    print('-- 無重複詞（同一個詞背兩次是浪費）')
+    seen, dup = set(), []
+    for L in sorted(layers):
+        for r in layers[L]:
+            if r['w'] in seen:
+                dup.append(r['w'])
+            seen.add(r['w'])
+    ck('跨層無重複單詞', not dup, '%d 個重複：%s' % (len(dup), dup[:5]))
+
+    print()
+    if FAILS:
+        print('❌ %d 條未通過：' % len(FAILS))
+        for f in FAILS:
+            print('   · ' + f)
+        return 1
+    print('全部通過 ✅')
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

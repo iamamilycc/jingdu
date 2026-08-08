@@ -13,15 +13,20 @@
       "passed": true,
       "at": "2026-08-08T23:55:54",
       "commit": "e136f73"
+    },
+    "2": {
+      "passed": false,
+      "at": "2026-08-09T00:21:10",
+      "commit": "d531890"
     }
   },
   "last_audit": {
-    "at": "2026-08-09T00:17:01",
+    "at": "2026-08-09T00:21:10",
     "p0": 0,
     "p1": 14,
     "p2": 3,
-    "scanned": 104,
-    "commit": "d0a6ed0"
+    "scanned": 105,
+    "commit": "d531890"
   },
   "features": [
     {
@@ -29,6 +34,12 @@
       "test": "python3 tests/ns_isolation_test.py",
       "at": "2026-08-09T00:17:00",
       "commit": "d0a6ed0"
+    },
+    {
+      "name": "隔離真行為驗證（含主站零影響回歸）",
+      "test": "python3 tests/ielts_isolation_behavior_test.py",
+      "at": "2026-08-09T00:21:10",
+      "commit": "d531890"
     }
   ]
 }
