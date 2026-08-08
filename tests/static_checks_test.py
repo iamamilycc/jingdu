@@ -116,6 +116,25 @@ def check_switchuser_awaits_push():
     ck('await push() 在 applySnapshot(清本機) 之前', ap >= 0 and (clear < 0 or ap < clear), 'push 沒排在清本機前')
     ck('離線/失敗有 confirm 守衛', 'confirm(' in body, '沒有 confirm 守衛')
 
+# ---- 規則10：所有語音跟讀打分處必走多候選 bestCompare + 有自評兜底（舉一反三鎖：漏一處就紅）----
+def check_recognition_parity():
+    print('-- 規則10：每個語音跟讀打分處都走 bestCompare(多候選)+ 有自評兜底(jd-selfok)')
+    # 凡是「用 JD.compare / compareJPReading 對識別結果打分」的檔案（課文跟讀/背句、複習頁），
+    # 都必須：①走 bestCompare(多候選，救 aloud→allowed) ②低分有自評兜底(jd-selfok)。
+    # 新增任何用語音打分的入口若漏了這兩者，這條測試會直接失敗——把「舉一反三」焊死成機制。
+    SPEECH_SCORING_FILES = ['assets/lesson.js', 'assets/lesson-jp.js', 'review.html', 'jp/review.html']
+    import os as _os
+    for rel in SPEECH_SCORING_FILES:
+        path = _os.path.join(ROOT, rel)
+        if not _os.path.exists(path):
+            continue  # jp/review.html 可能不存在，跳過（存在才查）
+        txt = '\n'.join(read(rel))
+        scores_speech = ('JD.compare(' in txt) or ('compareJPReading(' in txt)
+        if not scores_speech:
+            continue  # 這檔沒有語音打分，不要求
+        ck('%s 語音打分走 bestCompare(多候選)' % rel, 'bestCompare' in txt, '有比對卻沒走多候選=漏改')
+        ck('%s 低分有自評兜底(jd-selfok)' % rel, 'jd-selfok' in txt, '有比對卻沒自評兜底=念對會卡死')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -126,6 +145,7 @@ def main():
     check_furigana_single_source()
     check_speaker_space_colon()
     check_switchuser_awaits_push()
+    check_recognition_parity()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))

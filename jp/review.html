@@ -129,21 +129,29 @@ window.qRec = function(){
   recBusy=true;
   btn.disabled=true; btn.classList.add('listening'); btn.textContent='👂 正在聽…';
   $('#qResult').innerHTML='<div class="acc-badge">👂 開始背吧！說完停一下，會自動結束打分</div>';
-  JD.listen((text,err)=>{
+  JD.listen((text,err,alts)=>{
     recBusy=false;
     btn.disabled=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次';
     if(err && !text){
       const msg = err==='not-allowed'?'麥克風權限被拒絕：設定→Safari→麥克風':(err==='silence'?'沒聽到聲音，再大聲點':(err==='timeout'?'等了好久沒聽清，再按一次試試':(err==='aborted'?'剛剛還在聽呢～說完停頓一下會自動結束':'識別出錯，再試一次')));
       $('#qResult').innerHTML='<div class="acc-badge bad">'+msg+'</div>'; return;
     }
-    let normed = text;
-    if(cur.kmap){ Object.keys(cur.kmap).sort((a,b)=>b.length-a.length).forEach(k=>{ normed = normed.split(k).join(cur.kmap[k]); }); }
-    const r=JD.compareJP(cur.en,normed);
+    /* 多候選 + 漢字表映射：對每個候選都用 compareJPReading(內含漢字↔假名)取最高分——與課文頁背句一致 */
+    const cands=(alts&&alts.length)?alts:[text];
+    const bc=JD.bestCompare(cands, c=>JD.compareJPReading(cur.en, c, cur.kmap||{}));
+    const r=bc.r; text=bc.text||text;
     $('#qTarget').innerHTML = '<span class="jp-text">'+JD.esc(cur.en)+'</span>';
+    const low = r.accuracy < JD.PASS;
     $('#qResult').innerHTML='<div class="result-words jp-text">'+r.tokens.map(t=>'<span class="rw '+t.st+'">'+JD.esc(t.w)+'</span>').join('')+'</div>'+
-      '<div class="acc-badge '+(r.accuracy>=JD.PASS?'good':'bad')+'">'+(r.accuracy>=JD.PASS?'🎉':'💪')+' 準確率 '+r.accuracy+'%</div>';
+      '<div class="acc-badge '+(r.accuracy>=JD.PASS?'good':'bad')+'">'+(r.accuracy>=JD.PASS?'🎉':'💪')+' 準確率 '+r.accuracy+'%</div>'+
+      (low?'<div style="margin-top:8px"><button class="big-btn teal jd-selfok">🙋 我確定念對了（有些詞語音聽不出）</button>'+
+        '<button class="big-btn ghost jd-selffail" style="margin-left:6px">確實沒背對</button>'+
+        '<div class="hint" style="margin:6px 0 0">想更準確評分：到「🔊 聲音」頁開「🎯 發音評估」。</div></div>':'');
     $('#qHeard').textContent='你說的是：'+text;
-    if(r.accuracy>=JD.PASS) qPass(); else qFail();
+    if(low){
+      const sp=$('#qResult').querySelector('.jd-selfok'); if(sp) sp.onclick=qPass;
+      const sf=$('#qResult').querySelector('.jd-selffail'); if(sf) sf.onclick=qFail;
+    } else { qPass(); }
   }, undefined, LANG);
 };
 window.qPass = function(){
