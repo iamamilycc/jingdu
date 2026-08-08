@@ -116,6 +116,37 @@ function mask(){
   $('#qBtns').innerHTML='<button id="qRecBtn" class="big-btn rec" onclick="qRec()">🎙️ 開始背</button>'+
     '<button class="big-btn ghost" onclick="qFail(true)">😳 忘了，看答案</button>';
 }
+/* 發音評估四維條（複盤頁自己渲染） */
+function pronBar(lb,val){ const col=val>=JD.PASS?'var(--green)':val>=60?'var(--mango)':'var(--coral)';
+  return '<div style="display:flex;align-items:center;gap:9px;margin:5px 0"><span style="flex:none;width:3.6em;font-family:var(--font-head);font-weight:600;font-size:.9rem">'+lb+'</span>'+
+    '<span style="flex:1;height:11px;border-radius:6px;background:var(--line);overflow:hidden"><span style="display:block;height:100%;width:'+val+'%;background:'+col+'"></span></span>'+
+    '<span style="flex:none;width:2.2em;text-align:right;font-family:var(--font-head);font-weight:700">'+val+'</span></div>'; }
+/* 複盤語音復習走 Azure 發音評估（與課文頁背句一致）；日語參考文用 cur.en（作者注音的假名讀音） */
+function qRecPron(btn){
+  const refText=cur.en;
+  recBusy=true;
+  $('#qResult').innerHTML='<div class="acc-badge">🎤 開麥克風中…允許後開口念，念完點「我說完了」</div>'; $('#qHeard').textContent='';
+  let ctl=null, ended=false;
+  btn.disabled=true; btn.classList.add('listening'); btn.textContent='⏳ 開麥克風…';
+  JDPron.start(refText,'ja').then(c=>{ ctl=c; btn.disabled=false; btn.textContent='✅ 我說完了（上傳打分）'; })
+    .catch(err=>{ recBusy=false; btn.classList.remove('listening'); btn.textContent='🎙️ 再試一次';
+      $('#qResult').innerHTML='<div class="acc-badge bad">發音評估開麥克風失敗（'+JD.esc(err.message||err)+'）。可再試，或到聲音頁關掉發音評估用普通識別。</div>'; });
+  btn.onclick=async()=>{
+    if(ended||!ctl) return; ended=true; recBusy=false; btn.disabled=true; btn.classList.remove('listening'); btn.textContent='⏳ 評分中…';
+    try{
+      const sc=await ctl.stop();
+      $('#qTarget').innerHTML='<span class="jp-text">'+JD.esc(cur.en)+'</span>';
+      const low=sc.pron<JD.PASS;
+      $('#qResult').innerHTML=pronBar('準確度',sc.accuracy)+pronBar('流利度',sc.fluency)+pronBar('完整度',sc.completeness)+(sc.hasProsody?pronBar('語調',sc.prosody):'')+
+        '<div class="acc-badge '+(sc.pron>=JD.PASS?'good':'bad')+'">'+(sc.pron>=JD.PASS?'🎉':'💪')+' 綜合發音 '+sc.pron+' 分</div>'+
+        (low?'<div style="margin-top:8px"><button class="big-btn teal jd-selfok">🙋 我確定念對了</button><button class="big-btn ghost jd-selffail" style="margin-left:6px">確實沒背對</button></div>':'');
+      if(sc.text) $('#qHeard').textContent='你說的是：'+sc.text;
+      btn.disabled=false; btn.textContent='🎙️ 再試一次'; btn.onclick=qRec;
+      if(low){ const sp=$('#qResult').querySelector('.jd-selfok'); if(sp) sp.onclick=qPass; const sf=$('#qResult').querySelector('.jd-selffail'); if(sf) sf.onclick=qFail; }
+      else qPass();
+    }catch(e){ $('#qResult').innerHTML='<div class="acc-badge bad">發音評估暫時不可用（'+JD.esc(e.message||e)+'）</div>'; btn.disabled=false; btn.textContent='🎙️ 再試一次'; btn.onclick=qRec; }
+  };
+}
 window.qRec = function(){
   const btn=$('#qRecBtn');
   if(recBusy) return;
@@ -126,6 +157,8 @@ window.qRec = function(){
     $('#qTarget').innerHTML = '<span class="jp-text">'+JD.esc(cur.en)+'</span>';
     return;
   }
+  /* 開了發音評估→走 Azure 四維評分（與課文頁背句一致）；沒開走瀏覽器識別＋準確率 */
+  if(window.JDPron && JDPron.enabled() && JDPron.supported()){ return qRecPron(btn); }
   recBusy=true;
   btn.disabled=true; btn.classList.add('listening'); btn.textContent='👂 正在聽…';
   $('#qResult').innerHTML='<div class="acc-badge">👂 開始背吧！說完停一下，會自動結束打分</div>';

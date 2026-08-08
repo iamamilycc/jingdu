@@ -134,6 +134,7 @@ def check_recognition_parity():
             continue  # 這檔沒有語音打分，不要求
         ck('%s 語音打分走 bestCompare(多候選)' % rel, 'bestCompare' in txt, '有比對卻沒走多候選=漏改')
         ck('%s 低分有自評兜底(jd-selfok)' % rel, 'jd-selfok' in txt, '有比對卻沒自評兜底=念對會卡死')
+        ck('%s 有發音評估分流(JDPron.enabled)' % rel, 'JDPron.enabled()' in txt, '沒接發音評估分流=開了也不走 Azure 四維')
 
 # ---- 規則11：視覺模型 callApi 的 max_tokens 不准超 1024（超過→拍圖建課報 400，歷史回歸）----
 def check_vision_max_tokens():
