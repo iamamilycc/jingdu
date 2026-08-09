@@ -152,10 +152,16 @@ def main():
     has('ielts/index.html', 'speaking.html', '口語練習')
     has('ielts/speaking.html', 'index.html', '回背單字')
     has('ielts/speaking.html', 'writing.html', '寫作')
+    # 雅思讀者是成人備考者，精讀教程是寫給家長孩子的——必須有自己的說明且各頁進得去
+    for pg_ in ('index', 'dictation', 'writing', 'speaking', 'review'):
+        has('ielts/%s.html' % pg_, 'help.html', '雅思說明頁')
+    has('help.html', 'ielts/help.html', '從精讀教程分流到雅思說明')
+    has('ielts/help.html', 'index.html', '說明頁回得去')
     has('help.html', 'ielts/index.html', '教程裡有可點的入口')
 
     # 前端七律：動態按鈕不准內嵌 onclick 字串（點了沒反應是本專案踩過的坑）
-    for rel in ('ielts/index.html', 'ielts/review.html', 'ielts/dictation.html', 'ielts/writing.html', 'ielts/speaking.html'):
+    for rel in ('ielts/index.html', 'ielts/review.html', 'ielts/dictation.html',
+                'ielts/writing.html', 'ielts/speaking.html'):
         txt = open(os.path.join(ROOT, rel), encoding='utf-8').read()
         inline = [ln.strip()[:60] for ln in txt.splitlines()
                   if '<button' in ln and 'onclick=' in ln]
@@ -163,6 +169,24 @@ def main():
 
     # 本專案方法論的頭號重複犯錯：做完功能忘記同步 help.html，被使用者提醒過兩次以上。
     # 焊成測試：功能的每個對外概念都必須在教程裡講到，漏了就紅。
+    print('-- 雅思專屬說明頁（不只講功能，要含備考策略）')
+    ih = os.path.join(ROOT, 'ielts', 'help.html')
+    ihtxt = open(ih, encoding='utf-8').read() if os.path.exists(ih) else ''
+    ck('ielts/help.html 存在', bool(ihtxt))
+    for name, kw in {
+        '總時數估計': '450',
+        '基線測試換算表': '27–29',
+        '⭐分層策略的數據依據': '1,706',
+        '第一次要先跳過高頻詞': '這批我都會',
+        '錯因對應練法': '最大宗失分',
+        'AI給分偏高警示': '偏高 0.5–1 分',
+        '素材複用': '5 段真實經歷',
+        '微信硬限制': '微信內建瀏覽器不開放麥克風',
+        '每日流程': '建議的每日流程',
+        '資料隔離說明': '完全分開存',
+    }.items():
+        ck('雅思說明有「%s」' % name, kw in ihtxt, '缺：%s' % kw)
+
     print('-- 教程同步（做完功能忘了寫教程是本專案反覆犯的錯）')
     help_path = os.path.join(ROOT, 'help.html')
     help_txt = open(help_path, encoding='utf-8').read() if os.path.exists(help_path) else ''
