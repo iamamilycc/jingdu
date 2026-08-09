@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>雅思複習隊列 · 虫虫精讀</title>
+<title>雅思複習 · 虫虫精讀</title>
 <link rel="stylesheet" href="../assets/style.css">
 <script>
   /* 與 index.html 同一個命名空間，且同樣必須早於 core.js。 */
@@ -11,47 +11,187 @@
 </script>
 <script src="../assets/core.js"></script>
 <script src="../assets/sync.js"></script>
+<script src="../assets/ielts-vocab.js"></script>
 <style>
-  .wrap{max-width:44rem;margin:0 auto;padding:1rem 1rem 3rem}
-  h1{font-size:1.3rem;margin:.6rem 0}
-  .stat{display:flex;gap:1rem;flex-wrap:wrap;margin:1rem 0}
-  .stat div{flex:1;min-width:8rem;border:1px solid #e2e2e2;border-radius:12px;
-            padding:.8rem;text-align:center;background:#fff}
-  .stat b{display:block;font-size:1.6rem;line-height:1.3}
-  .stat span{color:#666;font-size:.8rem}
-  .empty{border:1px dashed #ccc;border-radius:12px;padding:1.4rem;
-         color:#888;text-align:center;line-height:1.8;background:#fafafa}
-  .nav{margin-top:1.5rem;font-size:.9rem}
+  .wrap{max-width:34rem;margin:0 auto;padding:1rem 1rem 3rem}
+  .top{display:flex;align-items:center;justify-content:space-between}
+  .top h1{font-size:1.15rem;margin:.4rem 0}
+  .top a{font-size:.85rem;color:#666;text-decoration:none}
+
+  .stat{display:flex;gap:.5rem;margin:.9rem 0}
+  .stat div{flex:1;border:1px solid #e6e6e6;border-radius:12px;padding:.6rem .3rem;
+            text-align:center;background:#fff}
+  .stat b{display:block;font-size:1.4rem;line-height:1.25}
+  .stat span{color:#777;font-size:.72rem}
+
+  h2{font-size:.95rem;margin:1.4rem 0 .5rem;color:#444}
+  .list{border:1px solid #ececec;border-radius:12px;background:#fff;overflow:hidden}
+  .item{display:flex;align-items:center;gap:.6rem;padding:.6rem .8rem;border-top:1px solid #f2f2f2}
+  .item:first-child{border-top:0}
+  .item b{font-size:.98rem;min-width:6.5rem}
+  .item small{color:#777;flex:1;line-height:1.4;
+              overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lv{font-size:.72rem;color:#999;white-space:nowrap}
+
+  .rows{display:grid;gap:.5rem;margin:.6rem 0}
+  .rowline{display:flex;align-items:center;gap:.6rem;border:1px solid #ececec;
+           border-radius:12px;padding:.6rem .8rem;background:#fff}
+  .rowline b{font-size:.9rem;flex:1}
+  .rowline .num{color:#777;font-size:.82rem}
+  .rowline button{border:1px solid #e3d0d0;background:#fff;color:#b3453a;
+                  border-radius:9px;padding:.4rem .7rem;font-size:.78rem;cursor:pointer}
+
+  .acts{display:flex;gap:.5rem;margin-top:1rem}
+  .acts button{flex:1;border:1px solid #e6e6e6;background:#fafafa;color:#555;
+               border-radius:11px;padding:.7rem;font-size:.85rem;cursor:pointer}
+  .undo{border:1px solid #ffd9a8;background:#fff8ee;border-radius:12px;
+        padding:.75rem .9rem;margin:.9rem 0;font-size:.85rem;line-height:1.6;color:#8a5a12}
+  .undo button{margin-top:.45rem;border:1px solid #e8b96a;background:#fff;color:#8a5a12;
+               border-radius:9px;padding:.4rem .8rem;font-size:.8rem;cursor:pointer}
+  .empty{color:#999;font-size:.88rem;padding:1.1rem;text-align:center;line-height:1.7}
+  .hide{display:none}
+  .note{color:#999;font-size:.78rem;line-height:1.7;margin-top:1.2rem}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <h1>複習隊列</h1>
+
+  <div class="top">
+    <h1>複習隊列</h1>
+    <a href="index.html">← 背單字</a>
+  </div>
 
   <div class="stat">
-    <div><b id="due">–</b><span>今天該複習</span></div>
-    <div><b id="all">–</b><span>隊列總數</span></div>
-    <div><b id="solid">–</b><span>已牢固</span></div>
+    <div><b id="sDue">0</b><span>今天到期</span></div>
+    <div><b id="sLearn">0</b><span>學習中</span></div>
+    <div><b id="sSolid">0</b><span>已牢固</span></div>
   </div>
 
-  <div class="empty" id="empty">
-    詞彙卡功能開發中。<br>
-    這裡會顯示今天到期的詞，間隔依艾賓浩斯曲線：30分 → 1天 → 2 → 4 → 7 → 15 → 30 → 90天。
+  <div class="undo hide" id="undoBox">
+    <span id="undoMsg"></span><br>
+    <button id="btnRestore">↩︎ 還原剛才重置的進度</button>
   </div>
 
-  <div class="nav"><a href="index.html">← 回雅思首頁</a>　<a href="../index.html">回英語精讀</a></div>
+  <h2>今天到期（<span id="dueN">0</span>）</h2>
+  <div class="list" id="dueList"><div class="empty">今天沒有到期的詞 🎉</div></div>
+
+  <h2>各層進度</h2>
+  <div class="rows" id="layerRows"></div>
+
+  <div class="acts">
+    <button id="btnExport">⬇︎ 匯出 CSV（可丟進 Anki）</button>
+  </div>
+
+  <div class="note">
+    間隔依艾賓浩斯曲線：30分 → 1天 → 2 → 4 → 7 → 15 → 30 → 90天，答錯即打回重來，
+    連過 8 關算牢固。重置只清該層的學習狀態，詞表本身不動；重置後 24 小時內可還原。
+  </div>
 </div>
 
 <script>
-  /* 直接讀共用引擎的錯題本——因為 NS 已分家，這裡拿到的只會是 ielts_ 空間的資料，
-     不會混到英語精讀的。這也是「復用引擎但資料隔離」的實證。 */
-  (function(){
-    if(!window.JD) return;
-    var all = JD.allItems() || [];
-    document.getElementById('due').textContent = (JD.dueItems() || []).length;
-    document.getElementById('all').textContent = all.length;
-    document.getElementById('solid').textContent = all.filter(function(it){ return it.solid; }).length;
-  })();
+/* 前端七律：事件一律 id/元素 + .onclick 綁定，不在 innerHTML 拼字串。
+   所有數字都讀 IELTS/JD 的同一份來源，頁面不自己算。 */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var LAYER_NAME = {1:'L1 基礎', 2:'L2 進階', 3:'L3 雅思獨有', 4:'L4 學術拓展'};
+
+  function renderStats() {
+    var s = IELTS.stats();
+    $('sDue').textContent = s.due;
+    $('sLearn').textContent = s.learning;
+    $('sSolid').textContent = s.solid;
+    $('dueN').textContent = s.due;
+  }
+
+  function renderDue() {
+    var box = $('dueList');
+    var due = (JD.dueItems() || []).filter(function (it) { return it.id.indexOf('iw-') === 0; });
+    box.textContent = '';
+    if (!due.length) {
+      var e = document.createElement('div');
+      e.className = 'empty';
+      e.textContent = '今天沒有到期的詞 🎉　去背新詞或休息一下。';
+      box.appendChild(e);
+      return;
+    }
+    due.slice(0, 50).forEach(function (it) {
+      var row = document.createElement('div'); row.className = 'item';
+      var b = document.createElement('b'); b.textContent = it.en;
+      var s = document.createElement('small'); s.textContent = it.zh || '';
+      var l = document.createElement('span'); l.className = 'lv';
+      l.textContent = 'Lv' + it.level + (it.fails ? '　錯' + it.fails : '');
+      row.appendChild(b); row.appendChild(s); row.appendChild(l);
+      box.appendChild(row);
+    });
+    if (due.length > 50) {
+      var more = document.createElement('div');
+      more.className = 'empty';
+      more.textContent = '…還有 ' + (due.length - 50) + ' 個';
+      box.appendChild(more);
+    }
+  }
+
+  function renderLayers() {
+    var box = $('layerRows'), book = JD.getBook();
+    box.textContent = '';
+    [1, 2, 3, 4].forEach(function (L) {
+      var n = Object.keys(book).filter(function (k) {
+        return k.indexOf('iw-') === 0 && book[k].lessonId === 'ielts-L' + L;
+      }).length;
+      var row = document.createElement('div'); row.className = 'rowline';
+      var b = document.createElement('b'); b.textContent = LAYER_NAME[L];
+      var num = document.createElement('span'); num.className = 'num';
+      num.textContent = n ? (n + ' 詞已入隊') : '尚未開始';
+      row.appendChild(b); row.appendChild(num);
+      if (n) {
+        var btn = document.createElement('button');
+        btn.textContent = '重置';
+        /* 閉環：破壞性操作 → 顯示將清除幾筆 → 二次確認 → 留快照可還原 */
+        btn.onclick = function () {
+          if (!confirm('重置 ' + LAYER_NAME[L] + ' 的學習進度？\n'
+                     + '將清除 ' + n + ' 筆學習狀態（詞表本身不動）。\n'
+                     + '重置後 24 小時內可以還原。')) return;
+          var killed = IELTS.resetLayer(L);
+          renderAll();
+          alert('已重置 ' + killed + ' 筆。若是誤操作，上方有還原按鈕。');
+        };
+        row.appendChild(btn);
+      }
+      box.appendChild(row);
+    });
+  }
+
+  function renderUndo() {
+    var snap = IELTS.undoSnapshot();
+    var fresh = snap && (Date.now() - snap.at < 24 * 3600e3);
+    $('undoBox').classList[fresh ? 'remove' : 'add']('hide');
+    if (fresh) {
+      $('undoMsg').textContent = '剛才重置了 ' + LAYER_NAME[snap.layer] + ' 的 '
+        + Object.keys(snap.items).length + ' 筆進度（24 小時內可還原）。';
+    }
+  }
+
+  function renderAll() { renderStats(); renderDue(); renderLayers(); renderUndo(); }
+
+  $('btnRestore').onclick = function () {
+    var n = IELTS.restoreSnapshot();
+    renderAll();
+    alert(n ? ('已還原 ' + n + ' 筆進度。') : '沒有可還原的快照。');
+  };
+
+  $('btnExport').onclick = function () {
+    var csv = IELTS.exportCsv();
+    var lines = csv.split('\n').length - 1;
+    if (!lines) { alert('還沒有學習紀錄可以匯出。'); return; }
+    var blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'ielts-vocab-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+  };
+
+  renderAll();
+})();
 </script>
 </body>
 </html>

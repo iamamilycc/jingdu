@@ -130,6 +130,48 @@ def main():
             seen.add(r['w'])
     ck('跨層無重複單詞', not dup, '%d 個重複：%s' % (len(dup), dup[:5]))
 
+    # 使用者視角走查的機器化版本：每個頁面都要進得去、回得來。
+    # 「功能做好了但沒有入口」是最容易漏、也最讓人惱火的缺口——鏈斷即缺口。
+    print('-- 入口與路徑閉環（每個頁面都進得去、回得來）')
+    def has(rel, needle, why):
+        p = os.path.join(ROOT, rel)
+        txt = open(p, encoding='utf-8').read() if os.path.exists(p) else ''
+        ck('%s → %s' % (rel, why), needle in txt, '缺連結：%s' % needle)
+
+    has('index.html', 'ielts/index.html', '雅思（主站首頁要有入口，否則只能手動輸網址）')
+    has('ielts/index.html', 'review.html', '複習隊列（背完要能去看）')
+    has('ielts/index.html', '../index.html', '回英語精讀')
+    has('ielts/review.html', 'index.html', '回背單字')
+    has('help.html', 'ielts/index.html', '教程裡有可點的入口')
+
+    # 前端七律：動態按鈕不准內嵌 onclick 字串（點了沒反應是本專案踩過的坑）
+    for rel in ('ielts/index.html', 'ielts/review.html'):
+        txt = open(os.path.join(ROOT, rel), encoding='utf-8').read()
+        inline = [ln.strip()[:60] for ln in txt.splitlines()
+                  if '<button' in ln and 'onclick=' in ln]
+        ck('%s 的按鈕不內嵌 onclick（用 id+.onclick 綁定）' % rel, not inline, inline[:3])
+
+    # 本專案方法論的頭號重複犯錯：做完功能忘記同步 help.html，被使用者提醒過兩次以上。
+    # 焊成測試：功能的每個對外概念都必須在教程裡講到，漏了就紅。
+    print('-- 教程同步（做完功能忘了寫教程是本專案反覆犯的錯）')
+    help_path = os.path.join(ROOT, 'help.html')
+    help_txt = open(help_path, encoding='utf-8').read() if os.path.exists(help_path) else ''
+    ck('help.html 存在', bool(help_txt))
+    must = {
+        '雅思入口連結': 'ielts/index.html',
+        '複習頁連結': 'ielts/review.html',
+        '分層策略（先補基礎）': '一半以上',
+        '批量跳過功能': '這批我都會',
+        '重置可還原': '24 小時內可以還原',
+        '匯出 CSV': 'CSV',
+        '資料隔離說明': '完全分開存',
+        '缺音標走語音': '沒有音標',
+        '詞表來源與授權': 'ECDICT',
+        '重建指令': 'build_vocab.py',
+    }
+    for name, kw in must.items():
+        ck('教程有講到「%s」' % name, kw in help_txt, '缺關鍵詞：%s' % kw)
+
     print()
     if FAILS:
         print('❌ %d 條未通過：' % len(FAILS))

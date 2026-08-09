@@ -72,7 +72,7 @@
 
   <div class="top">
     <h1>雅思詞彙</h1>
-    <a href="../index.html">← 英語精讀</a>
+    <span><a href="review.html">📅 複習隊列</a>　<a href="../index.html">← 英語精讀</a></span>
   </div>
 
   <!-- ── 首頁：只有一個主按鈕，點下去直接開始 ── -->
@@ -131,6 +131,7 @@
     </div>
     <div class="mini">
       <button id="btnAgain">再背一輪</button>
+      <button id="btnReview">📅 看複習隊列</button>
       <button id="btnHome">回首頁</button>
     </div>
   </section>
@@ -275,6 +276,7 @@
     show('done', false);
     prepare().then(function () { if (Q.length) { show('home', false); show('study', true); paint(); } });
   };
+  $('btnReview').onclick = function () { location.href = 'review.html'; };
   $('btnHome').onclick = function () {
     show('done', false); show('home', true); prepare();
   };

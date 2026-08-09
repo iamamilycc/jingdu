@@ -136,11 +136,61 @@
     if (JD.speak) JD.speak(word.w, false);
   }
 
+  /* ---------- 重置某層 ----------
+     閉環要求：破壞性操作必須「操作前先留快照」，否則手滑一次就沒了。
+     快照保留 24 小時，期間可一鍵還原。 */
+  function resetLayer(L) {
+    var book = JD.getBook(), lesson = LESSON_OF(L), killed = {};
+    Object.keys(book).forEach(function (k) {
+      if (k.indexOf(ID_PREFIX) === 0 && book[k].lessonId === lesson) {
+        killed[k] = book[k];
+        delete book[k];
+      }
+    });
+    JD.save('errbook', book);
+    JD.save('vocab_undo', { at: Date.now(), layer: L, items: killed });
+    JD.touchSync && JD.touchSync();
+    return Object.keys(killed).length;
+  }
+
+  function undoSnapshot() {
+    return JD.load('vocab_undo', null);
+  }
+
+  function restoreSnapshot() {
+    var snap = undoSnapshot();
+    if (!snap || !snap.items) return 0;
+    var book = JD.getBook();
+    Object.keys(snap.items).forEach(function (k) { book[k] = snap.items[k]; });
+    JD.save('errbook', book);
+    JD.save('vocab_undo', null);
+    JD.touchSync && JD.touchSync();
+    return Object.keys(snap.items).length;
+  }
+
+  /* ---------- 匯出：帶得走的資料才是你的（可丟進 Anki）---------- */
+  function exportCsv() {
+    var book = JD.getBook();
+    var rows = [['word', 'meaning', 'level', 'fails', 'due', 'status']];
+    Object.keys(book).forEach(function (k) {
+      if (k.indexOf(ID_PREFIX) !== 0) return;
+      var it = book[k];
+      rows.push([it.en, (it.zh || '').replace(/"/g, '""'), it.level, it.fails,
+                 it.solid ? '' : new Date(it.due).toISOString().slice(0, 10),
+                 it.solid ? '已牢固' : '學習中']);
+    });
+    return rows.map(function (r) {
+      return r.map(function (c) { return '"' + String(c) + '"'; }).join(',');
+    }).join('\n');
+  }
+
   window.IELTS = {
     cfg: cfg, setCfg: setCfg,
     loadMeta: loadMeta, loadLayer: loadLayer,
     todayQueue: todayQueue, answer: answer, undo: undo,
     skipBatch: skipBatch, stats: stats, say: say,
+    resetLayer: resetLayer, undoSnapshot: undoSnapshot, restoreSnapshot: restoreSnapshot,
+    exportCsv: exportCsv,
     idOf: idOf, _findWord: findWord
   };
 })();

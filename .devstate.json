@@ -21,12 +21,12 @@
     }
   },
   "last_audit": {
-    "at": "2026-08-09T00:21:10",
+    "at": "2026-08-09T01:43:58",
     "p0": 0,
-    "p1": 14,
+    "p1": 13,
     "p2": 3,
-    "scanned": 105,
-    "commit": "d531890"
+    "scanned": 114,
+    "commit": "0e510bc"
   },
   "features": [
     {
@@ -40,6 +40,12 @@
       "test": "python3 tests/ielts_isolation_behavior_test.py",
       "at": "2026-08-09T00:21:10",
       "commit": "d531890"
+    },
+    {
+      "name": "詞彙卡（今日隊列/SRS/撤銷/批量跳過）",
+      "test": "python3 tests/ielts_card_behavior_test.py",
+      "at": "2026-08-09T01:43:58",
+      "commit": "0e510bc"
     }
   ]
 }

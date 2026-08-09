@@ -139,6 +139,31 @@ def run():
         ck('層級切到 L3 並記住', cur == 3, cur)
         ck('L3 標為選中', 'on' in (pg.get_attribute('.layer >> nth=2', 'class') or ''))
 
+        print('-- 複習頁：真資料 + 重置閉環（破壞性操作必須能還原）')
+        pg.goto(base + '/ielts/review.html')
+        s_learn = int(pg.inner_text('#sLearn'))
+        ck('複習頁讀到學習中詞數', s_learn > 0, s_learn)
+        ck('各層進度列出 4 層', pg.locator('.rowline').count() == 4)
+        ck('尚無快照時不顯示還原提示', not pg.is_visible('#undoBox'))
+
+        # 重置 L1 → 應清空該層並留下快照
+        pg.click('.rowline button >> nth=0')
+        pg.wait_for_timeout(300)
+        after_reset = int(pg.inner_text('#sLearn'))
+        ck('重置後學習中歸零', after_reset == 0, after_reset)
+        ck('重置後出現還原提示（24h 內可救）', pg.is_visible('#undoBox'))
+
+        pg.click('#btnRestore')
+        pg.wait_for_timeout(300)
+        restored = int(pg.inner_text('#sLearn'))
+        ck('⭐還原後進度完整回來', restored == s_learn, '%d → %d' % (s_learn, restored))
+        ck('還原後提示消失', not pg.is_visible('#undoBox'))
+
+        csv = pg.evaluate("() => IELTS.exportCsv()")
+        ck('可匯出 CSV 且含表頭', csv.startswith('"word","meaning"'), csv[:40])
+        ck('CSV 行數 = 學習中詞數 + 表頭', len(csv.strip().split(chr(10))) == restored + 1,
+           '%d 行 vs %d 詞' % (len(csv.strip().split(chr(10))), restored))
+
         print('-- ⭐整輪操作後，英語精讀資料一筆不動')
         pg.goto(base + '/index.html')
         en = pg.evaluate("() => Object.keys(JD.getBook()).sort()")
