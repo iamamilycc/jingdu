@@ -157,6 +157,20 @@ def main():
         has('ielts/%s.html' % pg_, 'help.html', '雅思說明頁')
     has('help.html', 'ielts/help.html', '從精讀教程分流到雅思說明')
     has('ielts/help.html', 'index.html', '說明頁回得去')
+    # 「有連結」不等於「看得到」：導航列的小連結在窄螢幕會被擠壓，
+    # 使用者回報「沒有看到雅思」時，連結其實一直都在。首頁必須有明顯的橫幅入口。
+    has('index.html', '雅思備考', '首頁有明顯的雅思橫幅（不能只靠導航列小連結）')
+    # 導航連結不准被壓成逐字直排——flex:none + nowrap 是防線
+    css = open(os.path.join(ROOT, 'assets', 'style.css'), encoding='utf-8').read()
+    import re as _re
+    m = _re.search(r"header\.site a\{([^}]*)\}", css)
+    ck('header 連結設了 flex:none（否則窄螢幕壓成直排）',
+       m and 'flex:none' in m.group(1), m.group(1)[:80] if m else '找不到規則')
+    ck('header 連結設了 white-space:nowrap',
+       m and 'nowrap' in m.group(1), m.group(1)[:80] if m else '')
+    mrow = _re.search(r"header\.site \.row\{([^}]*)\}", css)
+    ck('導航列放不下時橫向滾動（不壓縮文字）',
+       mrow and 'overflow-x:auto' in mrow.group(1), mrow.group(1)[:80] if mrow else '')
     has('help.html', 'ielts/index.html', '教程裡有可點的入口')
 
     # 前端七律：動態按鈕不准內嵌 onclick 字串（點了沒反應是本專案踩過的坑）
