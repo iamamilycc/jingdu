@@ -1,3 +1,6 @@
 .DS_Store
 __pycache__/
 release/
+
+# 開發流程狀態（含本機路徑，不進版控）
+.devstate.json
