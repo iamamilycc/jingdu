@@ -146,9 +146,14 @@
     });
   }
 
-  /* ---------- 首頁設定卡（只在有 #syncCard 的頁面渲染） ---------- */
+  /* ---------- 首頁同步入口（優先渲染成導覽列的小圓片 #syncChip；相容舊的整寬卡 #syncCard） ----------
+     使用者回饋：整寬設定卡佔掉首頁直向空間，而切換使用者/設定設一次就很少動。
+     改成導覽列一個小片：未設定→醒目「☁️ 開啟備份」(家長 CTA 不能藏太深，否則沒人設→資料會丟)；
+     已設定→「👤 名字 ☁️」，點一下才彈小選單給「切換使用者/同步設定」。 */
   function renderCard(){
-    const box=document.getElementById('syncCard'); if(!box) return;
+    const chip=document.getElementById('syncChip');
+    if(chip){ renderChip(chip); return; }
+    const box=document.getElementById('syncCard'); if(!box) return;   /* 舊頁面相容：仍渲染整寬卡 */
     const c=cfg();
     box.style.display='block';
     if(!c){
@@ -166,6 +171,40 @@
       '<span style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">'+
       '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.switchUser()">切換使用者</button>'+
       '<button class="big-btn ghost" style="padding:8px 14px;font-size:.85rem" onclick="JDSYNC.setup()">設定</button></span></div>';
+  }
+  /* 導覽列小圓片 */
+  function renderChip(chip){
+    const c=cfg();
+    chip.style.display='inline-flex';
+    if(!c){
+      chip.className='hdr-chip cta';
+      chip.innerHTML='☁️ 開啟備份';
+      chip.onclick=()=>setup();
+      return;
+    }
+    chip.className='hdr-chip';
+    chip.innerHTML='👤 '+esc(c.user)+' <span id="syncStatus" style="opacity:.85">☁️</span>';
+    chip.onclick=()=>menu();
+  }
+  /* 點小圓片彈出的管理選單（切換使用者/同步設定）——用小視窗避免下拉定位在手機上出錯 */
+  function menu(){
+    const c=cfg(); if(!c){ setup(); return; }
+    const provName = isGitee(c) ? 'Gitee' : 'GitHub';
+    const st=(document.getElementById('syncStatus')||{}).textContent || '☁️';
+    const mask=document.createElement('div'); mask.className='jd-modal-mask';
+    const box=document.createElement('div'); box.className='jd-modal';
+    box.innerHTML='<h3>👤 '+esc(c.user)+'</h3>'+
+      '<div class="jd-hint">'+esc(st)+' · '+esc(provName)+' 雲端備份</div>'+
+      '<div class="jd-btns" style="flex-direction:column;gap:8px">'+
+      '<button type="button" class="big-btn teal" data-act="switch">切換使用者</button>'+
+      '<button type="button" class="big-btn ghost" data-act="setup">同步設定</button>'+
+      '<button type="button" class="big-btn ghost" data-act="cancel">關閉</button></div>';
+    mask.appendChild(box); document.body.appendChild(mask);
+    const close=()=>mask.remove();
+    mask.addEventListener('click', e=>{ if(e.target===mask) close(); });
+    box.querySelector('[data-act=cancel]').onclick=close;
+    box.querySelector('[data-act=switch]').onclick=()=>{ close(); switchUser(); };
+    box.querySelector('[data-act=setup]').onclick=()=>{ close(); setup(); };
   }
 
   /* 通用彈窗：取代原生 prompt()（手機貼長字串會撐爆版面）。支援 text / textarea / select。 */
@@ -245,7 +284,7 @@
     setTimeout(()=>location.reload(), 800);
   }
 
-  window.JDSYNC={ schedule:schedule, setup:setup, switchUser:switchUser, init:init,
+  window.JDSYNC={ schedule:schedule, setup:setup, switchUser:switchUser, menu:menu, init:init,
                   _cfg:cfg, _pull:pull, _push:push, _snapshot:snapshot,
                   /* 供測試驗證「各站備份路徑不同」——路徑撞名會讓後備份的站洗掉前一站的雲端資料 */
                   _userPath:userPath };

@@ -22,7 +22,12 @@
 
   /* ---------- 設定（每日新詞量、當前層）---------- */
   function cfg() {
-    return JD.load('vocab_cfg', { layer: 1, dailyNew: 20, dailyMax: 60 });
+    /* autoSay 預設開：背單字時「看到就聽到」對記憶有幫助。
+       但圖書館/會議時很尷尬，所以卡片頁給開關，偏好會記住
+       （依 feedback_user_control_over_pacing：固定流程都要可調可跳過）。 */
+    var c = JD.load('vocab_cfg', { layer: 1, dailyNew: 20, dailyMax: 60, autoSay: true });
+    if (c.autoSay === undefined) c.autoSay = true;   /* 舊資料沒這欄，補上預設 */
+    return c;
   }
   function setCfg(c) { JD.save('vocab_cfg', c); }
 

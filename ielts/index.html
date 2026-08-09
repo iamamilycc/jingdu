@@ -116,8 +116,9 @@
     </div>
 
     <div class="mini">
+      <button id="btnAuto">🔊 自動發音：開</button>
       <button id="btnSkip">⏭ 這批我都會</button>
-      <button id="btnSay">🔊 發音</button>
+      <button id="btnSay">🔊 再念一次</button>
       <button id="btnUndo">↩︎ 撤銷上一張</button>
       <button id="btnQuit">結束本輪</button>
     </div>
@@ -212,6 +213,17 @@
     $('pos').textContent = (idx + 1) + ' / ' + Q.length;
     var known = !!JD.getBook()[IELTS.idOf(w.w)];
     $('kind').textContent = known ? '複習' : '新詞';
+
+    /* 卡片一出現就念——不用手動點。
+       ⚠️ iOS 規定沒有使用者手勢不能播音；使用者是點了「開始」才進來的，
+       所以之後每張都放得出來。萬一被擋也不影響流程（可按「再念一次」）。 */
+    if (IELTS.cfg().autoSay) {
+      try { IELTS.say(w); } catch (e) {}
+    }
+  }
+
+  function renderAuto() {
+    $('btnAuto').textContent = '🔊 自動發音：' + (IELTS.cfg().autoSay ? '開' : '關');
   }
 
   function next() {
@@ -255,6 +267,14 @@
   };
   $('btnSay').onclick = function () { IELTS.say(Q[idx]); };
 
+  $('btnAuto').onclick = function () {
+    var c = IELTS.cfg();
+    c.autoSay = !c.autoSay;
+    IELTS.setCfg(c);
+    renderAuto();
+    if (c.autoSay && Q[idx]) IELTS.say(Q[idx]);   /* 開回來時立刻念當前這張，確認有效 */
+  };
+
   /* L1 前段是 be/the/of 這類最高頻詞，逐張點「認識」是浪費時間。
      一鍵把剩下的整批標為已掌握（直接畢業，不再出現）。可從進度頁重置。 */
   $('btnSkip').onclick = function () {
@@ -283,6 +303,7 @@
 
   IELTS.loadMeta().then(function (meta) {
     renderLayers(meta);
+    renderAuto();
     return prepare();
   }).catch(function (e) {
     $('btnStart').textContent = '詞表載入失敗';

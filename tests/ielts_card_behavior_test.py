@@ -77,6 +77,36 @@ def run():
         pg.click('#btnStart')
         ck('點下去直接進入背誦（不需要其他選擇）', pg.is_visible('#study'))
 
+        print('-- 自動發音：卡片一出現就念（打開就讀，不用手動點）')
+        # 攔截 JD.speak 記錄呼叫，才能證明「真的念了」而不是只有按鈕在
+        pg.evaluate("""() => {
+            window.__spoke = [];
+            const orig = JD.speak;
+            JD.speak = function (t, slow) { window.__spoke.push(t); return orig ? null : null; };
+        }""")
+        pg.click('#btnFlip'); pg.click('#btnYes')      # 換下一張
+        pg.wait_for_timeout(300)
+        spoke = pg.evaluate("() => window.__spoke")
+        ck('換到新卡片會自動念', len(spoke) >= 1, spoke)
+        ck('念的是當前這張卡的單字',
+           spoke and spoke[-1] == pg.inner_text('#cWord'), '%s vs %s' % (spoke[-1] if spoke else None, pg.inner_text('#cWord')))
+
+        print('-- 自動發音可以關（圖書館/會議時很尷尬）')
+        ck('有自動發音開關', pg.locator('#btnAuto').count() == 1)
+        pg.click('#btnAuto')
+        ck('關掉後按鈕狀態改變', '關' in pg.inner_text('#btnAuto'), pg.inner_text('#btnAuto'))
+        pg.evaluate("() => window.__spoke = []")
+        pg.click('#btnFlip'); pg.click('#btnYes')
+        pg.wait_for_timeout(300)
+        ck('關掉後不再自動念', pg.evaluate("() => window.__spoke.length") == 0)
+        ck('偏好有存起來', pg.evaluate("() => IELTS.cfg().autoSay") is False)
+        pg.reload()
+        pg.wait_for_function("() => !document.getElementById('btnStart').disabled", timeout=15000)
+        ck('重新整理後仍記得關著', pg.evaluate("() => IELTS.cfg().autoSay") is False)
+        # 開回來，不影響後續測試
+        pg.evaluate("() => { const c = IELTS.cfg(); c.autoSay = true; IELTS.setCfg(c); }")
+        pg.click('#btnStart')
+
         print('-- 卡片：先看詞 → 翻面才給答案（避免直接看答案沒效果）')
         w1 = pg.inner_text('#cWord')
         ck('顯示單詞', len(w1) > 0, w1)

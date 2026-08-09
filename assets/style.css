@@ -52,6 +52,12 @@ header.site h1{font-family:var(--font-head);font-size:1.08rem;font-weight:600;li
    使用者回報「沒有看到雅思」。放不下時改由 .row 橫向滾動，不壓縮文字。） */
 header.site a{color:#fff;text-decoration:none;font-size:.9rem;opacity:.9;padding:6px 10px;border-radius:10px;background:rgba(255,255,255,.14);
   flex:none;white-space:nowrap}
+/* 導覽列同步小圓片：外觀對齊導覽連結，同步入口從整寬卡收成一個小片（省首頁直向空間） */
+.hdr-chip{color:#fff;font-family:inherit;font-size:.9rem;opacity:.95;padding:6px 12px;border-radius:10px;border:none;cursor:pointer;
+  background:rgba(255,255,255,.14);flex:none;white-space:nowrap;align-items:center;gap:4px}
+.hdr-chip.cta{background:var(--mango);color:var(--ink);font-weight:600;opacity:1}   /* 未設定備份：醒目提醒家長設一次 */
+/* 圓片內只留狀態圖示（☁️/📴/⚠️），完整文字（已備份 時間）進點開的選單，避免把小圓片撐長 */
+.hdr-chip #syncStatus{display:inline-block;max-width:1.4em;overflow:hidden;white-space:nowrap;vertical-align:middle}
 main{max-width:860px;margin:0 auto;padding:22px 16px 90px}
 
 /* 標籤列 */
