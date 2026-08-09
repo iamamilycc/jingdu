@@ -147,6 +147,14 @@ def check_vision_max_tokens():
             bad.append(m.group(1))
     ck('視覺模型 max_tokens 都 ≤ 1024', not bad, '超限值: '+str(bad))
 
+# ---- 規則12：造句判分 judgeSentence 必須嚴格（時態/用詞錯要判 ok:false → 進錯題本）----
+def check_judge_strict():
+    print('-- 規則12：judgeSentence 提示詞對時態/用詞錯誤嚴格（否則有錯的句子不進錯題本）')
+    txt = '\n'.join(read('assets/generate.js'))
+    m = re.search(r'async function judgeSentence\(.*?\n  \}', txt, re.S)
+    body = m.group(0) if m else ''
+    ck('judgeSentence 提示詞要求時態/詞形錯判 ok:false', ('時態' in body) and ('ok:false' in body), '判準被改回寬鬆版=有錯的句子不會進錯題本')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -159,6 +167,7 @@ def main():
     check_switchuser_awaits_push()
     check_recognition_parity()
     check_vision_max_tokens()
+    check_judge_strict()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))
