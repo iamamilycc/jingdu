@@ -1,0 +1,70 @@
+{
+  "meta": {
+    "note": "雅思口語題庫。核心策略：一個素材套多個題目——考場上不是現編，是把準備好的材料裝進當下的題目。",
+    "band65": "6.5 的實質要求：說得順、能展開、能自我修正。流利度優先於零錯誤——卡頓扣分比小語法錯更重。",
+    "rule": "口語題庫每年 1/5/9 月換題，考前務必查當季題庫；這裡是長期不變的高頻母題與答題框架。"
+  },
+  "parts": [
+    {
+      "id": "p1",
+      "name": "Part 1 · 日常問答",
+      "howto": "4-5 分鐘，考官問你的生活。每題答 2-3 句：直接回答 → 給一個理由或細節 → 收尾。不要只答一句，也不要講超過 30 秒。",
+      "tip": "最忌只回 Yes/No。最穩的模式是「答案 + because + 一個具體細節」。",
+      "topics": [
+        { "q": "Do you work or are you a student?", "frame": "現況 + 做多久 + 一個喜歡/不喜歡的點" },
+        { "q": "What do you usually do at weekends?", "frame": "一件常做的事 + 為什麼 + 上週的例子" },
+        { "q": "Do you like your hometown?", "frame": "喜歡/普通 + 一個具體理由 + 對比別的城市" },
+        { "q": "How do you usually travel around?", "frame": "主要交通方式 + 原因 + 一個不便之處" },
+        { "q": "Do you prefer texting or calling?", "frame": "選一邊 + 場景舉例 + 什麼時候會換另一種" },
+        { "q": "What kind of music do you listen to?", "frame": "類型 + 什麼場合聽 + 最近聽的一個" },
+        { "q": "Do you often cook at home?", "frame": "頻率 + 拿手的一道 + 為什麼下廚/不下廚" },
+        { "q": "How important is sleep to you?", "frame": "重要程度 + 你的作息 + 沒睡好的後果" }
+      ]
+    },
+    {
+      "id": "p2",
+      "name": "Part 2 · 卡片題（1 分鐘準備 + 2 分鐘說）",
+      "howto": "拿到卡片先寫關鍵詞不寫句子。說滿 2 分鐘不要提早停——說不滿是最常見的失分。四個提示點按順序講完就夠 2 分鐘。",
+      "tip": "⭐ 素材複用：準備 4-5 段真實經歷，就能覆蓋大部分卡片題。與其準備 50 個題目，不如把 5 段素材講到滾瓜爛熟。",
+      "materials": [
+        { "name": "一次旅行", "covers": ["難忘的一天", "去過的地方", "一次和朋友的活動", "一張照片", "一次意外", "學到東西的經歷"] },
+        { "name": "一個學會的技能", "covers": ["學到的技能", "花時間做的事", "幫助你的人", "有成就感的事", "一個目標"] },
+        { "name": "一個重要的人", "covers": ["欣賞的人", "幫助你的人", "有影響力的人", "想再見的人", "一位老師"] },
+        { "name": "一次困難的經歷", "covers": ["困難的決定", "解決的問題", "壓力大的時刻", "改變你的事", "一次失敗"] },
+        { "name": "一個常用的物品", "covers": ["有用的東西", "買過的東西", "想擁有的東西", "科技產品", "禮物"] }
+      ],
+      "cards": [
+        { "q": "Describe a skill you learned that was useful.", "points": ["what it is", "how you learned it", "how long it took", "why it is useful"] },
+        { "q": "Describe a person who has influenced you.", "points": ["who", "how you know them", "what they did", "why they influenced you"] },
+        { "q": "Describe a difficult decision you made.", "points": ["what it was", "the options", "how you decided", "how you felt afterwards"] },
+        { "q": "Describe a place you would like to visit again.", "points": ["where", "when you went", "what you did", "why you want to return"] },
+        { "q": "Describe something you own that is important to you.", "points": ["what it is", "how you got it", "how you use it", "why it matters"] },
+        { "q": "Describe a time you helped someone.", "points": ["who", "what happened", "what you did", "how they responded"] }
+      ]
+    },
+    {
+      "id": "p3",
+      "name": "Part 3 · 深入討論",
+      "howto": "4-5 分鐘，考官就 Part 2 的主題問抽象問題。答案要「有觀點 + 有理由 + 有對比或例子」，長度約 4-6 句。",
+      "tip": "不知道就誠實說「I have not thought about it much, but I would guess…」再展開——比硬掰或沉默好得多。",
+      "topics": [
+        { "q": "Do you think schools should teach more practical skills?", "frame": "立場 + 理由 + 一個反面考量 + 收尾" },
+        { "q": "How has technology changed the way people communicate?", "frame": "過去 vs 現在 + 好處 + 代價" },
+        { "q": "Should governments invest more in public transport?", "frame": "立場 + 誰受益 + 成本問題" },
+        { "q": "Why do some people find it hard to make decisions?", "frame": "原因一 + 原因二 + 舉例" },
+        { "q": "Is it better to work alone or in a team?", "frame": "分情況 + 各自適合什麼 + 你的偏好" },
+        { "q": "Do you think people today are busier than in the past?", "frame": "同意/部分同意 + 對比 + 原因" }
+      ]
+    }
+  ],
+  "fluency": {
+    "title": "流利度自我檢查（比語法更決定 6.5）",
+    "checks": [
+      "Part 2 有沒有說滿 2 分鐘？說不滿是最常見失分",
+      "語速是否落在 120-150 詞/分鐘？太慢像在背，太快會吃字",
+      "卡住時有沒有用填充語（Well… / Let me think… / Actually…）而不是沉默",
+      "有沒有自我修正（I mean… / or rather…）？考官視為能力而非失誤",
+      "回聽自己的錄音——卡在哪自己最清楚"
+    ]
+  }
+}

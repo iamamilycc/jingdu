@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>口語練習 · 雅思</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+  /* 與雅思其他頁同一命名空間，必須早於 core.js */
+  window.JD_NS = 'ielts_';
+</script>
+<script src="../assets/core.js"></script>
+<script src="../assets/sync.js"></script>
+<script src="../assets/ielts-speaking.js"></script>
+<style>
+  .wrap{max-width:36rem;margin:0 auto;padding:1rem 1rem 3rem}
+  .top{display:flex;align-items:center;justify-content:space-between}
+  .top h1{font-size:1.15rem;margin:.4rem 0}
+  .top a{font-size:.85rem;color:#666;text-decoration:none}
+  h2{font-size:.95rem;margin:1.3rem 0 .5rem;color:#444}
+
+  .caps{border-radius:12px;padding:.75rem .9rem;font-size:.85rem;line-height:1.7;margin:.6rem 0}
+  .caps.ok{border:1px solid #cfe8d6;background:#f4fbf6;color:#1a7f37}
+  .caps.bad{border:1px solid #f0c2bc;background:#fdf0ee;color:#b3453a}
+
+  .tabs{display:flex;gap:.4rem;margin:.7rem 0}
+  .tabs button{flex:1;border:1px solid #e6e6e6;background:#fff;border-radius:11px;
+               padding:.6rem .3rem;font-size:.85rem;cursor:pointer;color:#555}
+  .tabs button.on{border-color:#2f6df6;background:#f5f8ff;color:#2f6df6;font-weight:600}
+
+  .card{border:1px solid #ececec;border-radius:12px;background:#fff;padding:.9rem;
+        font-size:.92rem;line-height:1.75}
+  .q{font-size:1.05rem;font-weight:600;line-height:1.6;margin-bottom:.4rem}
+  .pts{margin:.4rem 0 0;padding-left:1.15rem;color:#444;font-size:.9rem;line-height:1.8}
+  .frame{color:#777;font-size:.85rem;margin-top:.35rem}
+
+  .timer{font-size:2.6rem;font-weight:700;text-align:center;margin:.7rem 0 .2rem;
+         font-variant-numeric:tabular-nums}
+  .phase{text-align:center;color:#888;font-size:.85rem;margin-bottom:.5rem}
+  .bar{height:6px;border-radius:3px;background:#eee;overflow:hidden}
+  .bar i{display:block;height:100%;background:#2f6df6;width:0;transition:width .3s linear}
+  .bar.warn i{background:#e8a33d}
+
+  .btn{border:0;border-radius:12px;padding:.9rem 1rem;font-size:.98rem;font-weight:600;
+       color:#fff;background:#2f6df6;cursor:pointer;width:100%}
+  .btn.stop{background:#c0392b}
+  .btn.ghost{background:#fafafa;color:#555;border:1px solid #e6e6e6;font-weight:400}
+  .btn:disabled{background:#c9d4ea}
+  .row{display:flex;gap:.5rem;margin-top:.6rem}
+  .row .btn{flex:1}
+
+  .li{font-size:.86rem;line-height:1.6;padding:.5rem .7rem;border-radius:9px;margin:.3rem 0}
+  .li.ok{background:#f0f9f2;color:#1a7f37}
+  .li.warn{background:#fffaf0;color:#8a5a12}
+  .li.bad{background:#fdf0ee;color:#b3453a}
+  .li.info{background:#f4f6fa;color:#4a5a72}
+
+  audio{width:100%;margin-top:.6rem}
+  .mats{display:grid;gap:.45rem;margin:.5rem 0}
+  .mat{border:1px solid #ececec;border-radius:11px;background:#fff;padding:.6rem .8rem;font-size:.86rem}
+  .mat b{display:block;margin-bottom:.15rem}
+  .mat small{color:#888;line-height:1.6}
+  .stat{display:flex;gap:.5rem;margin:.7rem 0}
+  .stat div{flex:1;border:1px solid #e6e6e6;border-radius:11px;padding:.55rem .2rem;
+            text-align:center;background:#fff}
+  .stat b{display:block;font-size:1.3rem}
+  .stat span{color:#888;font-size:.7rem}
+  .hint{color:#888;font-size:.8rem;line-height:1.7}
+  .hide{display:none}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <h1>口語練習</h1>
+    <span><a href="index.html">🎯 背單字</a>　<a href="writing.html">✍️ 寫作</a>　<a href="../index.html">← 精讀</a></span>
+  </div>
+
+  <div class="caps" id="caps">檢查裝置能力…</div>
+
+  <div class="stat">
+    <div><b id="sTotal">0</b><span>練習次數</span></div>
+    <div><b id="sFull">0</b><span>Part2 說滿 2 分</span></div>
+    <div><b id="sWpm">–</b><span>平均語速</span></div>
+  </div>
+
+  <div class="tabs">
+    <button id="tP1" class="on">Part 1</button>
+    <button id="tP2">Part 2</button>
+    <button id="tP3">Part 3</button>
+  </div>
+
+  <p class="hint" id="howto"></p>
+
+  <div class="card">
+    <div class="q" id="q">載入中…</div>
+    <ul class="pts hide" id="pts"></ul>
+    <div class="frame" id="frame"></div>
+  </div>
+
+  <div class="timer" id="timer">–</div>
+  <div class="phase" id="phase"></div>
+  <div class="bar" id="bar"><i id="fill"></i></div>
+
+  <div class="row">
+    <button class="btn" id="btnGo">開始</button>
+  </div>
+  <div class="row">
+    <button class="btn ghost" id="btnNext">換一題</button>
+  </div>
+
+  <div id="fb" class="hide">
+    <h2>這次的表現</h2>
+    <div id="notes"></div>
+    <audio id="player" controls></audio>
+    <p class="hint">⭐ <b>一定要回聽。</b>卡在哪、哪句重講、哪個音吃掉了——自己聽最清楚，
+      這比任何自動評分都準。</p>
+  </div>
+
+  <section id="p2mat" class="hide">
+    <h2>⭐ 素材複用（Part 2 最省力的準備法）</h2>
+    <p class="hint">與其準備 50 個題目，不如把 5 段真實經歷講到滾瓜爛熟——
+      考場上把準備好的素材裝進當下的題目就行。</p>
+    <div class="mats" id="mats"></div>
+  </section>
+
+  <h2>流利度自我檢查</h2>
+  <div class="card"><ul class="pts" id="fluencyChecks"></ul></div>
+
+  <p class="hint" style="margin-top:1rem">
+    🔒 錄音只留在你這台裝置的瀏覽器記憶體裡，<b>不會上傳到任何伺服器</b>，關掉頁面就沒了。
+  </p>
+</div>
+
+<script>
+/* 前端七律：事件 id + .onclick 綁定；計時與流利度邏輯在 ielts-speaking.js，頁面只呈現。 */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var show = function (id, on) { $(id).classList[on ? 'remove' : 'add']('hide'); };
+  var DATA = null, part = 'p1', cur = null, timer = null, caps = null;
+
+  function fmt(s) {
+    var m = Math.floor(s / 60), r = Math.floor(s % 60);
+    return m + ':' + (r < 10 ? '0' : '') + r;
+  }
+
+  function renderCaps() {
+    caps = SPEAK.capabilities();
+    var el = $('caps');
+    if (caps.record) {
+      el.className = 'caps ok';
+      el.textContent = '✓ 這台裝置可以錄音。'
+        + (caps.recognise ? '也支援語音識別，能算出語速。'
+                          : '（沒有語音識別，算不出語速——但錄音回聽才是重點。）');
+    } else {
+      el.className = 'caps bad';
+      el.textContent = '✗ 這台裝置不能錄音：' + caps.reason
+        + '。你仍然可以用計時器練「說滿 2 分鐘」，只是不能回聽。';
+    }
+  }
+
+  function renderProgress() {
+    var p = SPEAK.progress();
+    $('sTotal').textContent = p.total;
+    $('sFull').textContent = p.p2Full + '/' + p.p2Total;
+    $('sWpm').textContent = p.avgWpm || '–';
+  }
+
+  function partData() {
+    return DATA.parts.filter(function (p) { return p.id === part; })[0];
+  }
+
+  function nextQuestion() {
+    var pd = partData();
+    var pool = (part === 'p2') ? pd.cards : pd.topics;
+    cur = SPEAK.pick(pool, cur && cur.q);
+    $('q').textContent = cur.q;
+    $('howto').textContent = pd.howto + '　' + pd.tip;
+    if (cur.points) {
+      var ul = $('pts'); ul.textContent = '';
+      cur.points.forEach(function (p) {
+        var li = document.createElement('li'); li.textContent = 'You should say: ' + p;
+        ul.appendChild(li);
+      });
+      show('pts', true);
+    } else { show('pts', false); }
+    $('frame').textContent = cur.frame ? ('建議框架：' + cur.frame) : '';
+    $('timer').textContent = '–';
+    $('phase').textContent = '';
+    $('fill').style.width = '0';
+    show('fb', false);
+  }
+
+  function setTab(id) {
+    part = id;
+    ['p1', 'p2', 'p3'].forEach(function (x) {
+      $('t' + x.toUpperCase().replace('P', 'P')).classList.toggle('on', x === id);
+    });
+    show('p2mat', id === 'p2');
+    nextQuestion();
+  }
+
+  /* Part 2 = 1 分鐘準備 + 2 分鐘說；其他 part 直接說 */
+  function run() {
+    var prep = (part === 'p2') ? 60 : 0;
+    var talk = (part === 'p2') ? 120 : 45;
+    var t = 0, phase = prep ? 'prep' : 'talk';
+    $('btnGo').textContent = '結束';
+    $('btnGo').className = 'btn stop';
+
+    function tick() {
+      t++;
+      if (phase === 'prep') {
+        $('phase').textContent = '準備中——寫關鍵詞，不要寫句子';
+        $('timer').textContent = fmt(prep - t);
+        $('fill').style.width = (t / prep * 100) + '%';
+        $('bar').className = 'bar warn';
+        if (t >= prep) { t = 0; phase = 'talk'; beginTalk(); }
+      } else {
+        $('phase').textContent = caps.record ? '錄音中——說滿為止' : '說話中（此裝置不能錄音）';
+        $('timer').textContent = fmt(t);
+        $('fill').style.width = Math.min(100, t / talk * 100) + '%';
+        $('bar').className = 'bar';
+        if (t >= talk + 30) stop();       /* 超時保護：不讓它無限錄下去 */
+      }
+    }
+
+    function beginTalk() {
+      if (caps.record) SPEAK.startRecording().catch(function (e) {
+        alert('錄音啟動失敗：' + e.message + '\n計時仍然可用。');
+      });
+    }
+
+    if (!prep) beginTalk();
+    else { $('phase').textContent = '準備中'; $('timer').textContent = fmt(prep); }
+    timer = setInterval(tick, 1000);
+  }
+
+  function stop() {
+    clearInterval(timer); timer = null;
+    $('btnGo').textContent = '開始';
+    $('btnGo').className = 'btn';
+    var spoken = parseInt(($('timer').textContent || '0:0').split(':')[0], 10) * 60
+               + parseInt(($('timer').textContent || '0:0').split(':')[1] || '0', 10);
+
+    SPEAK.stopRecording().then(function (r) {
+      var secs = r ? r.seconds : spoken;
+      var f = SPEAK.fluency(secs, '');     /* 識別不可用時 transcript 留空，fluency 會誠實說算不出語速 */
+      var box = $('notes'); box.textContent = '';
+      f.notes.forEach(function (n) {
+        var el = document.createElement('div');
+        el.className = 'li ' + n.level;
+        el.textContent = n.msg;
+        box.appendChild(el);
+      });
+      if (r) { $('player').src = r.url; show('player', true); }
+      else { show('player', false); }
+      SPEAK.saveSession(part, cur ? cur.q : '', f);
+      renderProgress();
+      show('fb', true);
+    });
+  }
+
+  $('btnGo').onclick = function () { timer ? stop() : run(); };
+  $('btnNext').onclick = function () { if (timer) stop(); nextQuestion(); };
+  $('tP1').onclick = function () { setTab('p1'); };
+  $('tP2').onclick = function () { setTab('p2'); };
+  $('tP3').onclick = function () { setTab('p3'); };
+
+  SPEAK.load().then(function (j) {
+    DATA = j;
+    renderCaps(); renderProgress(); setTab('p1');
+
+    var mats = $('mats');
+    var p2 = DATA.parts.filter(function (p) { return p.id === 'p2'; })[0];
+    (p2.materials || []).forEach(function (m) {
+      var el = document.createElement('div'); el.className = 'mat';
+      var b = document.createElement('b'); b.textContent = m.name;
+      var s = document.createElement('small');
+      s.textContent = '可套：' + m.covers.join('、');
+      el.appendChild(b); el.appendChild(s); mats.appendChild(el);
+    });
+
+    var fc = $('fluencyChecks');
+    DATA.fluency.checks.forEach(function (c) {
+      var li = document.createElement('li'); li.textContent = c; fc.appendChild(li);
+    });
+  }).catch(function () { $('q').textContent = '題庫載入失敗'; });
+})();
+</script>
+</body>
+</html>

@@ -31,12 +31,12 @@
     }
   },
   "last_audit": {
-    "at": "2026-08-09T11:53:10",
+    "at": "2026-08-09T12:02:40",
     "p0": 0,
     "p1": 13,
     "p2": 3,
-    "scanned": 117,
-    "commit": "c44f4ca"
+    "scanned": 121,
+    "commit": "c5cfb6f"
   },
   "features": [
     {
@@ -62,6 +62,12 @@
       "test": "python3 tests/ielts_dictation_test.py",
       "at": "2026-08-09T11:53:10",
       "commit": "c44f4ca"
+    },
+    {
+      "name": "寫作 Task 2（論點庫+本地體檢+AI批改）",
+      "test": "python3 tests/ielts_writing_test.py",
+      "at": "2026-08-09T12:02:40",
+      "commit": "c5cfb6f"
     }
   ]
 }
