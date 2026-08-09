@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>寫作 Task 2 · 雅思</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+  /* 與雅思其他頁同一個命名空間，必須早於 core.js */
+  window.JD_NS = 'ielts_';
+</script>
+<script src="../assets/core.js"></script>
+<script src="../assets/sync.js"></script>
+<script src="../assets/ielts-writing.js"></script>
+<style>
+  .wrap{max-width:38rem;margin:0 auto;padding:1rem 1rem 3rem}
+  .top{display:flex;align-items:center;justify-content:space-between}
+  .top h1{font-size:1.15rem;margin:.4rem 0}
+  .top a{font-size:.85rem;color:#666;text-decoration:none}
+  h2{font-size:.95rem;margin:1.3rem 0 .5rem;color:#444}
+
+  .warn{border:1px solid #ffd9a8;background:#fff8ee;border-radius:12px;
+        padding:.8rem .9rem;font-size:.85rem;line-height:1.7;color:#8a5a12}
+  .card{border:1px solid #ececec;border-radius:12px;background:#fff;padding:.9rem;
+        font-size:.9rem;line-height:1.75}
+  .topics{display:grid;gap:.5rem}
+  .tp{border:1px solid #ececec;border-radius:12px;background:#fff;padding:.7rem .85rem;
+      cursor:pointer;text-align:left;width:100%}
+  .tp.on{border-color:#2f6df6;background:#f5f8ff}
+  .tp b{font-size:.95rem}
+  .tp small{display:block;color:#888;margin-top:.2rem;font-size:.78rem;line-height:1.5}
+
+  .cols{display:grid;gap:.6rem;margin:.6rem 0}
+  .col{border:1px solid #ececec;border-radius:12px;background:#fff;padding:.8rem}
+  .col h3{margin:0 0 .4rem;font-size:.85rem}
+  .col ul{margin:0;padding-left:1.1rem;font-size:.87rem;line-height:1.75;color:#333}
+  .col.pro h3{color:#1a7f37}.col.con h3{color:#c0392b}
+  .chips{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.4rem}
+  .chip{background:#f2f5fb;color:#3a5a92;border-radius:7px;padding:.2rem .5rem;font-size:.78rem}
+
+  textarea{width:100%;min-height:14rem;border:1px solid #dcdcdc;border-radius:12px;
+           padding:.8rem;font-size:.95rem;line-height:1.7;font-family:inherit}
+  .btn{border:0;border-radius:12px;padding:.85rem 1rem;font-size:.95rem;font-weight:600;
+       color:#fff;background:#2f6df6;cursor:pointer}
+  .btn.ghost{background:#fafafa;color:#555;border:1px solid #e6e6e6;font-weight:400}
+  .btn:disabled{background:#c9d4ea}
+  .row{display:flex;gap:.5rem;margin-top:.6rem}
+  .row .btn{flex:1}
+  .wc{color:#888;font-size:.8rem;margin-top:.35rem;text-align:right}
+
+  .lint{display:grid;gap:.35rem;margin:.6rem 0}
+  .li{font-size:.85rem;line-height:1.6;padding:.5rem .7rem;border-radius:9px}
+  .li.ok{background:#f0f9f2;color:#1a7f37}
+  .li.warn{background:#fffaf0;color:#8a5a12}
+  .li.bad{background:#fdf0ee;color:#b3453a}
+
+  .bands{display:flex;gap:.4rem;margin:.6rem 0}
+  .bands div{flex:1;border:1px solid #e6e6e6;border-radius:11px;padding:.5rem .2rem;
+             text-align:center;background:#fff}
+  .bands b{display:block;font-size:1.25rem}
+  .bands span{color:#888;font-size:.68rem}
+  .issue{border-left:3px solid #e6a6a0;padding:.5rem .7rem;margin:.5rem 0;background:#fdfaf9;
+         font-size:.86rem;line-height:1.7;border-radius:0 8px 8px 0}
+  .issue q{color:#666;font-style:italic}
+  .issue em{color:#1a7f37;font-style:normal}
+  .hint{color:#888;font-size:.8rem;line-height:1.7}
+  .hide{display:none}
+  input[type=password],select{width:100%;border:1px solid #dcdcdc;border-radius:10px;
+                              padding:.6rem;font-size:.9rem;font-family:inherit}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <h1>寫作 Task 2</h1>
+    <span><a href="index.html">🎯 背單字</a>　<a href="dictation.html">🎧 精聽</a>　<a href="../index.html">← 精讀</a></span>
+  </div>
+
+  <div class="warn">
+    <b>⚠️ AI 批改的分數會偏高 0.5–1 分。</b>
+    拿它<b>看問題在哪</b>，不要拿它<b>當分數</b>。真實水平以真人批改或考試為準——
+    這點不講清楚，你會以為自己已經 7 分。
+  </div>
+
+  <h2>① 選一個話題</h2>
+  <div class="topics" id="topics"></div>
+
+  <section id="detail" class="hide">
+    <h2>② 這個話題的彈藥</h2>
+    <p class="hint" id="qList"></p>
+    <div class="cols">
+      <div class="col pro"><h3>✓ 支持方論點</h3><ul id="forList"></ul></div>
+      <div class="col con"><h3>✗ 反對方論點</h3><ul id="conList"></ul></div>
+      <div class="col"><h3>📌 可用例子</h3><ul id="exList"></ul>
+        <h3 style="margin-top:.6rem">🔤 高分表達</h3><div class="chips" id="phList"></div></div>
+    </div>
+
+    <h2>③ 寫（建議計時 40 分鐘）</h2>
+    <p class="hint" id="struct"></p>
+    <textarea id="essay" placeholder="從引言開始寫。段落之間空一行。"></textarea>
+    <div class="wc" id="wc">0 字</div>
+    <div class="row">
+      <button class="btn ghost" id="btnLint">先自己體檢（免費）</button>
+      <button class="btn" id="btnGrade">送 AI 批改</button>
+    </div>
+    <div class="lint" id="lintBox"></div>
+
+    <div id="result" class="hide">
+      <h2>批改結果</h2>
+      <div class="bands">
+        <div><b id="bTR">–</b><span>任務回應</span></div>
+        <div><b id="bCC">–</b><span>連貫銜接</span></div>
+        <div><b id="bLR">–</b><span>詞彙</span></div>
+        <div><b id="bGRA">–</b><span>語法</span></div>
+        <div><b id="bAll">–</b><span>總分</span></div>
+      </div>
+      <p class="hint">⚠️ 上面是 AI 給的，<b>實際請減 0.5–1 分</b>看待。</p>
+      <div id="issues"></div>
+      <h2>下一篇最該改進</h2>
+      <div class="card" id="next"></div>
+    </div>
+  </section>
+
+  <h2>④ 我的作文紀錄</h2>
+  <div id="essays"></div>
+
+  <h2>設定</h2>
+  <div class="card">
+    <p class="hint">批改用智譜 API（和「加一課」同一把 key，設一次全站通用）。
+      預設 <b>glm-4-flash（免費）</b>；覺得批改太淺可換 glm-4-plus（付費，一次幾分錢）。</p>
+    <input type="password" id="key" placeholder="智譜 API Key（貼上後自動存）">
+    <div style="margin-top:.5rem">
+      <select id="model">
+        <option value="glm-4-flash">glm-4-flash（免費，建議先用）</option>
+        <option value="glm-4-plus">glm-4-plus（付費，批改更細）</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 前端七律：事件 id + .onclick 綁定；分數與體檢邏輯全在 ielts-writing.js，頁面只呈現。 */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var show = function (id, on) { $(id).classList[on ? 'remove' : 'add']('hide'); };
+  var DATA = null, cur = null;
+
+  function ul(id, arr) {
+    var box = $(id); box.textContent = '';
+    (arr || []).forEach(function (s) {
+      var li = document.createElement('li'); li.textContent = s; box.appendChild(li);
+    });
+  }
+
+  function renderTopics() {
+    var box = $('topics'); box.textContent = '';
+    DATA.topics.forEach(function (t) {
+      var el = document.createElement('button');
+      el.className = 'tp' + (cur && cur.id === t.id ? ' on' : '');
+      var b = document.createElement('b'); b.textContent = t.name;
+      var s = document.createElement('small'); s.textContent = t.questions[0];
+      el.appendChild(b); el.appendChild(s);
+      el.onclick = function () { pick(t); };
+      box.appendChild(el);
+    });
+  }
+
+  function pick(t) {
+    cur = t;
+    renderTopics();
+    $('qList').textContent = '常見問法：' + t.questions.join('　|　');
+    ul('forList', t.for); ul('conList', t.against); ul('exList', t.examples);
+    var ph = $('phList'); ph.textContent = '';
+    t.phrases.forEach(function (p) {
+      var c = document.createElement('span'); c.className = 'chip'; c.textContent = p;
+      ph.appendChild(c);
+    });
+    $('struct').textContent = DATA.structure.paras.map(function (p) {
+      return p.name + ' ' + p.time;
+    }).join('　→　') + '　｜　' + DATA.structure.leftover;
+    show('detail', true);
+    show('result', false);
+    $('detail').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function renderLint(items) {
+    var box = $('lintBox'); box.textContent = '';
+    items.forEach(function (i) {
+      var el = document.createElement('div');
+      el.className = 'li ' + i.level;
+      el.textContent = (i.level === 'bad' ? '✗ ' : i.level === 'warn' ? '⚠ ' : '✓ ') + i.msg;
+      box.appendChild(el);
+    });
+  }
+
+  function renderEssays() {
+    var box = $('essays'), all = WRITE.listEssays();
+    box.textContent = '';
+    if (!all.length) {
+      var e = document.createElement('p'); e.className = 'hint';
+      e.textContent = '還沒有紀錄。寫完一篇送批改就會存在這裡，方便對照進步。';
+      box.appendChild(e); return;
+    }
+    all.slice(0, 10).forEach(function (r) {
+      var el = document.createElement('div'); el.className = 'card';
+      el.style.marginBottom = '.5rem';
+      var d = new Date(r.at);
+      el.textContent = d.toISOString().slice(0, 10) + '　' + r.words + ' 字'
+        + (r.scores ? ('　AI 給 ' + r.scores.overall + '（實際約 '
+            + WRITE.roundBand(Math.max(0, r.scores.overall - 0.75)) + '）') : '　未批改');
+      box.appendChild(el);
+    });
+  }
+
+  $('essay').oninput = function () {
+    $('wc').textContent = WRITE.wordCount($('essay').value) + ' 字';
+  };
+  $('btnLint').onclick = function () {
+    renderLint(WRITE.lint($('essay').value, cur ? cur.questions[0] : ''));
+  };
+
+  $('btnGrade').onclick = function () {
+    var essay = $('essay').value.trim();
+    if (!essay) { alert('先寫點東西'); return; }
+    var pre = WRITE.lint(essay, cur ? cur.questions[0] : '');
+    renderLint(pre);
+    if (pre.some(function (i) { return i.level === 'bad'; })) {
+      if (!confirm('上面有紅色問題（例如字數不足或引言照抄）。\n'
+                 + '這些不用花 API 額度就知道要改，建議先改再送批改。\n仍要送出嗎？')) return;
+    }
+    $('btnGrade').disabled = true;
+    $('btnGrade').textContent = '批改中…';
+    WRITE.grade(cur ? cur.questions[0] : '（自訂題目）', essay).then(function (r) {
+      $('bTR').textContent = r.tr; $('bCC').textContent = r.cc;
+      $('bLR').textContent = r.lr; $('bGRA').textContent = r.gra;
+      $('bAll').textContent = r.overall;
+      var box = $('issues'); box.textContent = '';
+      r.issues.forEach(function (i) {
+        var el = document.createElement('div'); el.className = 'issue';
+        var b = document.createElement('b'); b.textContent = (i.band || '') + '　';
+        var q = document.createElement('q'); q.textContent = i.quote || '';
+        var p = document.createElement('div'); p.textContent = i.problem || '';
+        var f = document.createElement('em'); f.textContent = '改寫：' + (i.fix || '');
+        el.appendChild(b); el.appendChild(q); el.appendChild(p); el.appendChild(f);
+        box.appendChild(el);
+      });
+      var nx = $('next'); nx.textContent = '';
+      r.next.forEach(function (s, i) {
+        var p = document.createElement('div'); p.textContent = (i + 1) + '. ' + s;
+        nx.appendChild(p);
+      });
+      show('result', true);
+      WRITE.saveEssay(cur ? cur.id : '', cur ? cur.questions[0] : '', essay, r);
+      renderEssays();
+    }).catch(function (e) {
+      if (String(e.message) === 'NOKEY') {
+        alert('還沒設定智譜 API Key——拉到頁面最下方「設定」貼上即可。\n'
+            + '（和「加一課」用同一把，設一次全站通用）');
+      } else {
+        alert('批改失敗：' + e.message + '\n本地體檢的結果仍然有效，可以先照著改。');
+      }
+    }).then(function () {
+      $('btnGrade').disabled = false;
+      $('btnGrade').textContent = '送 AI 批改';
+    });
+  };
+
+  $('key').value = WRITE.getKey();
+  $('key').onchange = function () { WRITE.setKey($('key').value.trim()); };
+  $('model').value = WRITE.getModel();
+  $('model').onchange = function () { WRITE.setModel($('model').value); };
+
+  WRITE.load().then(function (j) {
+    DATA = j; renderTopics(); renderEssays();
+  }).catch(function () {
+    $('topics').textContent = '話題庫載入失敗';
+  });
+})();
+</script>
+</body>
+</html>

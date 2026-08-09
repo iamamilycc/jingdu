@@ -31,12 +31,12 @@
     }
   },
   "last_audit": {
-    "at": "2026-08-09T11:41:51",
+    "at": "2026-08-09T11:53:10",
     "p0": 0,
     "p1": 13,
     "p2": 3,
-    "scanned": 114,
-    "commit": "6a3ead4"
+    "scanned": 117,
+    "commit": "c44f4ca"
   },
   "features": [
     {
@@ -56,6 +56,12 @@
       "test": "python3 tests/ielts_card_behavior_test.py",
       "at": "2026-08-09T01:43:58",
       "commit": "0e510bc"
+    },
+    {
+      "name": "精聽聽寫（六類錯因分類）",
+      "test": "python3 tests/ielts_dictation_test.py",
+      "at": "2026-08-09T11:53:10",
+      "commit": "c44f4ca"
     }
   ]
 }

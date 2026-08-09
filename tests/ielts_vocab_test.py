@@ -146,10 +146,13 @@ def main():
     has('ielts/review.html', 'dictation.html', '精聽聽寫')
     has('ielts/dictation.html', 'index.html', '回背單字')
     has('ielts/dictation.html', 'review.html', '複習隊列')
+    has('ielts/index.html', 'writing.html', '寫作 Task 2')
+    has('ielts/writing.html', 'index.html', '回背單字')
+    has('ielts/writing.html', 'dictation.html', '精聽')
     has('help.html', 'ielts/index.html', '教程裡有可點的入口')
 
     # 前端七律：動態按鈕不准內嵌 onclick 字串（點了沒反應是本專案踩過的坑）
-    for rel in ('ielts/index.html', 'ielts/review.html', 'ielts/dictation.html'):
+    for rel in ('ielts/index.html', 'ielts/review.html', 'ielts/dictation.html', 'ielts/writing.html'):
         txt = open(os.path.join(ROOT, rel), encoding='utf-8').read()
         inline = [ln.strip()[:60] for ln in txt.splitlines()
                   if '<button' in ln and 'onclick=' in ln]
@@ -175,6 +178,9 @@ def main():
         '精聽入口': 'ielts/dictation.html',
         '錯因分類': '錯因分類',
         '音頻不用上傳': '音頻不用上傳',
+        '寫作入口': 'ielts/writing.html',
+        'AI給分偏高警示': '偏高 0.5–1 分',
+        '不要背範文': '不是拿來背的範文',
     }
     for name, kw in must.items():
         ck('教程有講到「%s」' % name, kw in help_txt, '缺關鍵詞：%s' % kw)

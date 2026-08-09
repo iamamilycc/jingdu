@@ -1,0 +1,247 @@
+{
+  "meta": {
+    "note": "雅思 Task 2 高頻話題論點庫。用途是考場上『組裝』而非『背範文』——背範文會被判雷同且套不上真題。",
+    "usage": "考前每個話題各寫一篇；考場上看到題目先想這裡的論點，再組成自己的句子。",
+    "band65": "6.5 的實質要求：論證有邏輯、句式有變化、用詞準確（不是用難詞）。Task 2 佔寫作分 2/3，優先攻它。"
+  },
+  "structure": {
+    "title": "Task 2 四段結構（40 分鐘 / 250 字以上）",
+    "paras": [
+      { "name": "引言 (2-3 句)", "tip": "改寫題目 + 直接表明立場。不要抄題目原句，會被扣分。", "time": "5 分鐘" },
+      { "name": "主體一 (5-6 句)", "tip": "一個主論點 → 解釋為什麼 → 舉一個具體例子 → 小結。", "time": "12 分鐘" },
+      { "name": "主體二 (5-6 句)", "tip": "第二個主論點，同樣結構。或讓步後反駁。", "time": "12 分鐘" },
+      { "name": "結論 (2 句)", "tip": "重申立場 + 不要提新論點。", "time": "5 分鐘" }
+    ],
+    "leftover": "留 6 分鐘檢查：時態、單複數、拼寫、字數是否過 250。"
+  },
+  "connectors": {
+    "title": "連接詞（用對比用多重要）",
+    "groups": [
+      { "use": "加論點", "words": ["Furthermore", "In addition", "What is more", "Moreover"] },
+      { "use": "轉折", "words": ["However", "Nevertheless", "On the other hand", "That said"] },
+      { "use": "因果", "words": ["Consequently", "As a result", "This is largely because", "Owing to"] },
+      { "use": "舉例", "words": ["For instance", "A case in point is", "Take X as an example"] },
+      { "use": "讓步", "words": ["Admittedly", "While it is true that", "Although some argue that"] },
+      { "use": "結論", "words": ["Overall", "In conclusion", "On balance"] }
+    ],
+    "warn": "Firstly/Secondly/Finally 太常見，用 1-2 次就好；濫用連接詞反而扣分（考官視為機械堆砌）。"
+  },
+  "topics": [
+    {
+      "id": "education",
+      "name": "教育",
+      "questions": [
+        "Some believe schools should teach practical skills such as money management rather than academic subjects. Discuss both views.",
+        "Online learning will replace traditional classrooms. To what extent do you agree?"
+      ],
+      "for": [
+        "實用技能直接影響成年後的生活品質——理財、報稅、基本法律常識，學校不教就沒人教",
+        "線上學習打破地理限制，偏鄉學生能上到頂尖課程",
+        "自訂進度讓學得慢的人不被拋下，學得快的不被拖住"
+      ],
+      "against": [
+        "學術科目訓練的是抽象思維與論證能力，這是實用技能學不來的底層能力",
+        "校園的價值一半在同儕互動與社會化，線上完全取代不了",
+        "自律是稀缺品——沒有課堂約束，多數人的線上課完課率極低"
+      ],
+      "examples": [
+        "Finland 把理財納入必修，青年債務率明顯低於鄰國（可作為實用技能派例證）",
+        "疫情期間的遠距教學導致弱勢學生落差擴大（反線上派最有力的例證）"
+      ],
+      "phrases": [
+        "equip students with practical competencies",
+        "foster critical thinking rather than rote memorisation",
+        "widen the attainment gap between socioeconomic groups"
+      ]
+    },
+    {
+      "id": "technology",
+      "name": "科技 / AI",
+      "questions": [
+        "Some people think AI will do most jobs in the future. Is this a positive or negative development?",
+        "Social media does more harm than good. Do you agree?"
+      ],
+      "for": [
+        "自動化接手重複勞動，人力可轉向創造性工作，整體生產力提升",
+        "社群媒體讓弱勢群體有了發聲管道，資訊不再被少數媒體壟斷",
+        "遠距協作工具讓人才不必被地理綁死"
+      ],
+      "against": [
+        "被取代的人不會自動變成 AI 工程師——轉職斷層是真實的社會成本",
+        "演算法推薦造成同溫層，社會共識越來越難形成",
+        "青少年心理健康與社群使用時間的相關性已有大量研究支持"
+      ],
+      "examples": [
+        "製造業自動化後，中年藍領工人再就業率偏低（轉職斷層的具體化）",
+        "多國已立法限制青少年社群使用時間（顯示問題被官方認定為嚴重）"
+      ],
+      "phrases": [
+        "render certain occupations obsolete",
+        "reskilling programmes funded by both government and industry",
+        "echo chambers that reinforce existing beliefs"
+      ]
+    },
+    {
+      "id": "environment",
+      "name": "環境",
+      "questions": [
+        "Some say environmental problems are too big for individuals to solve, and only governments can act. Discuss.",
+        "What are the causes of plastic pollution and what can be done?"
+      ],
+      "for": [
+        "個人行為總和巨大——垃圾分類、少開車、減少肉食，數億人做就是規模效應",
+        "消費者選擇會反向逼企業改變（市場壓力比法規更快）",
+        "個人參與能形成社會共識，讓政策更容易通過"
+      ],
+      "against": [
+        "排放主要來自工業與能源結構，個人努力相對邊際",
+        "把責任推給個人，正是大企業轉移焦點的策略",
+        "跨國問題需要跨國協議，個人無從施力"
+      ],
+      "examples": [
+        "碳足跡概念最初由石油公司推廣（責任轉移的經典案例）",
+        "塑膠袋收費制在多國明顯減少用量（政策比呼籲有效的證據）"
+      ],
+      "phrases": [
+        "collective action problem",
+        "impose stricter regulations on industrial emissions",
+        "shift the burden of responsibility onto consumers"
+      ]
+    },
+    {
+      "id": "work",
+      "name": "工作 / 生活平衡",
+      "questions": [
+        "Many people work from home. What are the advantages and disadvantages?",
+        "Some think a four-day working week should be introduced. Do you agree?"
+      ],
+      "for": [
+        "省下通勤時間，實際可支配時間增加，家庭關係改善",
+        "產出導向的評估比工時導向更公平也更有效率",
+        "縮短工時的試點顯示產能未降、病假反而減少"
+      ],
+      "against": [
+        "居家辦公模糊工作與生活界線，反而更難下班",
+        "新人失去在辦公室觀察學習的機會，成長變慢",
+        "並非所有行業適用——醫護、製造、服務業無法遠距"
+      ],
+      "examples": [
+        "冰島的四天工作制大規模試驗結果正面（支持縮短工時）",
+        "多家科技公司要求員工回辦公室（顯示遠距的協作成本被低估）"
+      ],
+      "phrases": [
+        "blur the boundary between professional and personal life",
+        "output-based rather than hours-based appraisal",
+        "not universally applicable across sectors"
+      ]
+    },
+    {
+      "id": "government",
+      "name": "政府支出",
+      "questions": [
+        "Some argue governments should spend money on public services rather than arts. Discuss both views.",
+        "Should governments fund space exploration when there are problems on Earth?"
+      ],
+      "for": [
+        "醫療教育是生存需求，藝術是滿足了生存之後的事，優先序清楚",
+        "公共服務的受益面是全民，藝術補助往往集中在少數人",
+        "資源有限，政府必須做取捨而不是什麼都要"
+      ],
+      "against": [
+        "藝術構成國家認同與文化資本，長期看是軟實力的來源",
+        "文化產業本身創造就業與觀光收入，不是純支出",
+        "太空技術的溢出效應巨大——GPS、材料、通訊都源自太空計畫"
+      ],
+      "examples": [
+        "太空計畫衍生的民生技術（溢出效應的最強論據）",
+        "文化觀光對經濟的貢獻佔比（藝術非純消耗的證據）"
+      ],
+      "phrases": [
+        "allocate finite public funds",
+        "spin-off technologies with wide civilian application",
+        "intangible yet enduring cultural value"
+      ]
+    },
+    {
+      "id": "crime",
+      "name": "犯罪",
+      "questions": [
+        "Some believe long prison sentences are the best way to reduce crime. Others think education is better. Discuss.",
+        "What causes youth crime and how can it be addressed?"
+      ],
+      "for": [
+        "監禁能立即隔離危險個體，保護潛在受害者",
+        "刑罰的嚇阻效果對理性計算的犯罪有效",
+        "受害者需要看到正義被執行，這是社會信任的基礎"
+      ],
+      "against": [
+        "高再犯率說明監禁本身沒解決根因",
+        "犯罪與貧窮、教育程度高度相關，不處理根因等於一直抓",
+        "監禁成本遠高於教育投入，效益比不划算"
+      ],
+      "examples": [
+        "北歐重視更生的獄政體系再犯率明顯較低",
+        "早期教育介入對長期犯罪率的抑制效果有追蹤研究支持"
+      ],
+      "phrases": [
+        "act as a deterrent to potential offenders",
+        "address the root causes rather than the symptoms",
+        "rehabilitation-oriented correctional system"
+      ]
+    },
+    {
+      "id": "health",
+      "name": "健康",
+      "questions": [
+        "Obesity is increasing. What are the causes and what measures can be taken?",
+        "Should healthcare be free for everyone, or should people pay?"
+      ],
+      "for": [
+        "全民健保讓治療不因貧富而異，是基本人權",
+        "早期就醫降低後期重症成本，整體支出反而更低",
+        "健康的人口是經濟生產力的前提"
+      ],
+      "against": [
+        "完全免費導致醫療資源濫用與排隊",
+        "部分負擔能建立成本意識，抑制不必要的就診",
+        "財政負擔最終仍由納稅人承擔，並非真的免費"
+      ],
+      "examples": [
+        "糖稅在多國實施後含糖飲料銷量下降（政策介入有效的證據）",
+        "都市規劃缺乏步行空間與肥胖率的關聯（結構性成因）"
+      ],
+      "phrases": [
+        "sedentary lifestyle coupled with calorie-dense diets",
+        "preventive care is more cost-effective than treatment",
+        "place an unsustainable burden on public finances"
+      ]
+    },
+    {
+      "id": "city",
+      "name": "城市 / 交通",
+      "questions": [
+        "More people are moving to cities. What problems does this cause and how can they be solved?",
+        "Some think private cars should be banned in city centres. Do you agree?"
+      ],
+      "for": [
+        "限制私家車能立即改善空氣品質與交通事故率",
+        "路權讓給步行與自行車，城市宜居度顯著提升",
+        "公共運輸的規模效應讓人均能耗大幅下降"
+      ],
+      "against": [
+        "公共運輸不足的城市貿然禁車會癱瘓生活",
+        "身障者與需載重的行業無替代方案",
+        "郊區居民的通勤成本會被轉嫁"
+      ],
+      "examples": [
+        "多個歐洲城市市中心行人化後零售營業額上升",
+        "擁擠稅在部分城市顯著降低尖峰車流"
+      ],
+      "phrases": [
+        "alleviate traffic congestion and air pollution",
+        "invest in an integrated public transport network",
+        "disproportionately affect low-income commuters"
+      ]
+    }
+  ]
+}
