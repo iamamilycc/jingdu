@@ -66,6 +66,10 @@
   .stat b{display:block;font-size:1.3rem}
   .stat span{color:#888;font-size:.7rem}
   .hint{color:#888;font-size:.8rem;line-height:1.7}
+  .drow{display:flex;gap:.6rem;font-size:.84rem;padding:.3rem 0;border-top:1px solid #f2f2f2}
+  .drow:first-child{border-top:0}
+  .drow b{flex:0 0 7.5rem;color:#555;font-weight:600}
+  .drow span{flex:1;color:#333;word-break:break-word}
   .hide{display:none}
 </style>
 </head>
@@ -127,6 +131,14 @@
 
   <h2>流利度自我檢查</h2>
   <div class="card"><ul class="pts" id="fluencyChecks"></ul></div>
+
+  <div class="row" style="margin-top:1rem">
+    <button class="btn ghost" id="btnDiag">🔧 錄音診斷（出問題時按這裡）</button>
+  </div>
+  <div id="diagBox" class="hide">
+    <div class="card" id="diag"></div>
+    <p class="hint">把上面這幾行截圖給我，就能知道問題在哪。</p>
+  </div>
 
   <p class="hint" style="margin-top:1rem">
     🔒 錄音只留在你這台裝置的瀏覽器記憶體裡，<b>不會上傳到任何伺服器</b>，關掉頁面就沒了。
@@ -201,7 +213,8 @@
     nextQuestion();
   }
 
-  /* Part 2 = 1 分鐘準備 + 2 分鐘說；其他 part 直接說 */
+  /* Part 2 = 1 分鐘準備 + 2 分鐘說；其他 part 直接說
+     ⚠️ 麥克風必須在「點開始」這個手勢裡就要到——等倒數完再要，iOS 一定拒絕。 */
   function run() {
     var prep = (part === 'p2') ? 60 : 0;
     var talk = (part === 'p2') ? 120 : 45;
@@ -227,14 +240,36 @@
     }
 
     function beginTalk() {
+      /* 此時只是用「已經握著的 stream」開錄，不再碰 getUserMedia */
       if (caps.record) SPEAK.startRecording().catch(function (e) {
-        alert('錄音啟動失敗：' + e.message + '\n計時仍然可用。');
+        showMicError(e);
       });
     }
 
     if (!prep) beginTalk();
     else { $('phase').textContent = '準備中'; $('timer').textContent = fmt(prep); }
     timer = setInterval(tick, 1000);
+  }
+
+  function showMicError(e) {
+    var box = $('caps');
+    box.className = 'caps bad';
+    box.textContent = '✗ ' + SPEAK.explain(e) + '（計時器仍然可用，可以先練說滿 2 分鐘）';
+    renderDiag();
+  }
+
+  function renderDiag() {
+    var d = SPEAK.diagnose(), box = $('diag');
+    box.textContent = '';
+    Object.keys(d).forEach(function (k) {
+      var row = document.createElement('div');
+      row.className = 'drow';
+      var b = document.createElement('b'); b.textContent = k;
+      var s = document.createElement('span'); s.textContent = String(d[k]);
+      row.appendChild(b); row.appendChild(s);
+      box.appendChild(row);
+    });
+    show('diagBox', true);
   }
 
   function stop() {
@@ -262,8 +297,23 @@
     });
   }
 
-  $('btnGo').onclick = function () { timer ? stop() : run(); };
+  $('btnGo').onclick = function () {
+    if (timer) { stop(); return; }
+    if (!caps.record) { run(); return; }          /* 不能錄的裝置：純計時模式 */
+    /* ⭐ 在這個 click 的呼叫堆疊裡要麥克風——iOS 的硬性要求 */
+    $('btnGo').disabled = true;
+    $('btnGo').textContent = '取得麥克風…';
+    SPEAK.acquireMic().then(function () {
+      $('btnGo').disabled = false;
+      run();
+    }).catch(function (e) {
+      $('btnGo').disabled = false;
+      $('btnGo').textContent = '開始';
+      showMicError(e);
+    });
+  };
   $('btnNext').onclick = function () { if (timer) stop(); nextQuestion(); };
+  $('btnDiag').onclick = function () { renderDiag(); };
   $('tP1').onclick = function () { setTab('p1'); };
   $('tP2').onclick = function () { setTab('p2'); };
   $('tP3').onclick = function () { setTab('p3'); };

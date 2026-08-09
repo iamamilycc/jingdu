@@ -126,6 +126,35 @@ def check_behavior():
         prog = pg.evaluate("() => SPEAK.progress()")
         ck('進度統計 Part2 說滿次數', prog['p2Full'] >= 1, prog)
 
+        print('-- ⭐iOS 麥克風必須在使用者手勢裡取得（實測回報「錄音啟動失敗」的根因）')
+        ck('有 acquireMic（供 click 當下呼叫）', pg.evaluate("() => typeof SPEAK.acquireMic") == 'function')
+        # startRecording 不准自己去要權限——只能用已握著的 stream
+        src = open(os.path.join(ROOT, 'assets', 'ielts-speaking.js'), encoding='utf-8').read()
+        import re as _re
+        m = _re.search(r"function startRecording\(\)\s*\{(.+?)\n  \}", src, _re.S)
+        ck('startRecording 內不再呼叫 getUserMedia',
+           m and 'getUserMedia' not in m.group(1), '仍在錄音時才要權限 → iOS 必失敗')
+        ma = _re.search(r"function acquireMic\(\)\s*\{(.+?)\n  \}", src, _re.S)
+        ck('acquireMic 內才呼叫 getUserMedia', ma and 'getUserMedia' in ma.group(1))
+        html = open(os.path.join(ROOT, 'ielts', 'speaking.html'), encoding='utf-8').read()
+        mgo = _re.search(r"\$\('btnGo'\)\.onclick = function \(\) \{(.+?)\n  \};", html, _re.S)
+        ck('點「開始」的 click 裡就呼叫 acquireMic', mgo and 'acquireMic' in mgo.group(1),
+           '等倒數完才要麥克風 → iOS 拒絕')
+
+        print('-- 錯誤訊息要是人話，且告訴使用者怎麼辦')
+        for name, want in [('NotAllowedError', '設定'), ('NotReadableError', '其他 App'),
+                           ('NoStream', '重新點'), ('NoGetUserMedia', 'Safari')]:
+            msg = pg.evaluate("(n) => SPEAK.explain({name:n})", name)
+            ck('%s → 有可操作的指引' % name, want in msg, msg)
+
+        print('-- 診斷面板：使用者看不到 console，資訊要攤在畫面上')
+        ck('有診斷按鈕', pg.locator('#btnDiag').count() == 1)
+        pg.click('#btnDiag'); pg.wait_for_timeout(200)
+        ck('診斷面板會顯示', pg.is_visible('#diagBox'))
+        dtext = pg.inner_text('#diag')
+        for k in ['網址協定', 'getUserMedia', 'MediaRecorder', '麥克風已取得', '最後一次錯誤']:
+            ck('診斷含「%s」' % k, k in dtext, dtext[:80])
+
         print('-- 隱私承諾要寫在畫面上')
         body = pg.inner_text('body')
         ck('明說錄音不上傳', '不會上傳' in body)

@@ -37,21 +37,85 @@
     };
   }
 
-  /* ---------- 錄音 ---------- */
-  var rec = null, chunks = [], startAt = 0, stream = null;
+  /* ---------- 錄音 ----------
+     ⚠️ iOS 硬限制：getUserMedia **必須在使用者手勢的呼叫堆疊裡**。
+     Part 2 是「1 分鐘準備 → 才開始說」，如果等倒數結束才要麥克風，
+     那時早就脫離手勢上下文，iOS 必定拒絕（實測回報「錄音啟動失敗」的根因）。
+     正解：**點「開始」的當下就把麥克風要到手**，準備階段先握著，
+     倒數結束只是 new MediaRecorder(已有的 stream).start()——不再碰 getUserMedia。 */
+  var rec = null, chunks = [], startAt = 0, stream = null, lastError = null;
 
+  /* 在使用者手勢裡呼叫這個（點「開始」時），先取得並保留麥克風 */
+  function acquireMic() {
+    if (stream && stream.active) return Promise.resolve(stream);
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) {
+      lastError = { name: 'NoGetUserMedia', message: '這個瀏覽器沒有 getUserMedia' };
+      return Promise.reject(lastError);
+    }
+    return navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
+      stream = s; lastError = null; return s;
+    }).catch(function (e) {
+      lastError = { name: e.name || 'Error', message: e.message || String(e) };
+      throw lastError;
+    });
+  }
+
+  /* 真正開始錄——此時不再要權限，只用已經握著的 stream */
   function startRecording() {
     chunks = [];
-    return navigator.mediaDevices.getUserMedia({ audio: true }).then(function (s) {
-      stream = s;
+    if (!stream || !stream.active) {
+      lastError = { name: 'NoStream', message: '麥克風尚未取得（應在點「開始」時就取得）' };
+      return Promise.reject(lastError);
+    }
+    try {
       /* 讓瀏覽器自己挑支援的格式：iOS 給 mp4/aac，桌面多半 webm。寫死格式會在 iOS 直接失敗。 */
-      try { rec = new MediaRecorder(s); }
-      catch (e) { rec = new MediaRecorder(s, { mimeType: 'audio/mp4' }); }
+      try { rec = new MediaRecorder(stream); }
+      catch (e) { rec = new MediaRecorder(stream, { mimeType: 'audio/mp4' }); }
       rec.ondataavailable = function (e) { if (e.data && e.data.size) chunks.push(e.data); };
       rec.start();
       startAt = Date.now();
-      return true;
-    });
+      lastError = null;
+      return Promise.resolve(true);
+    } catch (e) {
+      lastError = { name: e.name || 'Error', message: e.message || String(e) };
+      return Promise.reject(lastError);
+    }
+  }
+
+  /* 診斷：使用者看不到 console，把該知道的全部攤在畫面上，方便回報 */
+  function diagnose() {
+    var d = {
+      '網址協定': location.protocol + (location.protocol === 'https:' ? ' ✓' : ' ✗ 需 HTTPS'),
+      '瀏覽器': /CriOS/i.test(navigator.userAgent) ? 'Chrome for iOS'
+              : /MicroMessenger/i.test(navigator.userAgent) ? '微信內建 ✗'
+              : /Safari/i.test(navigator.userAgent) && /iPhone|iPad/i.test(navigator.userAgent) ? 'iOS Safari'
+              : '其他',
+      'getUserMedia': (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) ? '有 ✓' : '無 ✗',
+      'MediaRecorder': (typeof MediaRecorder !== 'undefined') ? '有 ✓' : '無 ✗',
+      '麥克風已取得': (stream && stream.active) ? '是 ✓' : '否',
+      '最後一次錯誤': lastError ? (lastError.name + '：' + lastError.message) : '無'
+    };
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported) {
+      d['支援格式'] = ['audio/mp4', 'audio/webm', 'audio/webm;codecs=opus']
+        .filter(function (m) { return MediaRecorder.isTypeSupported(m); }).join(' / ') || '（都不支援）';
+    }
+    return d;
+  }
+
+  /* 把常見錯誤翻成人話 + 告訴使用者怎麼辦 */
+  function explain(err) {
+    var n = (err && err.name) || '';
+    if (n === 'NotAllowedError' || n === 'PermissionDeniedError')
+      return '麥克風權限被拒絕。iPhone：設定 → Safari → 麥克風 → 改成「詢問」或「允許」，再重新整理頁面。';
+    if (n === 'NotFoundError' || n === 'DevicesNotFoundError')
+      return '找不到麥克風裝置。';
+    if (n === 'NotReadableError' || n === 'TrackStartError')
+      return '麥克風被其他 App 佔用（例如正在通話或錄音），關掉那個 App 再試。';
+    if (n === 'NoStream')
+      return '麥克風還沒取得——請重新點一次「開始」（iOS 規定必須在你按下按鈕的當下要權限）。';
+    if (n === 'NoGetUserMedia')
+      return '這個瀏覽器不支援錄音。微信內建瀏覽器一定不行，請用 Safari 或 Chrome 開。';
+    return (err && err.message) || '未知錯誤';
   }
 
   function stopRecording() {
@@ -60,6 +124,7 @@
       rec.onstop = function () {
         var blob = new Blob(chunks, { type: rec.mimeType || 'audio/webm' });
         var secs = (Date.now() - startAt) / 1000;
+        /* 錄完就釋放麥克風，不讓錄音指示燈一直亮著（隱私也是體驗） */
         if (stream) { stream.getTracks().forEach(function (t) { t.stop(); }); stream = null; }
         resolve({ blob: blob, url: URL.createObjectURL(blob), seconds: secs });
       };
@@ -121,7 +186,8 @@
 
   window.SPEAK = {
     load: load, capabilities: capabilities,
-    startRecording: startRecording, stopRecording: stopRecording, isRecording: isRecording,
+    acquireMic: acquireMic, startRecording: startRecording, stopRecording: stopRecording,
+    isRecording: isRecording, diagnose: diagnose, explain: explain,
     fluency: fluency, saveSession: saveSession, listSessions: listSessions,
     progress: progress, pick: pick
   };
