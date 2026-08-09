@@ -1,0 +1,284 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>精聽聽寫 · 雅思</title>
+<link rel="stylesheet" href="../assets/style.css">
+<script>
+  /* 與雅思其他頁同一個命名空間，且必須早於 core.js */
+  window.JD_NS = 'ielts_';
+</script>
+<script src="../assets/core.js"></script>
+<script src="../assets/sync.js"></script>
+<script src="../assets/ielts-dictation.js"></script>
+<style>
+  .wrap{max-width:34rem;margin:0 auto;padding:1rem 1rem 3rem}
+  .top{display:flex;align-items:center;justify-content:space-between}
+  .top h1{font-size:1.15rem;margin:.4rem 0}
+  .top a{font-size:.85rem;color:#666;text-decoration:none}
+  h2{font-size:.95rem;margin:1.3rem 0 .5rem;color:#444}
+
+  textarea{width:100%;min-height:7rem;border:1px solid #dcdcdc;border-radius:12px;
+           padding:.7rem;font-size:.92rem;line-height:1.6;font-family:inherit}
+  input[type=text]{width:100%;border:1px solid #dcdcdc;border-radius:12px;
+                   padding:.85rem;font-size:1rem;font-family:inherit}
+  .btn{border:0;border-radius:12px;padding:.85rem 1rem;font-size:.95rem;
+       font-weight:600;color:#fff;background:#2f6df6;cursor:pointer}
+  .btn.ghost{background:#fafafa;color:#555;border:1px solid #e6e6e6;font-weight:400}
+  .btn:disabled{background:#c9d4ea}
+  .row{display:flex;gap:.5rem;margin-top:.6rem}
+  .row .btn{flex:1}
+
+  .texts{display:grid;gap:.5rem;margin:.6rem 0}
+  .tx{display:flex;align-items:center;gap:.6rem;border:1px solid #ececec;
+      border-radius:12px;padding:.6rem .8rem;background:#fff}
+  .tx b{flex:1;font-size:.9rem;font-weight:600}
+  .tx small{color:#888;font-size:.78rem}
+  .tx button{border:1px solid #e6e6e6;background:#fafafa;border-radius:9px;
+             padding:.35rem .6rem;font-size:.78rem;cursor:pointer;color:#555}
+
+  .play{display:flex;gap:.5rem;align-items:center;margin:.7rem 0}
+  .play button{flex:1;border:1px solid #dcdcdc;background:#fff;border-radius:12px;
+               padding:.8rem;font-size:.92rem;cursor:pointer}
+  .play .main{background:#2f6df6;color:#fff;border-color:#2f6df6;font-weight:600}
+
+  .result{border:1px solid #ececec;border-radius:12px;padding:.9rem;background:#fff;
+          line-height:2.1;font-size:1rem}
+  .w-ok{color:#1a7f37}
+  .w-bad{color:#c0392b;text-decoration:underline wavy #e6a6a0;position:relative}
+  .w-bad sub{font-size:.6rem;color:#b3453a;vertical-align:super;margin:0 .15rem 0 .1rem;
+             background:#fdf0ee;border-radius:4px;padding:.05rem .25rem;white-space:nowrap}
+  .score{font-size:.85rem;color:#666;margin-top:.5rem}
+
+  .kinds{display:grid;gap:.4rem;margin:.6rem 0}
+  .kind{display:flex;align-items:center;gap:.6rem;font-size:.85rem}
+  .kind b{min-width:5.5rem}
+  .kind i{flex:1;height:8px;border-radius:4px;background:#eee;overflow:hidden;display:block}
+  .kind i s{display:block;height:100%;background:#2f6df6;text-decoration:none}
+  .kind span{color:#888;font-size:.78rem;min-width:2.2rem;text-align:right}
+
+  .hint{color:#888;font-size:.8rem;line-height:1.7}
+  .hide{display:none}
+  .meta{color:#999;font-size:.8rem;margin:.4rem 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <h1>精聽聽寫</h1>
+    <span><a href="index.html">🎯 背單字</a>　<a href="review.html">📅 複習</a>　<a href="../index.html">← 精讀</a></span>
+  </div>
+
+  <!-- ── 素材管理 ── -->
+  <section id="setup">
+    <h2>① 貼一段聽力原文</h2>
+    <p class="hint">貼劍橋真題的聽力文本（或任何英文段落）。系統會切成句子，
+      用語音一句一句念給你聽，你打出聽到的內容。<b>音頻檔案不用上傳</b>——用系統語音朗讀，
+      素材留在你自己手上。</p>
+    <textarea id="txtIn" placeholder="例：The library opens at nine. It closes at five on weekdays. Students can borrow up to ten books."></textarea>
+    <div class="row">
+      <button class="btn" id="btnSave">存成一份素材</button>
+    </div>
+
+    <h2>② 選一份開始聽寫</h2>
+    <div class="texts" id="texts"></div>
+
+    <h2>我的錯因分佈</h2>
+    <div class="kinds" id="kinds"></div>
+    <p class="hint" id="kindHint"></p>
+  </section>
+
+  <!-- ── 聽寫中 ── -->
+  <section id="run" class="hide">
+    <div class="meta"><span id="pos"></span>　<span id="name"></span></div>
+
+    <div class="play">
+      <button class="main" id="btnPlay">🔊 播放</button>
+      <button id="btnSlow">🐢 慢速</button>
+    </div>
+
+    <input type="text" id="ans" placeholder="打出你聽到的句子" autocomplete="off"
+           autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="row">
+      <button class="btn" id="btnCheck">對答案</button>
+      <button class="btn ghost" id="btnQuit">結束</button>
+    </div>
+
+    <div id="fb" class="hide">
+      <h2>比對結果</h2>
+      <div class="result" id="res"></div>
+      <div class="score" id="score"></div>
+      <div class="row">
+        <button class="btn" id="btnNext">下一句 →</button>
+        <button class="btn ghost" id="btnReplay">再聽一次</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 完成 ── -->
+  <section id="done" class="hide">
+    <h2>本輪完成</h2>
+    <div class="result" id="doneMsg"></div>
+    <div class="row">
+      <button class="btn ghost" id="btnBack">回素材列表</button>
+      <button class="btn ghost" id="btnReview">📅 看複習隊列</button>
+    </div>
+  </section>
+
+</div>
+
+<script>
+/* 前端七律：事件用 id + .onclick 綁定，不在 innerHTML 拼字串；
+   比對與分類邏輯全在 ielts-dictation.js，頁面只負責呈現。 */
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var show = function (id, on) { $(id).classList[on ? 'remove' : 'add']('hide'); };
+  var sents = [], si = 0, curName = '';
+
+  function renderTexts() {
+    var box = $('texts'), all = DICT.listTexts(), names = Object.keys(all);
+    box.textContent = '';
+    if (!names.length) {
+      var e = document.createElement('div');
+      e.className = 'hint';
+      e.textContent = '還沒有素材。先在上面貼一段英文，存起來就能開始聽寫。';
+      box.appendChild(e);
+      return;
+    }
+    names.forEach(function (n) {
+      var t = all[n];
+      var row = document.createElement('div'); row.className = 'tx';
+      var b = document.createElement('b'); b.textContent = n;
+      var s = document.createElement('small'); s.textContent = t.sents + ' 句';
+      var go = document.createElement('button'); go.textContent = '開始';
+      go.onclick = function () { start(n, t.text); };
+      var del = document.createElement('button'); del.textContent = '刪除';
+      del.onclick = function () {
+        if (!confirm('刪除素材「' + n + '」？（已累積的錯因統計不受影響）')) return;
+        DICT.removeText(n); renderTexts();
+      };
+      row.appendChild(b); row.appendChild(s); row.appendChild(go); row.appendChild(del);
+      box.appendChild(row);
+    });
+  }
+
+  function renderKinds() {
+    var box = $('kinds'), st = DICT.stats();
+    box.textContent = '';
+    if (!st.total) {
+      $('kindHint').textContent = '做過幾輪之後，這裡會顯示你最常錯在哪一類——照著練最有效率。';
+      return;
+    }
+    var max = st.kinds.length ? st.kinds[0].n : 1;
+    st.kinds.forEach(function (k) {
+      var row = document.createElement('div'); row.className = 'kind';
+      var b = document.createElement('b'); b.textContent = k.label;
+      var bar = document.createElement('i');
+      var fill = document.createElement('s'); fill.style.width = (k.n / max * 100) + '%';
+      bar.appendChild(fill);
+      var n = document.createElement('span'); n.textContent = k.n;
+      row.appendChild(b); row.appendChild(bar); row.appendChild(n);
+      box.appendChild(row);
+    });
+    var top = st.kinds[0];
+    var advice = {
+      weak: '你最常漏掉弱讀的功能詞（to/of/a/and）。練法：同一句放慢速聽 3 遍，專門盯這些小詞。',
+      spell: '你聽得出來但拼不對。練法：錯的詞已進復習隊列，去背單字頁把它們過一遍。',
+      number: '數字是你的弱項——雅思填空題最愛考。練法：找電話號碼/日期/價格的段落專練。',
+      proper: '專有名詞聽不準。練法：聽前先掃一眼題目裡的人名地名，有預期就好抓。',
+      unknown: '生詞太多導致聽不出。練法：先把詞彙量補上去，聽力才有底。',
+      speed: '句子後半跟不上。練法：先用慢速練到能寫全，再回到正常速。'
+    }[top.kind];
+    $('kindHint').textContent = '最該練的：' + top.label + '（' + top.n + ' 次）。' + (advice || '');
+  }
+
+  function start(name, text) {
+    sents = DICT.split(text); si = 0; curName = name;
+    if (!sents.length) { alert('這份素材切不出句子'); return; }
+    show('setup', false); show('run', true); show('done', false);
+    paint();
+  }
+
+  function paint() {
+    $('pos').textContent = (si + 1) + ' / ' + sents.length;
+    $('name').textContent = curName;
+    $('ans').value = '';
+    show('fb', false);
+    $('ans').focus();
+    play(false);
+  }
+
+  function play(slow) { JD.speak(sents[si], !!slow); }
+
+  $('btnSave').onclick = function () {
+    var text = $('txtIn').value.trim();
+    if (!text) { alert('先貼一段英文'); return; }
+    var n = DICT.split(text).length;
+    var name = prompt('這份素材叫什麼名字？（例：劍19 Test1 Section1）',
+                      '素材 ' + new Date().toISOString().slice(5, 10));
+    if (!name) return;
+    DICT.saveText(name, text);
+    $('txtIn').value = '';
+    renderTexts();
+    alert('已存「' + name + '」，切出 ' + n + ' 句。');
+  };
+
+  $('btnPlay').onclick = function () { play(false); };
+  $('btnSlow').onclick = function () { play(true); };
+  $('btnReplay').onclick = function () { play(false); };
+
+  $('btnCheck').onclick = function () {
+    var typed = $('ans').value.trim();
+    if (!typed) { alert('先打出你聽到的內容'); return; }
+    var d = DICT.commit(sents[si], typed);
+    var box = $('res'); box.textContent = '';
+    d.words.forEach(function (w) {
+      var el = document.createElement('span');
+      el.className = w.ok ? 'w-ok' : 'w-bad';
+      el.textContent = w.w + ' ';
+      if (!w.ok) {
+        var tag = document.createElement('sub');
+        tag.textContent = DICT.label(w.kind);
+        el.appendChild(tag);
+      }
+      box.appendChild(el);
+    });
+    $('score').textContent = '正確率 ' + Math.round(d.score * 100) + '%'
+      + (d.kinds.length ? ('　主要問題：' + d.kinds.map(DICT.label).join('、')) : '　全對 🎉')
+      + (d.kinds.length ? '　（錯的詞已進復習隊列）' : '');
+    show('fb', true);
+  };
+
+  $('btnNext').onclick = function () {
+    si++;
+    if (si >= sents.length) {
+      show('run', false); show('done', true);
+      var st = DICT.stats();
+      $('doneMsg').textContent = '「' + curName + '」' + sents.length + ' 句聽寫完成。'
+        + (st.kinds.length ? ('　你最常錯的是：' + st.kinds[0].label + '。') : '');
+      renderKinds(); renderTexts();
+      return;
+    }
+    paint();
+  };
+
+  /* 逃生口：隨時可結束，已交卷的句子都已存 */
+  $('btnQuit').onclick = function () {
+    show('run', false); show('setup', true);
+    renderKinds(); renderTexts();
+  };
+  $('btnBack').onclick = function () {
+    show('done', false); show('setup', true);
+  };
+  $('btnReview').onclick = function () { location.href = 'review.html'; };
+
+  /* Enter 直接對答案（少點一次） */
+  $('ans').onkeydown = function (e) { if (e.key === 'Enter') $('btnCheck').click(); };
+
+  renderTexts(); renderKinds();
+})();
+</script>
+</body>
+</html>

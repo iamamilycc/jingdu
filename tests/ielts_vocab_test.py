@@ -142,10 +142,14 @@ def main():
     has('ielts/index.html', 'review.html', '複習隊列（背完要能去看）')
     has('ielts/index.html', '../index.html', '回英語精讀')
     has('ielts/review.html', 'index.html', '回背單字')
+    has('ielts/index.html', 'dictation.html', '精聽聽寫（背單字之外的第二個練法）')
+    has('ielts/review.html', 'dictation.html', '精聽聽寫')
+    has('ielts/dictation.html', 'index.html', '回背單字')
+    has('ielts/dictation.html', 'review.html', '複習隊列')
     has('help.html', 'ielts/index.html', '教程裡有可點的入口')
 
     # 前端七律：動態按鈕不准內嵌 onclick 字串（點了沒反應是本專案踩過的坑）
-    for rel in ('ielts/index.html', 'ielts/review.html'):
+    for rel in ('ielts/index.html', 'ielts/review.html', 'ielts/dictation.html'):
         txt = open(os.path.join(ROOT, rel), encoding='utf-8').read()
         inline = [ln.strip()[:60] for ln in txt.splitlines()
                   if '<button' in ln and 'onclick=' in ln]
@@ -168,6 +172,9 @@ def main():
         '缺音標走語音': '沒有音標',
         '詞表來源與授權': 'ECDICT',
         '重建指令': 'build_vocab.py',
+        '精聽入口': 'ielts/dictation.html',
+        '錯因分類': '錯因分類',
+        '音頻不用上傳': '音頻不用上傳',
     }
     for name, kw in must.items():
         ck('教程有講到「%s」' % name, kw in help_txt, '缺關鍵詞：%s' % kw)
