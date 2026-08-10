@@ -88,11 +88,22 @@ def run():
         pg.evaluate("vdReveal()"); pg.wait_for_timeout(200)
         after = pg.evaluate("Object.keys(JD.getBook()).length")
         fb = pg.evaluate("(document.getElementById('vdFb')||{}).innerText||''")
-        ck('強化練習答錯→錯題本 +1', after == before + 1, '%d→%d' % (before, after))
-        ck('強化練習答錯→有「已放進錯題本」可見提示', '錯題本' in fb, fb[:60])
+        ck('強化練習(英→中方向)答錯→錯題本 +1', after == before + 1, '%d→%d' % (before, after))
+        ck('強化練習(英→中方向)答錯→有「已放進錯題本」可見提示', '錯題本' in fb, fb[:60])
+        # 另一方向：中→英「看中文默寫」，打錯字也要有進度條+進錯題本
+        print('-- 強化練習另一方向：中→英 默寫打錯')
+        pg.evaluate("localStorage.removeItem('jingdu_errbook'); vdStart('cn2en')"); pg.wait_for_timeout(200)
+        pills2 = pg.evaluate("document.querySelectorAll('#vdPills .pill').length")
+        ck('強化練習(中→英方向)有進度條(pills)', pills2 > 0, 'pills=%d' % pills2)
+        b2 = pg.evaluate("Object.keys(JD.getBook()).length")
+        pg.evaluate("var i=document.getElementById('vdIn'); if(i) i.value='zzzzwrong'; vdCheckCn2En()"); pg.wait_for_timeout(200)
+        a2 = pg.evaluate("Object.keys(JD.getBook()).length")
+        fb2 = pg.evaluate("(document.getElementById('vdFb')||{}).innerText||''")
+        ck('強化練習(中→英方向)默寫打錯→錯題本 +1', a2 == b2 + 1, '%d→%d' % (b2, a2))
+        ck('強化練習(中→英方向)打錯→有「已放進錯題本」提示', '錯題本' in fb2, fb2[:60])
         # 回到選單也要有(淡)進度條
-        pg.evaluate("vdNext()")  # 走到最後會回 menu；直接檢查 menu pills
-        pg.wait_for_timeout(150)
+        menu_pills = pg.evaluate("(function(){ for(var k=0;k<50;k++){ if(typeof vdNext==='function') vdNext(); } return document.querySelectorAll('#vdPills .pill').length; })()")
+        ck('強化練習練完回選單→仍顯示(淡)進度條', menu_pills > 0, 'menu pills=%d' % menu_pills)
 
         pg.close(); b.close()
 
