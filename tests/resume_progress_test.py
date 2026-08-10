@@ -84,6 +84,9 @@ def run():
         pg.evaluate("vdStart('en2cn')"); pg.wait_for_timeout(150)
         pills = pg.evaluate("document.querySelectorAll('#vdPills .pill').length")
         ck('強化練習開始一輪→進度條(pills)有顯示', pills > 0, 'pills=%d' % pills)
+        # 開練→上方生詞卡要收起(防偷看答案)+顯示提示
+        ck('開練→生詞卡收起(display:none)', pg.evaluate("getComputedStyle(document.getElementById('vocabGrid')).display") == 'none')
+        ck('開練→顯示「已收起免偷看」提示', pg.evaluate("(document.getElementById('vdFoldNote')||{}).style?document.getElementById('vdFoldNote').style.display:'' ") == 'block')
         before = pg.evaluate("Object.keys(JD.getBook()).length")
         pg.evaluate("vdReveal()"); pg.wait_for_timeout(200)
         after = pg.evaluate("Object.keys(JD.getBook()).length")
@@ -104,6 +107,7 @@ def run():
         # 回到選單也要有(淡)進度條
         menu_pills = pg.evaluate("(function(){ for(var k=0;k<50;k++){ if(typeof vdNext==='function') vdNext(); } return document.querySelectorAll('#vdPills .pill').length; })()")
         ck('強化練習練完回選單→仍顯示(淡)進度條', menu_pills > 0, 'menu pills=%d' % menu_pills)
+        ck('練完回選單→生詞卡放回(display 非 none)', pg.evaluate("getComputedStyle(document.getElementById('vocabGrid')).display") != 'none')
 
         pg.close(); b.close()
 

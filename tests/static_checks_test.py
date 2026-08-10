@@ -164,6 +164,14 @@ def check_resume_seed_parity():
         for sec in ('build', 'speak', 'recite', 'make'):
             ck("%s %s 有 seedResults 回填" % (rel, sec), ("seedResults('%s'" % sec) in txt, '%s 續做會卡住、湊不滿無法完成' % sec)
 
+# ---- 規則14：英日兩版強化練習開練時收起生詞卡（防偷看答案）、回選單放回 ----
+def check_drill_fold_parity():
+    print('-- 規則14：英日兩版強化練習 vdStart 收卡(setFold(true))、menu 放回(setFold(false))')
+    for rel in ('assets/lesson.js', 'assets/lesson-jp.js'):
+        txt = '\n'.join(read(rel))
+        ck('%s 開練收起生詞卡 setFold(true)' % rel, 'setFold(true)' in txt, '開練沒收卡=可照抄上方生詞卡')
+        ck('%s 回選單放回生詞卡 setFold(false)' % rel, 'setFold(false)' in txt, '回選單沒放回=卡片一直不見')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -178,6 +186,7 @@ def main():
     check_vision_max_tokens()
     check_judge_strict()
     check_resume_seed_parity()
+    check_drill_fold_parity()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))

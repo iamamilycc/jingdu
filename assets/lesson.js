@@ -257,8 +257,14 @@
     const wrap = document.createElement('div');
     wrap.innerHTML = '<h2 class="sec" style="margin-top:24px">🔁 生詞強化練習</h2>'+
       '<p class="hint">一遍記不牢！換個方向多練幾輪——<b>看中文默寫英文</b>、<b>看英文選中文</b>。答錯的詞自動進錯題本，之後復盤還會再遇到。</p>'+
+      '<div id="vdFoldNote" class="hint" style="display:none;color:var(--teal-deep);font-weight:600">📕 練習中，上面的生詞卡已收起（免得偷看答案），先自己回想再作答～</div>'+
       '<div class="progress-pills" id="vdPills"></div><div class="stage" id="vdStage"></div>';
     host.appendChild(wrap);
+    /* 開練時收起上方生詞卡：卡片正面/背面會露出英文單字與中文意思＝答案，不收起等於可照抄；回選單再放回 */
+    function setFold(hide){
+      const g=document.getElementById('vocabGrid'); if(g) g.style.display=hide?'none':'';
+      const nt=document.getElementById('vdFoldNote'); if(nt) nt.style.display=hide?'block':'none';
+    }
     const vd = { order:[], idx:0, mode:null, right:0, round:0 };
     const sh = a=>{ a=a.slice(); for(let k=a.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); const t=a[k]; a[k]=a[j]; a[j]=t; } return a; };
     function pills(){ const el=$('#vdPills'); if(!el) return;
@@ -271,8 +277,9 @@
       /* 選單也顯示一整條(淡)進度條，讓「這裡有進度」一眼可見；剛練完一輪則顯示為已完成 */
       const finished = (vd.round>0 && vd.idx>=vd.order.length && vd.order.length>0);
       $('#vdPills').innerHTML = (L.vocab||[]).map(()=>'<span class="pill'+(finished?' ok':'')+'" style="opacity:'+(finished?'1':'.4')+'"></span>').join('');
+      setFold(false);   /* 回選單→放回生詞卡 */
     }
-    window.vdStart = function(mode){ vd.mode=mode; vd.order=sh(L.vocab.map((_,i)=>i)); vd.idx=0; vd.right=0; vd.round++; render(); };
+    window.vdStart = function(mode){ vd.mode=mode; vd.order=sh(L.vocab.map((_,i)=>i)); vd.idx=0; vd.right=0; vd.round++; setFold(true); render(); };   /* 開練→收起生詞卡防偷看 */
     function opts4(correctIdx){
       const others = L.vocab.map((_,i)=>i).filter(i=>i!==correctIdx && (L.vocab[i].zh||'')!==(L.vocab[correctIdx].zh||''));
       const pick = sh(others).slice(0,3);
