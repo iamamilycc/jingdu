@@ -155,6 +155,15 @@ def check_judge_strict():
     body = m.group(0) if m else ''
     ck('judgeSentence 提示詞要求時態/詞形錯判 ok:false', ('時態' in body) and ('ok:false' in body), '判準被改回寬鬆版=有錯的句子不會進錯題本')
 
+# ---- 規則13：英日兩版五個可續做環節都有「續做回填」（否則做一半退出→續做進度卡住、湊不滿）----
+def check_resume_seed_parity():
+    print('-- 規則13：英日兩版 vocab/build/speak/recite/make 都有續做回填(seedResults/seedSet)')
+    for rel in ('assets/lesson.js', 'assets/lesson-jp.js'):
+        txt = '\n'.join(read(rel))
+        ck('%s vocab 有 seedSet 回填' % rel, "seedSet(judged" in txt, '生詞卡續做會卡住')
+        for sec in ('build', 'speak', 'recite', 'make'):
+            ck("%s %s 有 seedResults 回填" % (rel, sec), ("seedResults('%s'" % sec) in txt, '%s 續做會卡住、湊不滿無法完成' % sec)
+
 def main():
     check_playback_route()
     check_record_route()
@@ -168,6 +177,7 @@ def main():
     check_recognition_parity()
     check_vision_max_tokens()
     check_judge_strict()
+    check_resume_seed_parity()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))

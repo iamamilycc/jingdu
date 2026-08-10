@@ -43,6 +43,22 @@
   /* 細粒度進度：已完成項數/總項數(+可選答對數) → 打卡進度條/得分 + 續做定位 */
   function pos(sec, doneCnt, n, score){ JD.setSecPos(L.id, sec, doneCnt, n, score); }
   function resume(sec, n){ return JD.resumeIdx(L.id, sec, n); }
+  /* 續做回填：重進頁面時各環節的結果容器是空的，pos() 算出的完成數會從 0 重來，
+     配 setSecPos 的「只增不減(Math.max)」→ 打卡進度條卡在舊值不動、且該環節永遠湊不滿無法完成。
+     我們只存了 done/score 計數(不知具體哪幾項)，依 app 的順序續做模型，把前 done 項當已完成、前 score 項當答對，
+     回填進本次 session 的容器，續做才會從正確基數往上加。passVal/failVal 依各環節容器語意給。 */
+  function seedResults(sec, n, passVal, failVal){
+    const sp = JD.getSecPos(L.id)[sec] || {};
+    const done = Math.min(sp.done||0, n), score = Math.min(sp.score||0, done);
+    const arr = new Array(n).fill(null);
+    for(let i=0;i<done;i++) arr[i] = (i<score) ? passVal : failVal;
+    return arr;
+  }
+  function seedSet(set, sec, n, key){   /* key: 'done' 或 'score' */
+    const sp = JD.getSecPos(L.id)[sec] || {};
+    const cnt = Math.min((sp[key]||0), n);
+    for(let i=0;i<cnt;i++) set.add(i);
+  }
 
   /* ========== 0 聽全文（連播 + 高亮 + 盲聽 + 循環） ========== */
   /* 依課文類型自動預設句間停頓：對話(多句帶說話人)節奏快→180；敘事/故事→300。
@@ -184,6 +200,9 @@
   const vg = $('#vocabGrid');
   const judged = new Set();
   const vright = new Set();   /* 拼對的卡片，供打卡得分 */
+  /* 續做回填：前 done 張當已判、前 score 張當拼對，否則重進頁面進度條會卡住、環節湊不滿 */
+  seedSet(judged, 'vocab', (L.vocab||[]).length, 'done');
+  seedSet(vright, 'vocab', (L.vocab||[]).length, 'score');
   function maskWord(text, w){
     /* 例句裡把單詞挖空，避免洩露拼寫（含首字母大寫變形） */
     return text.replace(new RegExp('\\b'+w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\b','gi'), '____');
@@ -249,7 +268,9 @@
         '<div class="mask-box">選一種方向開始練（可反覆練，越練越熟）</div>'+
         '<div style="margin-top:12px"><button class="big-btn mango" onclick="vdStart(\'cn2en\')">🀄→🔤 看中文默寫英文</button>'+
         '<button class="big-btn teal" onclick="vdStart(\'en2cn\')">🔤→🀄 看英文選中文</button></div>';
-      $('#vdPills').innerHTML='';
+      /* 選單也顯示一整條(淡)進度條，讓「這裡有進度」一眼可見；剛練完一輪則顯示為已完成 */
+      const finished = (vd.round>0 && vd.idx>=vd.order.length && vd.order.length>0);
+      $('#vdPills').innerHTML = (L.vocab||[]).map(()=>'<span class="pill'+(finished?' ok':'')+'" style="opacity:'+(finished?'1':'.4')+'"></span>').join('');
     }
     window.vdStart = function(mode){ vd.mode=mode; vd.order=sh(L.vocab.map((_,i)=>i)); vd.idx=0; vd.right=0; vd.round++; render(); };
     function opts4(correctIdx){
@@ -286,6 +307,7 @@
       else { JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:v.w, zh:v.zh, type:'word', pos:v.pos}); JD.celebrate('try'); }
       const fb=$('#vdFb');
       if(fb) fb.innerHTML='<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 對了！':'💪 正解：<b>'+JD.esc(v.w)+'</b> = '+JD.esc(v.zh))+'</div>'+
+        (ok?'':'<div class="hint" style="margin:6px 0 0">📌 這個詞已放進<b>錯題本</b>，之後復盤會再考你</div>')+
         '<div style="margin-top:8px"><button class="big-btn teal" onclick="vdNext()">下一個 →</button></div>';
       $$('#vdOpts .qz-opt').forEach(b=>b.disabled=true);
       const inp=$('#vdIn'); if(inp) inp.disabled=true;
@@ -380,7 +402,7 @@
   window.bdNav=function(d){ bd.i=Math.min(Math.max(bd.i+(d||1),0), bdItems.length); if(bd.i>=bdItems.length) bdRender(); else bdLoad(); };
   window.bdRestart=function(){ bd.i=0; bd.results=[]; bdLoad(); };
   function bdMaybeDone(){ if(bd.results.filter(x=>x!=null).length>=bdItems.length) done('build'); }
-  if(bdItems.length){ bd.i = resume('build', bdItems.length); bdLoad(); }
+  if(bdItems.length){ bd.results = seedResults('build', bdItems.length, true, false); bd.i = resume('build', bdItems.length); bdLoad(); }
   else { const bb=$('#buildBox'); if(bb) bb.innerHTML='<p class="empty">本課句子較長，這一課沒有連詞成句練習～</p>'; done('build'); }
 
   /* ========== 4 口語跟讀 ========== */
@@ -417,6 +439,7 @@
     if(spk.results.filter(x=>x!=null).length >= L.sentences.length) done('speak');
   };
   JD.injectMicTip('#p-speak');
+  spk.results = seedResults('speak', L.sentences.length, JD.PASS, 0);   /* 續做回填：前 score 句當達標、其餘已做句給 0(未達標但算做過) */
   spk.i = resume('speak', L.sentences.length);
   spkRender();
 
@@ -598,6 +621,7 @@
     if(rc.results.filter(x=>x!=null).length>=L.sentences.length) done('recite');
   }
   window.rcRender2 = ()=>rcRender('idle');
+  rc.results = seedResults('recite', L.sentences.length, JD.PASS, 0);   /* 續做回填：前 score 句當達標、其餘已做句給 0 */
   rc.i = resume('recite', L.sentences.length);
   rcRender('idle');
 
@@ -793,6 +817,7 @@
   };
   window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=false; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };  /* 跳過沒檢查=不算造對 */
   window.mkPrev=function(){ mk.i = Math.max(mk.i-1, 0); mkRender(); };  /* 回上一個詞：清空輸入重寫，已有的最好分數保留(取最好邏輯不受影響) */
+  mk.results = seedResults('make', mkWords.length, true, false);   /* 續做回填：前 score 個當造對、其餘已做的給 false */
   mk.i = resume('make', mkWords.length);
   mkRender();
 
