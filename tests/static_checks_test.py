@@ -172,6 +172,14 @@ def check_drill_fold_parity():
         ck('%s 開練收起生詞卡 setFold(true)' % rel, 'setFold(true)' in txt, '開練沒收卡=可照抄上方生詞卡')
         ck('%s 回選單放回生詞卡 setFold(false)' % rel, 'setFold(false)' in txt, '回選單沒放回=卡片一直不見')
 
+# ---- 規則15：復習頁背句「看幾秒」與課文頁共用同一偏好鍵(單一事實源)，英日兩版都要 ----
+def check_review_peek_parity():
+    print('-- 規則15：英日復習頁背句都有「看幾秒」選擇且用同一鍵 jingdu_recite_sec2')
+    for rel in ('review.html', 'jp/review.html'):
+        txt = '\n'.join(read(rel))
+        ck('%s 背句復習用共用偏好鍵 jingdu_recite_sec2' % rel, 'jingdu_recite_sec2' in txt, '沒沿用課文頁的鍵=兩處設定不一致')
+        ck('%s 背句復習有看題(qStartPeek)+直接背(qDirect)' % rel, ('qStartPeek' in txt) and ('qDirect' in txt), '缺看幾秒/直接背')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -187,6 +195,7 @@ def main():
     check_judge_strict()
     check_resume_seed_parity()
     check_drill_fold_parity()
+    check_review_peek_parity()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))

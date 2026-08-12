@@ -141,21 +141,45 @@ function startQuiz(it){
       '<button class="big-btn ghost" onclick="qFail(true)">😳 忘了，看答案</button>';
     return;
   }
-  $('#qTarget').innerHTML = JD.esc(it.en);
-  JD.speak(it.en,false);
+  /* 背句復習：先讓使用者選「看幾秒」（沿用課文頁同一偏好鍵 jingdu_recite_sec2，兩處一致），再開始看題 */
+  qReciteIdle();
+}
+/* 看題秒數：與課文頁背句同一機制與同一 localStorage 鍵，改一處兩處同步 */
+function qSecMode(){ const v=localStorage.getItem('jingdu_recite_sec2'); return (v==='5'||v==='10'||v==='15')?v:'auto'; }
+function qAutoSec(t){ const n=((t||'').trim().split(/\s+/).filter(Boolean)).length; return Math.max(4, Math.min(18, Math.round(n*1.2))); }
+function qCurSec(){ const m=qSecMode(); return m==='auto' ? qAutoSec(cur.en) : parseInt(m,10); }
+window.qSetSec = function(v){ localStorage.setItem('jingdu_recite_sec2', String(v)); try{ JD.touchSync&&JD.touchSync(); }catch(e){} qReciteIdle(); };
+function qReciteIdle(){
+  clearInterval(timer);
+  $('#qRing').style.display='none';
+  $('#qResult').innerHTML=''; $('#qHeard').textContent='';
+  $('#qTarget').innerHTML='<div class="mask-box">準備好了就開始<br>先看幾秒，句子會蓋住，開口把它背出來！</div>';
+  const sec=qCurSec(), mode=qSecMode();
+  const opts=[['auto','自動'],['5','5秒'],['10','10秒'],['15','15秒']];
+  const seg='<div class="rc-secsel">看幾秒：'+opts.map(o=>'<button class="rc-secbtn'+(o[0]===mode?' on':'')+'" onclick="qSetSec(\''+o[0]+'\')">'+o[1]+'</button>').join('')+
+    (mode==='auto'?'<span class="hint" style="margin:6px 0 0;display:block">自動：這句約 '+sec+' 秒（依句子長短調整）</span>':'')+'</div>';
+  $('#qBtns').innerHTML=seg+
+    '<button class="big-btn mango" onclick="qStartPeek()">👀 開始看題（'+sec+' 秒）</button>'+
+    '<button class="big-btn ghost" onclick="qDirect()">🎤 不看，直接背</button>';
+}
+window.qStartPeek = function(){
+  const sec=qCurSec(); clearInterval(timer);
+  $('#qTarget').innerHTML = JD.esc(cur.en);
+  JD.speak(cur.en,false);
   $('#qResult').innerHTML=''; $('#qHeard').textContent='';
   const ring=$('#qRing'); ring.style.display='flex';
   $('#qBtns').innerHTML='';
-  let left=10; const C=2*Math.PI*30;
+  let left=sec; const C=2*Math.PI*30;
   ring.innerHTML='<svg width="66" height="66"><circle class="bg" cx="33" cy="33" r="30"/>'+
-    '<circle class="fg" cx="33" cy="33" r="30" stroke-dasharray="'+C+'" stroke-dashoffset="0"/></svg><span id="qSec">10</span>';
+    '<circle class="fg" cx="33" cy="33" r="30" stroke-dasharray="'+C+'" stroke-dashoffset="0"/></svg><span id="qSec">'+sec+'</span>';
   const fg=ring.querySelector('.fg');
   timer=setInterval(()=>{
     left--; $('#qSec').textContent=left;
-    fg.style.strokeDashoffset=C*(10-left)/10;
+    fg.style.strokeDashoffset=C*(sec-left)/sec;
     if(left<=0){ clearInterval(timer); mask(); }
   },1000);
-}
+};
+window.qDirect = function(){ clearInterval(timer); mask(); };   /* 不看直接背：立即蓋住 */
 function mask(){
   $('#qRing').style.display='none';
   $('#qTarget').innerHTML='<div class="mask-box">🙈 蓋住了！按麥克風背出來</div>';
