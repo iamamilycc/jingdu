@@ -87,12 +87,17 @@ function startQuiz(it){
   $('#quizZone').style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
   if(it.type==='word'){
+    /* 單詞復盤：看中文 → 打字拼出日語讀音（假名），與生詞卡同一種學法。
+       原本用語音唸，單詞語音常辨識失敗會拼卻晉級不掉；打字＝確定性判斷，會拼就能晉級離開。 */
     $('#qRing').style.display='none';
     $('#qTarget').innerHTML='<div class="mask-box">🀄 「'+JD.esc(it.zh)+'」'+(it.pos?'（'+JD.esc(it.pos)+'）':'')+
-      '<br>這個詞的日語怎麼讀？按麥克風說出來！</div>';
+      '<br>這個詞的日語讀音怎麼<b>拼</b>？打出假名</div>';
     $('#qResult').innerHTML=''; $('#qHeard').textContent='';
-    $('#qBtns').innerHTML='<button id="qRecBtn" class="big-btn rec" onclick="qRec()">🎙️ 開口說</button>'+
+    $('#qBtns').innerHTML='<div class="vspell" style="justify-content:center;margin-bottom:10px">'+
+        '<input id="qSpell" type="text" placeholder="輸入平假名讀音" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">'+
+        '<button class="big-btn mango" onclick="qSpellCheck()">✓ 檢查</button></div>'+
       '<button class="big-btn ghost" onclick="qFail(true)">😳 忘了，看答案</button>';
+    const inp=$('#qSpell'); if(inp){ inp.focus(); inp.addEventListener('keydown',e=>{ if(e.key==='Enter'){ e.preventDefault(); qSpellCheck(); } }); }
     return;
   }
   /* 背句復習：先讓使用者選「看幾秒」（沿用課文頁同一偏好鍵 jingdu_recite_sec2，兩處一致），再開始看題 */
@@ -210,6 +215,22 @@ window.qRec = function(){
       const sf=$('#qResult').querySelector('.jd-selffail'); if(sf) sf.onclick=qFail;
     } else { qPass(); }
   }, undefined, LANG);
+};
+/* 單詞復盤打字判分：與日語生詞卡同一比對(片假名→平假名正規化 kk2hh、去空白、完全相同)。對→晉級，錯→顯示正解並打回 */
+window.qSpellCheck = function(){
+  const inp=$('#qSpell'); if(!inp) return;
+  const raw=(inp.value||'').trim();
+  if(!raw){ inp.focus(); return; }
+  const got=JD.kk2hh(raw).replace(/\s/g,'');
+  const want=JD.kk2hh(cur.en||'').replace(/\s/g,'');
+  $('#qTarget').innerHTML = '<span class="jp-text">'+JD.esc(cur.en)+'</span>';
+  if(got===want){
+    $('#qResult').innerHTML='<div class="acc-badge good">🎉 拼對了！<b>'+JD.esc(cur.en)+'</b></div>';
+    JD.speak(cur.en,false,LANG); qPass();
+  } else {
+    $('#qResult').innerHTML='<div class="acc-badge bad">✗ 正確讀音：<b>'+JD.esc(cur.en)+'</b></div>';
+    qFail();
+  }
 };
 window.qPass = function(){
   JD.reviewPass(cur.id);

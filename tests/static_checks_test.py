@@ -180,6 +180,17 @@ def check_review_peek_parity():
         ck('%s 背句復習用共用偏好鍵 jingdu_recite_sec2' % rel, 'jingdu_recite_sec2' in txt, '沒沿用課文頁的鍵=兩處設定不一致')
         ck('%s 背句復習有看題(qStartPeek)+直接背(qDirect)' % rel, ('qStartPeek' in txt) and ('qDirect' in txt), '缺看幾秒/直接背')
 
+# ---- 規則16：錯題本單字類複習用打字拼寫(qSpellCheck)，不用語音麥克風(qRec)；英日兩版一致 ----
+def check_review_word_typed():
+    print('-- 規則16：英日復習頁單字類複習用打字拼寫 qSpellCheck（與生詞卡一致，非語音）')
+    for rel in ('review.html', 'jp/review.html'):
+        txt = '\n'.join(read(rel))
+        # 單字分支(it.type==='word')裡要有 qSpell 輸入框 + qSpellCheck，不再綁 qRec 麥克風
+        m = re.search(r"if\(it\.type==='word'\)\{(.*?)\n    return;", txt, re.S)
+        body = m.group(1) if m else ''
+        ck('%s 單字複習有打字框 qSpell' % rel, 'qSpell' in body and 'qSpellCheck' in body, '單字複習沒改成打字')
+        ck('%s 單字複習不再用語音麥克風 qRec' % rel, 'qRec()' not in body, '單字複習仍是語音，和生詞卡學法不一致')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -196,6 +207,7 @@ def main():
     check_resume_seed_parity()
     check_drill_fold_parity()
     check_review_peek_parity()
+    check_review_word_typed()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))
