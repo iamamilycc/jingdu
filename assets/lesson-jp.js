@@ -771,6 +771,12 @@
     const v=mkWords[mk.i];
     const s=($('#mkInput')&&$('#mkInput').value||'').trim();
     if(!s){ $('#mkFb').innerHTML='<div class="acc-badge bad">先寫一句話（或按 🎤 用說的）</div>'; return; }
+    /* 內容門檻（防禦性，不靠 AI）：只打一個詞/一兩個字根本不成句，寬鬆 AI 卻可能回 ok:true 說「做得好」。
+       日文沒空格，要求：至少 3 個字，且比單詞本身更長（＝不只是把那個詞原樣打上去）。 */
+    const bare = s.replace(/\s/g,'');
+    const wk = (window.R?R.toKana(v.w):v.w).replace(/\s/g,''), wp = (mkPlain?mkPlain(v.w):v.w).replace(/\s/g,'');
+    if(bare.length < 3 || bare===wk || bare===wp || bare.length <= Math.max(wk.length, wp.length)){
+      $('#mkFb').innerHTML='<div class="acc-badge bad">這還不算一句話——用「<b>'+JD.esc(mkPlain?mkPlain(v.w):v.w)+'</b>」寫一句你自己的話 💪</div>'; return; }
     /* 家長控制：造句最少詞數。日文沒空格，按「字數」折算（約每詞1.6字），不達標先擋下重寫 */
     const minW = JD.getMkMin ? JD.getMkMin() : 0;
     if(minW>0){ const need=Math.round(minW*1.6), got=s.replace(/\s/g,'').length;

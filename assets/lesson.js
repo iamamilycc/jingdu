@@ -811,6 +811,10 @@
     const v=mkWords[mk.i];
     const s=($('#mkInput')&&$('#mkInput').value||'').trim();
     if(!s){ $('#mkFb').innerHTML='<div class="acc-badge bad">先寫一句話（或按 🎤 用說的）</div>'; return; }
+    /* 內容門檻（防禦性，不靠 AI）：只打一個詞/一個字元根本不成句，但寬鬆 AI 可能回 ok:true 說「做得好」。
+       即使家長沒設最少詞數，英文也至少要 2 個詞（一個主詞＋一個動詞才算句子），擋掉亂打一個字元的情況。 */
+    const nWords0 = s.split(/\s+/).filter(Boolean).length;
+    if(nWords0 < 2){ $('#mkFb').innerHTML='<div class="acc-badge bad">這還不算一句話——用「<b>'+JD.esc(v.w)+'</b>」寫一句你自己的話（至少要有主詞和動詞）💪</div>'; return; }
     /* 家長控制：造句最少詞數（英文按空格計詞），不達標先擋下重寫，不送 AI、不算完成 */
     const minW = JD.getMkMin ? JD.getMkMin() : 0;
     if(minW>0){ const nw=s.split(/\s+/).filter(Boolean).length;

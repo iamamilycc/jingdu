@@ -191,6 +191,18 @@ def check_review_word_typed():
         ck('%s 單字複習有打字框 qSpell' % rel, 'qSpell' in body and 'qSpellCheck' in body, '單字複習沒改成打字')
         ck('%s 單字複習不再用語音麥克風 qRec' % rel, 'qRec()' not in body, '單字複習仍是語音，和生詞卡學法不一致')
 
+# ---- 規則17：造句 mkCheck 要有內容門檻（不只擋純空白），防片段被寬鬆 AI 亂讚美 ----
+def check_make_content_gate():
+    print('-- 規則17：英日造句 mkCheck 有內容門檻(英文≥2詞/日文比單詞長)，不只擋純空白')
+    en = '\n'.join(read('assets/lesson.js'))
+    m = re.search(r'window\.mkCheck=async function\(\)\{(.*?)\n  \};', en, re.S)
+    body = m.group(1) if m else ''
+    ck('lesson.js mkCheck 有 <2 詞門檻', ('nWords0' in body) and ('< 2' in body), '造句只擋空白、沒擋片段→亂讚美')
+    jp = '\n'.join(read('assets/lesson-jp.js'))
+    m2 = re.search(r'window\.mkCheck=async function\(\)\{(.*?)\n  \};', jp, re.S)
+    body2 = m2.group(1) if m2 else ''
+    ck('lesson-jp.js mkCheck 有「比單詞長」門檻', ('bare' in body2) and ('這還不算一句話' in body2), '日語造句沒擋片段→亂讚美')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -208,6 +220,7 @@ def main():
     check_drill_fold_parity()
     check_review_peek_parity()
     check_review_word_typed()
+    check_make_content_gate()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))
