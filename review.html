@@ -151,7 +151,7 @@ function startQuiz(it){
 }
 /* 看題秒數：與課文頁背句同一機制與同一 localStorage 鍵，改一處兩處同步 */
 function qSecMode(){ const v=localStorage.getItem('jingdu_recite_sec2'); return (v==='5'||v==='10'||v==='15')?v:'auto'; }
-function qAutoSec(t){ const n=((t||'').trim().split(/\s+/).filter(Boolean)).length; return Math.max(4, Math.min(18, Math.round(n*1.2))); }
+function qAutoSec(t){ const n=((t||'').trim().split(/\s+/).filter(Boolean)).length; return Math.max(4, Math.min(60, Math.round(n*1.2))); }   /* 上限 60 秒：長句/多句也給夠，看夠可提早跳 */
 function qCurSec(){ const m=qSecMode(); return m==='auto' ? qAutoSec(cur.en) : parseInt(m,10); }
 window.qSetSec = function(v){ localStorage.setItem('jingdu_recite_sec2', String(v)); try{ JD.touchSync&&JD.touchSync(); }catch(e){} qReciteIdle(); };
 function qReciteIdle(){
@@ -173,7 +173,7 @@ window.qStartPeek = function(){
   JD.speak(cur.en,false);
   $('#qResult').innerHTML=''; $('#qHeard').textContent='';
   const ring=$('#qRing'); ring.style.display='flex';
-  $('#qBtns').innerHTML='';
+  $('#qBtns').innerHTML='<button class="big-btn ghost" onclick="qSkipPeek()">看夠了，開始背 →</button>';
   let left=sec; const C=2*Math.PI*30;
   ring.innerHTML='<svg width="66" height="66"><circle class="bg" cx="33" cy="33" r="30"/>'+
     '<circle class="fg" cx="33" cy="33" r="30" stroke-dasharray="'+C+'" stroke-dashoffset="0"/></svg><span id="qSec">'+sec+'</span>';
@@ -185,6 +185,7 @@ window.qStartPeek = function(){
   },1000);
 };
 window.qDirect = function(){ clearInterval(timer); mask(); };   /* 不看直接背：立即蓋住 */
+window.qSkipPeek = function(){ clearInterval(timer); mask(); }; /* 看夠了→提早蓋住開始背（配合放寬的看題上限，不用乾等） */
 function mask(){
   $('#qRing').style.display='none';
   $('#qTarget').innerHTML='<div class="mask-box">🙈 蓋住了！按麥克風背出來</div>';

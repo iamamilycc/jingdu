@@ -217,6 +217,18 @@ def check_word_norm_parity():
     jrv = '\n'.join(read('jp/review.html'))
     ck('jp/review.html qSpellCheck 用 JD.normKana', 'JD.normKana(' in jrv, '日語複習打字沒走 normKana')
 
+# ---- 規則19：背句「看幾秒」自動上限=60(非18)，且看題中可提早跳過(不用乾等)；英日課文+複習四處一致 ----
+def check_peek_cap_and_skip():
+    print('-- 規則19：背句自動看題上限 60 秒(長句/多句夠時間)+看題中有跳過鈕；四處一致')
+    for rel in ('assets/lesson.js', 'assets/lesson-jp.js', 'review.html', 'jp/review.html'):
+        txt = '\n'.join(read(rel))
+        ck('%s 自動看題上限已放寬到 60(非18)' % rel, ('Math.min(60,' in txt) and ('Math.min(18,' not in txt), '上限仍是18→長句來不及')
+    # 看題倒數中要有提早跳過(課文 rcSkipPeek / 複習 qSkipPeek)
+    ck('lesson.js 課文背句有 rcSkipPeek 跳過', 'rcSkipPeek' in '\n'.join(read('assets/lesson.js')))
+    ck('lesson-jp.js 課文背句有 rcSkipPeek 跳過', 'rcSkipPeek' in '\n'.join(read('assets/lesson-jp.js')))
+    for rel in ('review.html', 'jp/review.html'):
+        ck('%s 複習背句有 qSkipPeek 跳過' % rel, 'qSkipPeek' in '\n'.join(read(rel)), '複習看題不能提早跳=放寬上限後要乾等')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -236,6 +248,7 @@ def main():
     check_review_word_typed()
     check_make_content_gate()
     check_word_norm_parity()
+    check_peek_cap_and_skip()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))
