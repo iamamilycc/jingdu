@@ -321,6 +321,10 @@
     };
     setBook(b);
   }
+  /* 移除/還原錯題：造句「我覺得這句沒問題」人工否決時，把 AI 誤判剛加的錯題撤掉。
+     restoreError 用 mkAfter 前的快照還原：之前不存在→刪除；之前就有(真的錯過)→還原原值，不誤刪。 */
+  function removeError(id){ const b=getBook(); if(b[id]){ delete b[id]; setBook(b); } }
+  function restoreError(id, prev){ const b=getBook(); if(prev==null){ delete b[id]; } else { b[id]=prev; } setBook(b); }
   function reviewPass(id){
     const b0 = getBook(); touchDay(b0[id]?langOf(b0[id].lessonId):'');
     const b = getBook(); const it = b[id]; if(!it) return;
@@ -686,7 +690,7 @@
   }
 
   window.JD = { load, save,   /* 讓各站存自己的狀態時也走同一個命名空間，不必各自拼前綴 */
-                getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, reviewPass, reviewFail,
+                getProgress, markDone, getSecPos, setSecPos, resumeIdx, getBook, addError, removeError, restoreError, reviewPass, reviewFail,
                 dueItems, allItems, streak, daysMap, daysMapLang, langOf, touchDay,
                 parentHasPin, setParentPin, checkParentPin, getGate, setGate, getMkMin, setMkMin, newLessonBlockedBy,
                 touchSync, speak, systemSpeak, toPlaybackRoute, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,

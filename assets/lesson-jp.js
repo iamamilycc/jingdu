@@ -746,7 +746,9 @@
     mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */
     /* 造句沒造對→這個詞進錯題本複盤（和生詞卡不認識同 id）；造對就不加。日語 en 存假名讀音供複盤朗讀 */
     const mv = mkWords[mk.i];
-    if(!ok && mv) JD.addError({id:'w:'+L.id+'#'+mv.w, lessonId:L.id, en:R.toKana(mv.w), zh:mv.zh, type:'word', pos:mv.pos, kmap:KANJI_MAP});
+    const errId = mv ? ('w:'+L.id+'#'+mv.w) : null;
+    const bookBefore = errId ? JD.getBook()[errId] : null;   /* 加錯題前快照，供人工否決還原 */
+    if(!ok && mv) JD.addError({id:errId, lessonId:L.id, en:R.toKana(mv.w), zh:mv.zh, type:'word', pos:mv.pos, kmap:KANJI_MAP});
     JD.celebrate(ok?'good':'try');
     const betterHTML = better ? '<div class="eg jp-text" style="margin-top:8px">🌟 <b>地道說法</b>：'+R.toRubyHTML(JD.esc(better))+
       (betterZh?'<br><span style="color:var(--muted);font-size:.9rem">'+JD.esc(betterZh)+'</span>':'')+
@@ -755,10 +757,14 @@
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
       (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">可以這樣說：'+R.toRubyHTML(JD.esc(fix))+'</div>')+
       betterHTML+
-      '<div style="margin-top:10px">'+(ok?'':'<span class="hint" style="display:block;margin-bottom:6px">改一改上面的句子，再按「檢查」試試！</span>')+
+      /* AI 判分可能誤把正確句判錯，給人工否決：一按當對、撤掉剛加的錯題 */
+      (ok?'':'<div style="margin-top:8px"><button class="big-btn ghost jd-mkok">🙋 我覺得這句沒問題</button></div>')+
+      '<div style="margin-top:10px">'+(ok?'':'<span class="hint" style="display:block;margin-bottom:6px">改一改上面的句子再按「檢查」，或按上面確認沒問題</span>')+
       '<button class="big-btn teal" onclick="mkNext()">下一個詞 →</button></div>';
     /* 發音鍵用 .onclick 綁定；日語示範句傳 R.toKana 避免漢字+注音讀兩遍 */
     const bv=$('#mkBetterVoice'); if(bv && better) bv.onclick=()=>JD.speak(R.toKana(better),false,LANG);
+    const ob=$('#mkFb').querySelector('.jd-mkok');
+    if(ob) ob.onclick=()=>{ if(errId) JD.restoreError(errId, bookBefore); mkAfter(true, '', '你確認沒問題，算你對！👍', better, betterZh); };
   }
   function mkSelfCheck(msg){
     $('#mkFb').innerHTML='<div class="acc-badge">'+JD.esc(msg)+'</div>'+

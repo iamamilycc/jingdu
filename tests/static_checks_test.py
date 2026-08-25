@@ -229,6 +229,14 @@ def check_peek_cap_and_skip():
     for rel in ('review.html', 'jp/review.html'):
         ck('%s 複習背句有 qSkipPeek 跳過' % rel, 'qSkipPeek' in '\n'.join(read(rel)), '複習看題不能提早跳=放寬上限後要乾等')
 
+# ---- 規則20：造句 mkAfter 判錯時有人工否決鈕(jd-mkok)+還原(restoreError)，英日兩版；防AI誤判冤枉正確句 ----
+def check_make_override():
+    print('-- 規則20：英日造句判錯有「我覺得這句沒問題」否決鈕+restoreError(撤回誤判)')
+    for rel in ('assets/lesson.js', 'assets/lesson-jp.js'):
+        txt = '\n'.join(read(rel))
+        ck('%s mkAfter 有否決鈕 jd-mkok' % rel, 'jd-mkok' in txt, 'AI誤判正確句時沒人工兜底')
+        ck('%s 否決用 JD.restoreError 還原(不誤刪本來錯題)' % rel, 'restoreError' in txt, '否決沒還原快照=可能誤刪本來的錯題')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -249,6 +257,7 @@ def main():
     check_make_content_gate()
     check_word_norm_parity()
     check_peek_cap_and_skip()
+    check_make_override()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))
