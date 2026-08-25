@@ -222,8 +222,8 @@
     function judge(){
       const typed=(input.value||'').trim();
       if(!typed){ input.focus(); return; }
-      const want = JD.kk2hh(R.toKana(v.w)).replace(/\s/g,'');
-      const got = JD.kk2hh(typed).replace(/\s/g,'');
+      const want = JD.normKana(R.toKana(v.w));   /* normKana 另去零寬字元，避免自建課隱形字元誤判 */
+      const got = JD.normKana(typed);
       const ok = got===want;
       judged.add(i);
       if(ok) vright.add(i);   /* 取最好：讀對過就算會，重做讀錯不抹掉 */
@@ -316,7 +316,7 @@
       const vi=vd.order[vd.idx], v=L.vocab[vi];
       const typed=(($('#vdIn')||{}).value||'').trim();
       if(!typed){ const i=$('#vdIn'); if(i) i.focus(); return; }
-      const want=JD.kk2hh(R.toKana(v.w)).replace(/\s/g,''), got=JD.kk2hh(typed).replace(/\s/g,'');
+      const want=JD.normKana(R.toKana(v.w)), got=JD.normKana(typed);   /* normKana 另去零寬字元 */
       afterAnswer(got===want, vi);
     };
     window.vdReveal = function(){ afterAnswer(false, vd.order[vd.idx]); };

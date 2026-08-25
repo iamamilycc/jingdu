@@ -203,6 +203,20 @@ def check_make_content_gate():
     body2 = m2.group(1) if m2 else ''
     ck('lesson-jp.js mkCheck 有「比單詞長」門檻', ('bare' in body2) and ('這還不算一句話' in body2), '日語造句沒擋片段→亂讚美')
 
+# ---- 規則18：單字比對一律走 JD.normWord/normKana(去隱形字元/標點)，別用生 .toLowerCase().replace(/\s+/) ----
+def check_word_norm_parity():
+    print('-- 規則18：單字比對走 JD.normWord(英)/normKana(日)，防自建課隱形字元/標點誤判進錯題本')
+    # 英文：生詞卡 + 中轉英強化練習 + 複習打字
+    en = '\n'.join(read('assets/lesson.js'))
+    ck('lesson.js 用 JD.normWord 比對單字(≥2處:卡片+中轉英)', en.count('JD.normWord(') >= 2, '生詞卡/中轉英沒走 normWord')
+    rv = '\n'.join(read('review.html'))
+    ck('review.html qSpellCheck 用 JD.normWord', 'JD.normWord(' in rv, '複習打字沒走 normWord')
+    # 日文：生詞卡 + 中轉音強化練習 + 複習打字
+    jp = '\n'.join(read('assets/lesson-jp.js'))
+    ck('lesson-jp.js 用 JD.normKana 比對單字(≥2處)', jp.count('JD.normKana(') >= 2, '日語卡片/中轉音沒走 normKana')
+    jrv = '\n'.join(read('jp/review.html'))
+    ck('jp/review.html qSpellCheck 用 JD.normKana', 'JD.normKana(' in jrv, '日語複習打字沒走 normKana')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -221,6 +235,7 @@ def main():
     check_review_peek_parity()
     check_review_word_typed()
     check_make_content_gate()
+    check_word_norm_parity()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))

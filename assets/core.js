@@ -613,6 +613,19 @@
       .replace(/[\s　、。！？「」『』・~〜ー]/g,'')
       .normalize('NFKC');
   }
+  /* 單字「完全比對」正規化：AI 生成的自建課常在詞裡混進看不見的字元(零寬空格 ​ 等)或標點，
+     導致使用者打了「看起來完全正確」的字卻不相等→判錯→進錯題本。統一在比對前清掉這些差異。
+     normWord=英文(去大小寫/空白/隱形字元/撇號/連字號)；normKana=日文(片假名→平假名/去空白/隱形字元/NFKC)。 */
+  const INVISIBLE = /[\u200b\u200c\u200d\u2060\ufeff]/g;   /* 零寬空格/連接符/BOM 等看不見的字元 */
+  const APOS = /[\u0027\u2019\u2018\u0060\u00b4]/g;           /* 各種撇號 */
+  const HYPHEN = /[\u002d\u2010\u2011\u2013\u2014]/g;         /* 各種連字號 */
+  function normWord(s){
+    return String(s==null?'':s).toLowerCase()
+      .replace(INVISIBLE,'').replace(APOS,'').replace(HYPHEN,'').replace(/\s+/g,'');
+  }
+  function normKana(s){
+    return kk2hh(String(s==null?'':s)).replace(INVISIBLE,'').replace(/\s+/g,'').normalize('NFKC');
+  }
   function compareJP(targetKana, spoken){
     const T = Array.from(normJP(targetKana)), S = Array.from(normJP(spoken));
     const n=T.length, m=S.length;
@@ -677,7 +690,7 @@
                 dueItems, allItems, streak, daysMap, daysMapLang, langOf, touchDay,
                 parentHasPin, setParentPin, checkParentPin, getGate, setGate, getMkMin, setMkMin, newLessonBlockedBy,
                 touchSync, speak, systemSpeak, toPlaybackRoute, pickVoice, listVoices, previewVoice, getVoicePref, setVoicePref,
-                listen, recSupported, injectMicTip, compare, compareJP, compareJPReading, bestCompare, kk2hh, esc, fmtDue,
+                listen, recSupported, injectMicTip, compare, compareJP, compareJPReading, bestCompare, kk2hh, normWord, normKana, esc, fmtDue,
                 lessonScore, getDailyLog, altitude, totalCorrect, mountainState, MOUNTAINS, METERS_PER_CORRECT,
                 celebrate, praiseKind, sfxEnabled, setSfx,
                 AVATARS, getAvatar, setAvatar, avatarHTML, getTargetMountain, setTargetMountain,

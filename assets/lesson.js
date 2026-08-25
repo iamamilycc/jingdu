@@ -222,9 +222,10 @@
     const input = c.querySelector('.vspell input');
     const fb = c.querySelector('.vfb');
     function judge(){
-      const typed = (input.value||'').trim().toLowerCase().replace(/\s+/g,'');
-      if(!typed){ input.focus(); return; }
-      const ok = typed === v.w.toLowerCase().replace(/\s+/g,'');
+      const raw = (input.value||'').trim();
+      if(!raw){ input.focus(); return; }
+      /* 用 JD.normWord 比對：AI 自建課的詞常含隱形字元/撇號/連字號，去空白後仍不等於→誤判進錯題本 */
+      const ok = JD.normWord(raw) === JD.normWord(v.w);
       judged.add(i);
       if(ok) vright.add(i);   /* 取最好：拼對過就算會，重做拼錯不抹掉 */
       pos('vocab', judged.size, L.vocab.length, vright.size);
@@ -321,9 +322,10 @@
     }
     window.vdCheckCn2En = function(){
       const vi=vd.order[vd.idx], v=L.vocab[vi];
-      const typed=(($('#vdIn')||{}).value||'').trim().toLowerCase().replace(/\s+/g,'');
-      if(!typed){ const i=$('#vdIn'); if(i) i.focus(); return; }
-      afterAnswer(typed===v.w.toLowerCase().replace(/\s+/g,''), vi);
+      const raw=(($('#vdIn')||{}).value||'').trim();
+      if(!raw){ const i=$('#vdIn'); if(i) i.focus(); return; }
+      /* JD.normWord：去隱形字元/撇號/連字號/大小寫/空白，避免自建課 AI 生成詞「打對卻判錯進錯題本」 */
+      afterAnswer(JD.normWord(raw)===JD.normWord(v.w), vi);
     };
     window.vdReveal = function(){ afterAnswer(false, vd.order[vd.idx]); };
     window.vdPickEn2Cn = function(pickI, vi){ afterAnswer((L.vocab[pickI].zh||'')===(L.vocab[vi].zh||''), vi); };

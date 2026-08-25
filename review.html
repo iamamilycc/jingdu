@@ -270,9 +270,8 @@ window.qRec = function(){
 /* 單詞復盤打字判分：與生詞卡同一比對(小寫、去空白、完全相同)。對→晉級，錯→顯示正解並打回第一級 */
 window.qSpellCheck = function(){
   const inp=$('#qSpell'); if(!inp) return;
-  const got=(inp.value||'').trim().toLowerCase().replace(/\s+/g,'');
-  if(!got){ inp.focus(); return; }
-  const want=(cur.en||'').toLowerCase().replace(/\s+/g,'');
+  if(!(inp.value||'').trim()){ inp.focus(); return; }
+  const got=JD.normWord(inp.value), want=JD.normWord(cur.en);   /* 去隱形字元/撇號/連字號，避免自建課詞誤判 */
   $('#qTarget').innerHTML = JD.esc(cur.en);
   if(got===want){
     $('#qResult').innerHTML='<div class="acc-badge good">🎉 拼對了！<b>'+JD.esc(cur.en)+'</b></div>';

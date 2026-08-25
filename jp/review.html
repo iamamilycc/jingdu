@@ -219,10 +219,8 @@ window.qRec = function(){
 /* 單詞復盤打字判分：與日語生詞卡同一比對(片假名→平假名正規化 kk2hh、去空白、完全相同)。對→晉級，錯→顯示正解並打回 */
 window.qSpellCheck = function(){
   const inp=$('#qSpell'); if(!inp) return;
-  const raw=(inp.value||'').trim();
-  if(!raw){ inp.focus(); return; }
-  const got=JD.kk2hh(raw).replace(/\s/g,'');
-  const want=JD.kk2hh(cur.en||'').replace(/\s/g,'');
+  if(!(inp.value||'').trim()){ inp.focus(); return; }
+  const got=JD.normKana(inp.value), want=JD.normKana(cur.en);   /* normKana 另去零寬字元 */
   $('#qTarget').innerHTML = '<span class="jp-text">'+JD.esc(cur.en)+'</span>';
   if(got===want){
     $('#qResult').innerHTML='<div class="acc-badge good">🎉 拼對了！<b>'+JD.esc(cur.en)+'</b></div>';
