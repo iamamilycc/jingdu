@@ -49,8 +49,14 @@ def run():
         for v in ('x', '.', 'go'):
             pg.evaluate("mkRestart&&mkRestart()"); pg.wait_for_timeout(60); setval(pg, v); pg.evaluate("mkCheck()"); pg.wait_for_timeout(200)
             pr, f = praised(pg); ck('英語 只打 %r → 不讚美(擋下)' % v, not pr, f[:36])
-        pg.evaluate("mkRestart&&mkRestart()"); pg.wait_for_timeout(60); setval(pg, 'I go to school'); pg.evaluate("mkCheck()"); pg.wait_for_timeout(250)
+        # 2026-09-07 新規則：每句 ≥5 個單詞、且必須用上當前生詞，所以正常句要照著當前的詞造
+        pg.evaluate("mkRestart&&mkRestart()"); pg.wait_for_timeout(60)
+        w_en = pg.evaluate("(document.querySelector('#mkStage .target b')||{}).innerText||''")
+        setval(pg, 'I really like this %s very much.' % w_en); pg.evaluate("mkCheck()"); pg.wait_for_timeout(250)
         pr, f = praised(pg); ck('英語 正常句 → 正常讚美(不誤擋)', pr, f[:30])
+        # 新規則本身也順手驗一下：4 個詞、沒用上生詞的句子要被擋
+        pg.evaluate("mkRestart&&mkRestart()"); pg.wait_for_timeout(60); setval(pg, 'I go to school'); pg.evaluate("mkCheck()"); pg.wait_for_timeout(200)
+        pr, f = praised(pg); ck('英語 4個詞且沒用生詞 → 擋下', not pr, f[:40])
 
         # ---- 日語 ----
         print('-- 日語造句內容門檻')

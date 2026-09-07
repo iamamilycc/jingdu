@@ -5,8 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>NCE2-02 · Breakfast or Lunch? · 精讀</title>
 <link rel="stylesheet" href="../assets/style.css">
-<link rel="icon" type="image/svg+xml" href="../assets/logo.svg">
-<link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
 </head>
 <body>
 <header class="site"><div class="row">
@@ -94,7 +92,7 @@
 
   <section id="p-recite" class="tab-panel">
     <h2 class="sec">🧠 背句挑戰</h2>
-    <p class="hint">看幾秒（自選 5/10/15 秒）→ 句子蓋住 → 開口背 → 得分。低於 85% 自動進錯題本，按記憶規律安排復盤。</p>
+    <p class="hint">看 10 秒 → 句子蓋住 → 開口背 → 得分。低於 85% 自動進錯題本，按記憶規律安排復盤。</p>
     <div class="progress-pills" id="rcPills"></div>
     <div class="stage">
       <div class="ring" id="rcRing" style="display:none"></div>
@@ -107,7 +105,7 @@
 
   <section id="p-make" class="tab-panel">
     <h2 class="sec">🖊️ 造句挑戰</h2>
-    <p class="hint">用本課學的詞，說一句<b>你自己的話</b>！打字或按 🎤 用說的，AI 老師會幫你看；改一改可以再檢查。</p>
+    <p class="hint">每個生詞要造 <b>3 句不一樣</b>的話，每句<b>至少 5 個單詞</b>。先看下面的例句找感覺，再用打字或 🎤 說出你自己的句子——寫錯不要緊，系統會一項一項告訴你怎麼改。</p>
     <div class="progress-pills" id="mkPills"></div>
     <div class="stage" id="mkStage"></div>
   </section>
@@ -120,7 +118,6 @@
       <h3>太棒了！本課全部完成！</h3>
       <p style="color:var(--muted);margin-top:6px">記得明天回來看「📅 復盤」哦</p>
     </div>
-    <div class="card" id="lessonNav" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"></div>
   </section>
 </main>
 <footer class="site">jingdu · 給小家伙的精讀站</footer>
@@ -228,70 +225,120 @@ window.LESSON = {
       "ipa": "/ˈsʌndeɪ/",
       "pos": "n. 名詞",
       "zh": "星期天",
-      "eg": "I never get up early on Sunday."
+      "eg": "I never get up early on Sunday.",
+      "egs": [
+        "I never get up early on Sunday.",
+        "We often visit my grandmother on Sunday.",
+        "Last Sunday my family went to the park."
+      ]
     },
     {
       "w": "lunchtime",
       "ipa": "/ˈlʌntʃtaɪm/",
       "pos": "n. 名詞",
       "zh": "午餐時間",
-      "eg": "I stay in bed until lunchtime."
+      "eg": "I stay in bed until lunchtime.",
+      "egs": [
+        "I stay in bed until lunchtime every weekend.",
+        "The library is very quiet before lunchtime.",
+        "We finished our homework just after lunchtime."
+      ]
     },
     {
       "w": "window",
       "ipa": "/ˈwɪndəʊ/",
       "pos": "n. 名詞",
       "zh": "窗戶",
-      "eg": "I looked out of the window."
+      "eg": "I looked out of the window.",
+      "egs": [
+        "I looked out of the window quietly.",
+        "Please close the window before you leave.",
+        "A little bird is sitting on the window."
+      ]
     },
     {
       "w": "dark",
       "ipa": "/dɑːk/",
       "pos": "adj. 形容詞",
       "zh": "黑暗的",
-      "eg": "It was dark outside."
+      "eg": "It was dark outside.",
+      "egs": [
+        "It was already dark outside the house.",
+        "She is afraid of the dark room.",
+        "The sky gets dark very early in winter."
+      ]
     },
     {
       "w": "telephone",
       "ipa": "/ˈtelɪfəʊn/",
       "pos": "n. 名詞",
       "zh": "電話",
-      "eg": "The telephone rang."
+      "eg": "The telephone rang.",
+      "egs": [
+        "The telephone rang while I was eating.",
+        "My father is talking on the telephone now.",
+        "There is an old telephone in the office."
+      ]
     },
     {
       "w": "ring",
       "ipa": "/rɪŋ/",
       "pos": "v. 動詞",
       "zh": "（鈴、電話）響；打電話",
-      "eg": "Please ring me tonight."
+      "eg": "Please ring me tonight.",
+      "egs": [
+        "Please ring me tonight after seven o’clock.",
+        "I heard the school bell ring loudly.",
+        "The telephone will ring again in a minute."
+      ]
     },
     {
       "w": "aunt",
       "ipa": "/ɑːnt/",
       "pos": "n. 名詞",
       "zh": "姑媽，姨媽",
-      "eg": "It was my aunt Lucy."
+      "eg": "It was my aunt Lucy.",
+      "egs": [
+        "My aunt lives in a small town.",
+        "It was my aunt Lucy on the telephone.",
+        "We had dinner with my aunt yesterday evening."
+      ]
     },
     {
       "w": "arrive",
       "ipa": "/əˈraɪv/",
       "pos": "v. 動詞",
       "zh": "到達",
-      "eg": "The train will arrive soon."
+      "eg": "The train will arrive soon.",
+      "egs": [
+        "The train will arrive at six o’clock.",
+        "We arrived at the airport very late.",
+        "Please tell me when the letters arrive here."
+      ]
     },
     {
       "w": "train",
       "ipa": "/treɪn/",
       "pos": "n. 名詞",
       "zh": "火車",
-      "eg": "I came here by train."
+      "eg": "I came here by train.",
+      "egs": [
+        "I came here by train this morning.",
+        "The train to Beijing leaves at noon.",
+        "We waited for the train for twenty minutes."
+      ]
     },
     {
       "w": "repeat",
       "ipa": "/rɪˈpiːt/",
       "pos": "v. 動詞",
       "zh": "重複，重說",
-      "eg": "Please repeat after me."
+      "eg": "Please repeat after me.",
+      "egs": [
+        "Please repeat after me one more time.",
+        "The teacher repeated the question very slowly.",
+        "I do not want to repeat that mistake."
+      ]
     }
   ],
   "listening": [
@@ -398,10 +445,8 @@ window.LESSON = {
 };
 </script>
 <script src="../assets/core.js"></script>
-<script src="../assets/tts.js"></script>
 <script src="../assets/sync.js"></script>
 <script src="../assets/generate.js"></script>
-<script src="../assets/lessons-registry.js"></script>
 <script src="../assets/lesson.js"></script>
 </body>
 </html>

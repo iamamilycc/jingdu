@@ -214,7 +214,7 @@
       '<div class="ipa">'+JD.esc(v.ipa)+'</div><div style="margin-top:8px"><button class="btn-voice">🔊</button></div>'+
       '<div class="hint" style="margin:8px 0 0;font-size:.72rem">記住拼寫，翻面默寫！</div></div>'+
       '<div class="vface back"><div class="pos">'+JD.esc(v.pos)+' · '+JD.esc(v.zh)+'</div>'+
-      '<div class="eg">'+JD.esc(maskWord(v.eg, v.w))+'</div>'+
+      '<div class="eg">'+JD.esc(maskWord((Array.isArray(v.egs)&&v.egs[0])||v.eg||'', v.w))+'</div>'+
       '<div class="vspell"><input type="text" placeholder="拼出這個單詞" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false">'+
       '<button class="vbtn yes">檢查</button></div>'+
       '<div class="vfb"></div></div></div>';
@@ -730,38 +730,93 @@
     $(resultSel).innerHTML='<div class="acc-badge">👂 開始讀吧！讀完就點上面「✅ 我說完了」馬上打分</div>';
   }
 
-  /* ========== 5.6 造句挑戰（用本課生詞說自己的話；AI 老師判，無 key/出錯走自評兜底） ========== */
-  /* 用上本課全部生詞（判分成本極低），一次做不完可續做 */
+  /* ========== 5.6 造句挑戰（每個生詞：先看 3 個例句 → 自己造 3 句） ==========
+     規則（2026-09-07 用戶定）：所有生詞都要造、每詞 3 句、每句至少 5 個單詞、三句不得重複。
+     判分兩層：① 前端確定性檢查（詞數／有沒有用上這個詞／和自己前面那句重不重複）——不需要 AI Key
+               ② 有 AI Key 再送語法批改；沒 key 或出錯走自評兜底 */
+  const MK_PER_WORD = 3;      /* 每個詞要造幾句 */
+  const MK_MIN_WORDS = 5;     /* 每句最少幾個單詞（內建下限，家長設更高則從高） */
   const mkWords = (L.vocab||[]).slice();
-  const mk = { i:0, results:[] };
+  const mkTotal = mkWords.length * MK_PER_WORD;
+  /* 例句相容舊資料：新格式 egs=[3句]，舊格式只有單句 eg */
+  function mkEgs(v){ return (v && Array.isArray(v.egs) && v.egs.length) ? v.egs : (v && v.eg ? [v.eg] : []); }
+  const mk = { i:0, j:0, results:[], sents:[] };   /* results 攤平成一維，長度 = 詞數×3；sents[i][j] 存已通過的句子 */
+  const mkFlat = (i,j)=> i*MK_PER_WORD + j;
+  function mkMinWords(){ const p = JD.getMkMin ? JD.getMkMin() : 0; return Math.max(MK_MIN_WORDS, p||0); }
+
+  /* ---- 文字歸一與比對（重複偵測用） ---- */
+  function mkNorm(s){ return String(s||'').toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
+  function mkWordCount(s){ return String(s||'').trim().split(/\s+/).filter(Boolean).length; }
+  function mkTooSimilar(a,b){
+    const A=mkNorm(a), B=mkNorm(b);
+    if(!A||!B) return false;
+    if(A===B) return true;
+    const ta=A.split(' '), tb=B.split(' ');
+    const setB=new Set(tb);
+    const inter=ta.filter(t=>setB.has(t)).length;
+    const uni=new Set(ta.concat(tb)).size;
+    return uni>0 && inter/uni >= 0.8;     /* 只換一兩個詞也算重複，逼孩子真的想新句子 */
+  }
+  /* 有沒有真的用上這個生詞（容許常見變形：複數/過去式/ing/第三人稱） */
+  function mkHasWord(s, w){
+    const base = mkNorm(w);
+    if(!base) return true;
+    const S = ' ' + mkNorm(s) + ' ';
+    if(base.indexOf(' ') >= 0) return S.indexOf(' '+base+' ') >= 0;   /* 片語（如 get up）整塊比對 */
+    const stem = base.replace(/e$/,'').replace(/y$/,'');
+    const forms = [base, base+'s', base+'es', base+'d', base+'ed', base+'ing',
+                   stem+'ing', stem+'ed', stem+'ies', stem+'ied'];
+    return forms.some(f => S.indexOf(' '+f+' ') >= 0);
+  }
+
   function mkPills(){
     const el=$('#mkPills'); if(!el) return;
-    el.innerHTML = mkWords.map((_,k)=>'<span class="pill '+(k===mk.i?'now':'')+' '+(mk.results[k]==null?'':(mk.results[k]?'ok':'bad'))+'"></span>').join('');
+    el.innerHTML = mkWords.map((_,k)=>{
+      const r=[0,1,2].map(j=>mk.results[mkFlat(k,j)]);
+      const cls = r.every(x=>x===true) ? 'ok' : (r.some(x=>x===false) ? 'bad' : '');
+      return '<span class="pill '+(k===mk.i?'now':'')+' '+cls+'"></span>';
+    }).join('');
   }
   function mkRender(){
     const box=$('#mkStage'); if(!box) return;
     mkPills();
     if(!mkWords.length){ box.innerHTML='<div class="mask-box">本課沒有生詞數據，這一關直接通過 ✓</div>'; done('make'); return; }
     if(mk.i>=mkWords.length){
-      box.innerHTML='<div style="font-size:2.6rem">'+(mk.results.every(Boolean)?'🏆':'🖊️')+'</div>'+
-        '<div class="acc-badge good">造了 '+mkWords.length+' 句自己的話，真棒！</div>'+
+      const okCnt = mk.results.filter(Boolean).length;
+      box.innerHTML='<div style="font-size:2.6rem">'+(okCnt===mkTotal?'🏆':'🖊️')+'</div>'+
+        '<div class="acc-badge good">'+mkWords.length+' 個詞、每個 3 句，一共造了 '+okCnt+' / '+mkTotal+' 句自己的話！</div>'+
         '<div style="margin-top:10px"><button class="big-btn ghost" onclick="mkRestart()">再來一輪</button></div>';
       done('make'); return;
     }
     const v=mkWords[mk.i];
-    box.innerHTML='<div style="font-family:var(--font-head);color:var(--muted);font-size:.9rem">第 '+(mk.i+1)+' / '+mkWords.length+' 個詞</div>'+
+    const egs=mkEgs(v);
+    const mine=(mk.sents[mk.i]||[]).filter(Boolean);
+    box.innerHTML=
+      '<div style="font-family:var(--font-head);color:var(--muted);font-size:.9rem">第 '+(mk.i+1)+' / '+mkWords.length+' 個詞　·　第 '+(mk.j+1)+' / '+MK_PER_WORD+' 句</div>'+
       '<div class="target" style="margin-top:6px"><b>'+JD.esc(v.w)+'</b><span style="color:var(--muted);font-size:.92rem;margin-left:10px">'+JD.esc(v.zh||'')+'</span>'+
       ' <button class="btn-voice" id="mkVoiceBtn">🔊</button></div>'+
-      ((JD.getMkMin&&JD.getMkMin()>0)?'<div class="hint" style="margin:6px 0 0;color:var(--teal-deep)">✏️ 這句要<b>至少 '+JD.getMkMin()+' 個單詞</b>（家長設定）</div>':'')+
-      '<div style="margin:12px 0"><textarea id="mkInput" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="用這個詞造一句你自己的話…" '+
+      /* ① 先看例句 */
+      (egs.length ? '<div class="card" style="margin-top:10px;text-align:left">'+
+        '<div style="font-family:var(--font-head);font-size:.92rem;margin-bottom:6px">📖 先看看別人怎麼用</div>'+
+        egs.map((e,k)=>'<div class="eg" style="margin-bottom:6px">'+(k+1)+'. '+JD.esc(e)+
+          ' <button class="btn-voice jd-mkeg" data-k="'+k+'">🔊</button></div>').join('')+
+        '</div>' : '')+
+      /* ② 自己已造好的句子（提醒別重複） */
+      (mine.length ? '<div class="card" style="margin-top:10px;text-align:left;background:transparent">'+
+        '<div style="font-family:var(--font-head);font-size:.92rem;margin-bottom:6px">✍️ 你已經造的</div>'+
+        mine.map((s,k)=>'<div class="eg" style="margin-bottom:4px">'+(k+1)+'. '+JD.esc(s)+'</div>').join('')+
+        '</div>' : '')+
+      '<div class="hint" style="margin:10px 0 0;color:var(--teal-deep)">✏️ 這句要<b>至少 '+mkMinWords()+' 個單詞</b>、要用上「<b>'+JD.esc(v.w)+'</b>」，而且<b>不能和自己前面那幾句重複</b>。</div>'+
+      '<div style="margin:12px 0"><textarea id="mkInput" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="用這個詞造第 '+(mk.j+1)+' 句你自己的話…" '+
       'style="width:100%;min-height:72px;border:2px solid var(--line);border-radius:12px;padding:10px 12px;font-size:1rem;font-family:var(--font-en)"></textarea></div>'+
       '<div><button id="mkMicBtn" class="big-btn rec" onclick="mkMic()">🎤 用說的</button>'+
       '<button class="big-btn teal" onclick="mkCheck()">✨ 檢查我的句子</button></div>'+
       '<div id="mkFb" style="margin-top:12px"></div>';
-    /* 發音鍵用 .onclick 綁定，不用內嵌 onclick——單詞若含引號(如 don't)會和屬性引號打架導致整個點擊失效 */
+    /* 發音鍵用 .onclick 綁定，不用內嵌 onclick——單詞/例句若含引號(如 don't)會和屬性引號打架導致整個點擊失效 */
     const vb=$('#mkVoiceBtn'); if(vb) vb.onclick=()=>JD.speak(v.w,false);
+    $$('#mkStage .jd-mkeg').forEach(b=>{ b.onclick=()=>JD.speak(egs[+b.dataset.k],false); });
   }
-  window.mkRestart=function(){ mk.i=0; mk.results=[]; mkRender(); };
+  window.mkRestart=function(){ mk.i=0; mk.j=0; mk.results=[]; mk.sents=[]; mkRender(); };
   window.mkMic=function(){
     const btn=$('#mkMicBtn');
     if(recBusy) return;
@@ -784,8 +839,10 @@
     }, null, 'en-US');
     btn.onclick=()=>{ btn.disabled=true; btn.textContent='⏳ …'; try{ rec && rec.stop(); }catch(e){} };
   };
-  function mkAfter(ok, fix, tip, better, betterZh){
-    mk.results[mk.i] = mk.results[mk.i] || ok; mkPills();  /* 取最好：造對過就算對 */
+  function mkAfter(ok, fix, tip, better, betterZh, sentence){
+    const flat = mkFlat(mk.i, mk.j);
+    mk.results[flat] = mk.results[flat] || ok; mkPills();  /* 取最好：造對過就算對 */
+    if(ok && sentence){ (mk.sents[mk.i] = mk.sents[mk.i] || [])[mk.j] = sentence; }
     /* 造句沒造對→這個詞進錯題本複盤（和生詞卡不認識同 id，掌握了就靠複盤晉級掉）；造對就不加 */
     const mv = mkWords[mk.i];
     const errId = mv ? ('w:'+L.id+'#'+mv.w) : null;
@@ -795,6 +852,8 @@
     const betterHTML = better ? '<div class="eg" style="margin-top:8px">🌟 <b>地道說法</b>：'+JD.esc(better)+
       (betterZh?'<br><span style="color:var(--muted);font-size:.9rem">'+JD.esc(betterZh)+'</span>':'')+
       ' <button class="btn-voice" id="mkBetterVoice">🔊</button></div>' : '';
+    const last = (mk.i===mkWords.length-1) && (mk.j===MK_PER_WORD-1);
+    const nextLabel = (mk.j < MK_PER_WORD-1) ? ('再造第 '+(mk.j+2)+' 句 →') : (last ? '完成 →' : '下一個詞 →');
     $('#mkFb').innerHTML=
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
       (ok||!fix?'':'<div class="eg" style="margin-top:8px">可以這樣說：'+JD.esc(fix)+'</div>')+
@@ -802,44 +861,95 @@
       /* AI 判分可能誤把正確句判錯（幻想文法錯），給人工否決：一按當對、撤掉剛加的錯題 */
       (ok?'':'<div style="margin-top:8px"><button class="big-btn ghost jd-mkok">🙋 我覺得這句沒問題</button></div>')+
       '<div style="margin-top:10px">'+(ok?'':'<span class="hint" style="display:block;margin-bottom:6px">改一改上面的句子再按「檢查」，或按上面確認沒問題</span>')+
-      '<button class="big-btn teal" onclick="mkNext()">下一個詞 →</button></div>';
+      '<button class="big-btn teal" onclick="mkNext()">'+nextLabel+'</button></div>';
     /* 發音鍵用 .onclick 綁定，不內嵌 onclick（示範句可能含引號會打架）*/
     const bv=$('#mkBetterVoice'); if(bv && better) bv.onclick=()=>JD.speak(better,false);
     const ob=$('#mkFb').querySelector('.jd-mkok');
-    if(ob) ob.onclick=()=>{ if(errId) JD.restoreError(errId, bookBefore); mkAfter(true, '', '你確認沒問題，算你對！👍', better, betterZh); };
+    if(ob) ob.onclick=()=>{ if(errId) JD.restoreError(errId, bookBefore); mkAfter(true, '', '你確認沒問題，算你對！👍', better, betterZh, sentence); };
   }
-  function mkSelfCheck(msg){
+  /* 沒有 AI 老師時的兜底：孩子沒有判斷能力，不能只問「你覺得對嗎」——
+     改成給一張<b>逐項可對照的檢查清單</b>＋把例句擺在旁邊比對，把「判斷」變成「核對」。
+     能機械檢查的（大寫、句號、有沒有動詞）先幫他標好，剩下的一項一項問。 */
+  function mkSelfCheck(msg, sentence){
+    window.__mkPendingSent = sentence;
+    const v = mkWords[mk.i], egs = mkEgs(v);
+    const capOK  = /^[A-Z]/.test((sentence||'').trim());
+    const endOK  = /[.!?]$/.test((sentence||'').trim());
+    const verbOK = mkHasVerb(sentence||'');
+    const row=(ok,txt,fix)=>'<div class="eg" style="margin-bottom:5px">'+(ok?'✅ ':'⚠️ ')+txt+
+      (ok?'':'<br><span style="color:var(--coral,#E85D3D);font-size:.88rem">→ '+fix+'</span>')+'</div>';
     $('#mkFb').innerHTML='<div class="acc-badge">'+JD.esc(msg)+'</div>'+
-      '<p style="margin:10px 0 6px;font-size:.88rem;color:var(--muted)">自己讀一遍，覺得這個詞用對了嗎？</p>'+
-      '<button class="big-btn teal" onclick="mkSelf(true)">✅ 用對了</button>'+
-      '<button class="big-btn ghost" onclick="mkSelf(false)">🤔 沒把握</button>';
+      '<div class="card" style="margin-top:10px;text-align:left">'+
+        '<div style="font-family:var(--font-head);font-size:.92rem;margin-bottom:6px">🔍 照著這張表核對你的句子</div>'+
+        '<div class="eg" style="margin-bottom:8px;font-weight:600">'+JD.esc(sentence||'')+'</div>'+
+        row(capOK, '第一個字母大寫了嗎？', '英文句子開頭要大寫，把 '+JD.esc((sentence||'').trim().charAt(0))+' 改成大寫') +
+        row(endOK, '句子末尾有標點嗎？', '陳述句結尾要加句號 <b>.</b>（問句用 <b>?</b>）') +
+        row(verbOK, '句子裡有動詞嗎？', '每句英文都要有動詞（是 am/is/are，或 like/have/go 這類動作詞）') +
+        '<div class="eg" style="margin-top:8px">🔤 再看一眼動詞形式：主語是 he/she/it 或一個人時，動作詞要加 <b>s</b>（He <b>likes</b>）；說過去的事要用過去式（I <b>went</b>）。</div>'+
+      '</div>'+
+      (egs.length ? '<div class="card" style="margin-top:8px;text-align:left;background:transparent">'+
+        '<div style="font-family:var(--font-head);font-size:.92rem;margin-bottom:6px">📖 和例句比一比，結構像不像</div>'+
+        egs.map(e=>'<div class="eg" style="margin-bottom:4px">'+JD.esc(e)+'</div>').join('')+'</div>' : '')+
+      '<p style="margin:10px 0 6px;font-size:.88rem;color:var(--muted)">上面每一項都核對過了嗎？</p>'+
+      '<button class="big-btn teal" onclick="mkSelf(true)">✅ 都核對過，沒問題</button>'+
+      '<button class="big-btn ghost" onclick="mkSelf(false)">🙋 有不確定的，先記下來</button>';
   }
-  window.mkSelf=function(ok){ mkAfter(ok, '', ok?'自評通過！':'下次找大人一起看看'); };
+  window.mkSelf=function(ok){
+    mkAfter(ok, '', ok?'核對通過！':'不確定的先記進錯題本，複盤時再練這個詞', '', '', window.__mkPendingSent);
+  };
+  /* 粗略判斷句中有沒有動詞：命中常見動詞/be 動詞/助動詞，或出現動詞常見詞尾。
+     只用來「提醒」不用來「攔截」——寧可漏提醒，也不能把對的句子擋下來。 */
+  const MK_VERBS = new Set(('am is are was were be been being do does did have has had can could will would '+
+    'shall should may might must go goes went going come comes came get gets got make makes made take takes took '+
+    'see sees saw look looks looked like likes liked want wants wanted eat eats ate drink drinks drank read reads '+
+    'write writes wrote play plays played run runs ran sit sits sat stand stands stood open opens opened close '+
+    'closes closed buy buys bought give gives gave put puts say says said tell tells told think thinks thought '+
+    'know knows knew live lives lived work works worked study studies studied help helps helped need needs needed '+
+    'feel feels felt find finds found start starts started stop stops stopped wear wears wore watch watches watched '+
+    'listen listens listened speak speaks spoke walk walks walked sleep sleeps slept swim swims swam').split(' '));
+  function mkHasVerb(s){
+    const toks = mkNorm(s).split(' ').filter(Boolean);
+    if(toks.some(t=>MK_VERBS.has(t))) return true;
+    return toks.some(t=>t.length>3 && (/(ed|ing|s)$/.test(t)));   /* 詞尾兜底，寧鬆勿嚴 */
+  }
   window.mkCheck=async function(){
     const v=mkWords[mk.i];
     const s=($('#mkInput')&&$('#mkInput').value||'').trim();
-    if(!s){ $('#mkFb').innerHTML='<div class="acc-badge bad">先寫一句話（或按 🎤 用說的）</div>'; return; }
-    /* 內容門檻（防禦性，不靠 AI）：只打一個詞/一個字元根本不成句，但寬鬆 AI 可能回 ok:true 說「做得好」。
-       即使家長沒設最少詞數，英文也至少要 2 個詞（一個主詞＋一個動詞才算句子），擋掉亂打一個字元的情況。 */
-    const nWords0 = s.split(/\s+/).filter(Boolean).length;
-    if(nWords0 < 2){ $('#mkFb').innerHTML='<div class="acc-badge bad">這還不算一句話——用「<b>'+JD.esc(v.w)+'</b>」寫一句你自己的話（至少要有主詞和動詞）💪</div>'; return; }
-    /* 家長控制：造句最少詞數（英文按空格計詞），不達標先擋下重寫，不送 AI、不算完成 */
-    const minW = JD.getMkMin ? JD.getMkMin() : 0;
-    if(minW>0){ const nw=s.split(/\s+/).filter(Boolean).length;
-      if(nw<minW){ $('#mkFb').innerHTML='<div class="acc-badge bad">句子要有<b>至少 '+minW+' 個單詞</b>哦，現在只有 '+nw+' 個。再加點內容，讓句子更完整 💪</div>'; return; } }
-    if(!window.JDGen || !JDGen.getKey()){ mkSelfCheck('沒設定 AI Key，這關改用自評'); return; }
+    const bad=(html)=>{ $('#mkFb').innerHTML='<div class="acc-badge bad">'+html+'</div>'; };
+    if(!s){ bad('先寫一句話（或按 🎤 用說的）'); return; }
+    /* ---- 前端確定性檢查：不需要 AI Key，三關都過才送 AI ---- */
+    /* ① 詞數：內建下限 5 個單詞（家長設更高則從高） */
+    const need = mkMinWords(), nw = mkWordCount(s);
+    if(nw < need){ bad('句子要有<b>至少 '+need+' 個單詞</b>，現在只有 '+nw+' 個。<br>試試加上「什麼時候」「在哪裡」「和誰」，句子就長了：<br>'+
+        '<span style="font-size:.9rem">例：I read. → I read a book <b>at home every evening</b>.</span>'); return; }
+    /* ② 必須真的用上這個生詞（容許複數/過去式/ing 等變形） */
+    if(!mkHasWord(s, v.w)){ bad('這句話裡沒有用上「<b>'+JD.esc(v.w)+'</b>」，這一關就是要練這個詞。<br>'+
+        '<span style="font-size:.9rem">（複數 '+JD.esc(v.w)+'s、過去式、加 ing 這些變形都算數）</span>'); return; }
+    /* ③ 不能和自己前面幾句重複（只換一兩個詞也算重複） */
+    const prev=(mk.sents[mk.i]||[]).filter((x,k)=>x && k!==mk.j);
+    const dup = prev.find(p=>mkTooSimilar(p, s));
+    if(dup){ bad('這句和你前面造的「'+JD.esc(dup)+'」太像了。<br>換個<b>角度</b>再想一句：換人（I→My brother）、換時間（今天→昨天）、換地方，或改成問句/否定句 💡'); return; }
+    if(!window.JDGen || !JDGen.getKey()){ mkSelfCheck('沒設定 AI Key，這關改用自評', s); return; }
     $('#mkFb').innerHTML='<div class="acc-badge">⏳ AI 老師看句子中…</div>';
     try{
       const r=await JDGen.judgeSentence('en', v.w, s);
-      mkAfter(r.ok, r.fix, r.tip, r.better, r.betterZh);
-    }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
+      mkAfter(r.ok, r.fix, r.tip, r.better, r.betterZh, s);
+    }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評', s); }
   };
-  window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=false; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };  /* 跳過沒檢查=不算造對 */
-  window.mkPrev=function(){ mk.i = Math.max(mk.i-1, 0); mkRender(); };  /* 回上一個詞：清空輸入重寫，已有的最好分數保留(取最好邏輯不受影響) */
-  mk.results = seedResults('make', mkWords.length, true, false);   /* 續做回填：前 score 個當造對、其餘已做的給 false */
-  mk.i = resume('make', mkWords.length);
+  function mkSync(){ pos('make', mk.results.filter(x=>x!=null).length, mkTotal, mk.results.filter(Boolean).length); }
+  window.mkNext=function(){
+    const flat=mkFlat(mk.i, mk.j);
+    if(mk.results[flat]==null) mk.results[flat]=false;      /* 跳過沒檢查=不算造對 */
+    if(mk.j < MK_PER_WORD-1) mk.j++; else { mk.j=0; mk.i++; }
+    mkSync(); mkRender();
+  };
+  window.mkPrev=function(){
+    if(mk.j>0) mk.j--; else if(mk.i>0){ mk.i--; mk.j=MK_PER_WORD-1; }
+    mkRender();
+  };
+  mk.results = seedResults('make', mkTotal, true, false);   /* 續做回填：前 done 項當已做、前 score 項當造對 */
+  { const idx = resume('make', mkTotal); mk.i = Math.floor(idx/MK_PER_WORD); mk.j = idx % MK_PER_WORD; }
   mkRender();
-
   /* ========== 5.7 課後彩蛋：AI 用學過的詞寫小故事（泛讀甜點；快取進 localStorage 不重複花錢） ========== */
   function storyShow(box, s){
     box.innerHTML='<div class="card" style="text-align:left">'+

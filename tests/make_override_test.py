@@ -30,6 +30,12 @@ def ck(name, cond, detail=''):
 MOCK_WRONG = ("window.JDGen=Object.assign(window.JDGen||{},{getKey:function(){return 'x'},"
               "judgeSentence:function(){return Promise.resolve({ok:false,fix:'try',tip:'語序怪',better:'',betterZh:''})}});")
 
+# 2026-09-07：造句新規則（≥5 詞 + 必須用上生詞）——句子要先過得了前端檢查才會送到 AI，
+# 否則根本走不到「AI 判錯 → 人工否決」這條路。用當前生詞現組一句合規的句子。
+SEND_BAD = ("""(()=>{const w=(document.querySelector('#mkStage .target b')||{}).innerText||'thing';
+  document.getElementById('mkInput').value='I nearly go home with the '+w+' today.'; mkCheck();})()""")
+
+
 def run():
     from playwright.sync_api import sync_playwright
     port = free_port(); serve(port); time.sleep(0.4)
@@ -41,7 +47,7 @@ def run():
 
         print('-- 判錯→否決→撤回錯題+算對')
         pg.evaluate("mkRestart&&mkRestart()"); pg.wait_for_timeout(120)
-        pg.evaluate("document.getElementById('mkInput').value='I nearly go home'; mkCheck()"); pg.wait_for_timeout(300)
+        pg.evaluate(SEND_BAD); pg.wait_for_timeout(300)
         ck('判錯→錯題本 +1', pg.evaluate("Object.keys(JD.getBook()).length") == 1)
         ck('判錯→出現否決鈕', pg.evaluate("!!document.querySelector('#mkFb .jd-mkok')"))
         pg.evaluate("document.querySelector('#mkFb .jd-mkok').click()"); pg.wait_for_timeout(200)
@@ -53,7 +59,7 @@ def run():
         w0 = pg.evaluate("(document.querySelector('#mkStage .target b')||{}).innerText||''")
         pg.evaluate("w=>JD.addError({id:'w:'+LESSON.id+'#'+w,lessonId:LESSON.id,en:w,zh:'x',type:'word'})", w0)
         f_before = pg.evaluate("w=>JD.getBook()['w:'+LESSON.id+'#'+w].fails", w0)
-        pg.evaluate("document.getElementById('mkInput').value='I nearly go home'; mkCheck()"); pg.wait_for_timeout(300)
+        pg.evaluate(SEND_BAD); pg.wait_for_timeout(300)
         f_mid = pg.evaluate("w=>(JD.getBook()['w:'+LESSON.id+'#'+w]||{}).fails", w0)
         pg.evaluate("var o=document.querySelector('#mkFb .jd-mkok'); if(o)o.click();"); pg.wait_for_timeout(200)
         still = pg.evaluate("w=>!!JD.getBook()['w:'+LESSON.id+'#'+w]", w0)

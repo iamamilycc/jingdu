@@ -126,7 +126,7 @@ PAGE = """<!DOCTYPE html>
 
   <section id="p-make" class="tab-panel">
     <h2 class="sec">🖊️ 造句挑戰</h2>
-    <p class="hint">用本課學的詞，說一句<b>你自己的話</b>！打字或按 🎤 用說的，AI 老師會幫你看；改一改可以再檢查。</p>
+    <p class="hint">每個生詞要造 <b>3 句不一樣</b>的話，每句<b>至少 5 個單詞</b>。先看下面的例句找感覺，再用打字或 🎤 說出你自己的句子——寫錯不要緊，系統會一項一項告訴你怎麼改。</p>
     <div class="progress-pills" id="mkPills"></div>
     <div class="stage" id="mkStage"></div>
   </section>
@@ -172,9 +172,75 @@ def validate(d):
         if not (0 <= q.get('ans', -1) < len(q.get('opts', []))):
             errs.append(f"listening[{i}].ans 超出選項範圍")
     for i, v in enumerate(d.get('vocab', [])):
-        for k in ('w', 'ipa', 'pos', 'zh', 'eg'):
+        for k in ('w', 'ipa', 'pos', 'zh'):
             if k not in v:
                 errs.append(f"vocab[{i}] 缺 {k}")
+        errs += check_egs(i, v)
+    return errs
+
+
+# ===== 造句例句規則（2026-09-07 用戶定）=====
+# 每個生詞必須配 3 個例句，每句至少 5 個單詞、必須真的用上這個詞、三句不得重複。
+# 例句是給孩子看的範例——孩子沒有判斷能力，例句錯了他會照著學，所以這裡不通過就不准生成課頁。
+EGS_REQUIRED = 3
+EGS_MIN_WORDS = 5
+
+
+def _norm_en(t):
+    return re.sub(r'\s+', ' ', re.sub(r'[^a-z0-9\s]', ' ', str(t).lower())).strip()
+
+
+def _has_word(sent, w):
+    """例句有沒有真的用上這個詞（容許複數/過去式/ing 等常見變形）"""
+    base = _norm_en(w)
+    if not base:
+        return True
+    S = ' ' + _norm_en(sent) + ' '
+    if ' ' in base:                       # 片語整塊比對
+        return (' ' + base + ' ') in S
+    stem = re.sub(r'[ey]$', '', base)
+    forms = {base, base + 's', base + 'es', base + 'd', base + 'ed', base + 'ing',
+             stem + 'ing', stem + 'ed', stem + 'ies', stem + 'ied'}
+    return any((' ' + f + ' ') in S for f in forms)
+
+
+def _too_similar(a, b):
+    A, B = _norm_en(a), _norm_en(b)
+    if not A or not B:
+        return False
+    if A == B:
+        return True
+    ta, tb = A.split(' '), B.split(' ')
+    inter = len(set(ta) & set(tb))
+    uni = len(set(ta) | set(tb))
+    return uni > 0 and inter / uni >= 0.8
+
+
+def check_egs(i, v):
+    """校驗一個生詞的 egs；相容舊資料（只有 eg）時明確報「要補成 3 句」"""
+    errs = []
+    w = v.get('w', f'#{i}')
+    egs = v.get('egs')
+    if egs is None:
+        errs.append(f"vocab[{i}] {w}：缺 egs（造句環節要 3 個例句；舊的單句 eg 請補成 egs 三句）")
+        return errs
+    if not isinstance(egs, list) or len(egs) != EGS_REQUIRED:
+        errs.append(f"vocab[{i}] {w}：egs 要正好 {EGS_REQUIRED} 句，現在 {len(egs) if isinstance(egs, list) else '不是陣列'}")
+        return errs
+    for k, e in enumerate(egs):
+        nw = len(str(e).strip().split())
+        if nw < EGS_MIN_WORDS:
+            errs.append(f"vocab[{i}] {w} 例句{k+1}：只有 {nw} 個單詞，要 ≥{EGS_MIN_WORDS}（{e}）")
+        if not _has_word(e, w):
+            errs.append(f"vocab[{i}] {w} 例句{k+1}：沒有用上這個詞（{e}）")
+        if not str(e).strip()[:1].isupper():
+            errs.append(f"vocab[{i}] {w} 例句{k+1}：句首要大寫（{e}）")
+        if str(e).strip()[-1:] not in '.!?':
+            errs.append(f"vocab[{i}] {w} 例句{k+1}：句尾要有標點（{e}）")
+    for a in range(len(egs)):
+        for b in range(a + 1, len(egs)):
+            if _too_similar(egs[a], egs[b]):
+                errs.append(f"vocab[{i}] {w}：例句{a+1} 和 例句{b+1} 太像，要三個不同的句子")
     return errs
 
 

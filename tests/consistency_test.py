@@ -175,7 +175,11 @@ def run():
                 JD.getMkMin=()=>0;""")
             pg.evaluate("switchTab('make')"); pg.wait_for_timeout(200)
             shownW = pg.evaluate("(document.querySelector('#p-make .target b')||{}).innerText||''")
-            pg.evaluate("document.getElementById('mkInput').value='I like this word very much'; mkCheck()"); pg.wait_for_timeout(300)
+            # 2026-09-07 造句新規則：句子必須用上當前生詞（且 ≥5 詞），否則前端就擋下、不會送到 AI
+            pg.evaluate("""(()=>{const el=document.querySelector('#p-make .target b');
+                const cl=el?el.cloneNode(true):null; if(cl) cl.querySelectorAll('rt').forEach(r=>r.remove());
+                const w=(cl&&cl.innerText||'').trim();
+                document.getElementById('mkInput').value='I really like this '+w+' very much.'; mkCheck();})()"""); pg.wait_for_timeout(300)
             jw = pg.evaluate("window._judgeWord")
             # 英語 word 直接是詞；日語 judgeSentence 收 mkPlain(去振假名)=漢字底本
             if lang == 'jp':

@@ -54,7 +54,10 @@ def run():
         ck('3 詞(<5)→提示至少 5 個', '至少' in fb and '5' in fb, fb)
         ck('不足詞數→沒送 AI 判分(judgeSentence 未被呼叫)', pg.evaluate("window._judgeCalls") == 0, pg.evaluate("window._judgeCalls"))
         # 達標 → 送 AI
-        pg.evaluate("window._judgeCalls=0; document.getElementById('mkInput').value='I am really very happy today'; mkCheck()"); pg.wait_for_timeout(300)
+        # 2026-09-07 造句新規則：達標句除了 ≥5 詞，還必須用上當前生詞才會送 AI
+        pg.evaluate("""(()=>{const w=(document.querySelector('#p-make .target b')||{}).innerText||'thing';
+            window._judgeCalls=0;
+            document.getElementById('mkInput').value='I am really very happy about this '+w+'.'; mkCheck();})()"""); pg.wait_for_timeout(300)
         ck('達標(6 詞)→送 AI 判分', pg.evaluate("window._judgeCalls") == 1, pg.evaluate("window._judgeCalls"))
 
         # ---- 造句地道說法：better 渲染 ----
@@ -71,7 +74,9 @@ def run():
             judgeSentence: async ()=>({ok:false,fix:'try this',tip:'再想想',better:'',betterZh:''}) });""")
         before_e = pg.evaluate("Object.keys(JD.getBook()).length")
         pg.evaluate("switchTab('make'); mkRestart && mkRestart()"); pg.wait_for_timeout(150)
-        pg.evaluate("document.getElementById('mkInput').value='some wrong sentence'; mkCheck()"); pg.wait_for_timeout(300)
+        # 2026-09-07：句子要先過得了前端檢查（≥5 詞 + 用上生詞）才會送到 AI，才走得到「判錯→進錯題本」
+        pg.evaluate("""(()=>{const w=(document.querySelector('#p-make .target b')||{}).innerText||'thing';
+            document.getElementById('mkInput').value='This is some wrong sentence about '+w+'.'; mkCheck();})()"""); pg.wait_for_timeout(300)
         after_e = pg.evaluate("Object.keys(JD.getBook()).length")
         ck('造句沒造對→錯題本多一條(進複盤)', after_e == before_e + 1, '%d→%d' % (before_e, after_e))
         # 造對的不進錯題本

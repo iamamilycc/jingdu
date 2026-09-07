@@ -197,7 +197,16 @@ def check_make_content_gate():
     en = '\n'.join(read('assets/lesson.js'))
     m = re.search(r'window\.mkCheck=async function\(\)\{(.*?)\n  \};', en, re.S)
     body = m.group(1) if m else ''
-    ck('lesson.js mkCheck 有 <2 詞門檻', ('nWords0' in body) and ('< 2' in body), '造句只擋空白、沒擋片段→亂讚美')
+    # 2026-09-07：英文門檻從「≥2 詞」升級為「≥5 詞 + 必須用上生詞 + 不得和自己前句重複」。
+    # 三道都要在 mkCheck 裡，缺一道孩子就可能被寬鬆 AI 亂讚美，或用同一句話混過三格。
+    ck('lesson.js mkCheck 有 ≥5 詞門檻', ('mkMinWords()' in body) and ('nw < need' in body),
+       '造句沒擋詞數不足→片段會被寬鬆 AI 亂讚美')
+    ck('lesson.js mkCheck 檢查有沒有用上生詞', 'mkHasWord(' in body, '沒用上生詞也算過→這一關等於白練')
+    ck('lesson.js mkCheck 檢查三句不得重複', 'mkTooSimilar(' in body, '同一句可以混過三格→重複練習沒意義')
+    ck('lesson.js 內建下限就是 5', re.search(r'MK_MIN_WORDS\s*=\s*5', en) is not None, '每句至少 5 個單詞是用戶定的硬規則')
+    ck('lesson.js 每詞要造 3 句', re.search(r'MK_PER_WORD\s*=\s*3', en) is not None, '每個生詞造 3 句是用戶定的硬規則')
+    ck('lesson.js 無 AI Key 兜底是核對清單而非自我判斷', ('mkHasVerb' in en) and ('照著這張表核對' in en),
+       '孩子沒有判斷能力，兜底不能只問「你覺得對嗎」')
     jp = '\n'.join(read('assets/lesson-jp.js'))
     m2 = re.search(r'window\.mkCheck=async function\(\)\{(.*?)\n  \};', jp, re.S)
     body2 = m2.group(1) if m2 else ''
