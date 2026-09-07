@@ -244,6 +244,14 @@ def check_egs(i, v):
     return errs
 
 
+def badge_of(lesson_id):
+    """從課程 id 推出教材標籤：nce1-01 → NCE1、nce2-02 → NCE2。
+    以前寫死成 'NCE2'，新概念第一冊的課在目錄裡也標成 NCE2，家長根本認不出是哪一冊。"""
+    m = re.match(r'^([a-zA-Z]+)(\d+)-', str(lesson_id))
+    return (m.group(1) + m.group(2)).upper() if m else str(lesson_id).split('-')[0].upper()
+
+
+
 def build_one(path):
     d = json.load(open(path, encoding='utf-8'))
     errs = validate(d)
@@ -251,7 +259,7 @@ def build_one(path):
         raise ValueError(f"{os.path.basename(path)} 數據錯誤：\n  - " + "\n  - ".join(errs))
     lesson = {
         'id': d['id'],
-        'badge': 'NCE2 · ' + d['num'],
+        'badge': badge_of(d['id']) + ' · ' + d['num'],
         'title': d['en'] + ' ' + d['zh'],
         'sentences': d['sentences'],
         'vocab': d['vocab'],
@@ -287,8 +295,8 @@ def rebuild_index(metas):
         en = d['en'].replace("'", "\\'")
         zh = d['zh'].replace("'", "\\'")
         entries[d['id']] = {'num': d['num'],
-            'text': "{id:'%s', badge:'NCE2', num:'%s', en:'%s', zh:'%s', href:'lessons/%s.html', secs:9}"
-                    % (d['id'], d['num'], en, zh, d['id'])}
+            'text': "{id:'%s', badge:'%s', num:'%s', en:'%s', zh:'%s', href:'lessons/%s.html', secs:9}"
+                    % (d['id'], badge_of(d['id']), d['num'], en, zh, d['id'])}
     ordered = sorted(entries.values(), key=lambda e: _numkey(e['num']))
     block = "const LESSONS = [\n" + ",\n".join('  ' + e['text'] for e in ordered) + "\n];"
     new = s[:m.start()] + block + s[m.end():]

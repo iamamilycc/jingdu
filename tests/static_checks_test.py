@@ -191,6 +191,21 @@ def check_review_word_typed():
         ck('%s 單字複習有打字框 qSpell' % rel, 'qSpell' in body and 'qSpellCheck' in body, '單字複習沒改成打字')
         ck('%s 單字複習不再用語音麥克風 qRec' % rel, 'qRec()' not in body, '單字複習仍是語音，和生詞卡學法不一致')
 
+# ---- 規則16b：課程標籤 badge 必須從課程 id 推導，不准寫死 ----
+def check_badge_not_hardcoded():
+    print('-- 規則16b：badge 從 id 推導（寫死會讓新概念一冊的課標成 NCE2，家長認不出）')
+    src = '\n'.join(read('build_lessons.py'))
+    ck('build_lessons.py 有 badge_of() 推導函式', 'def badge_of(' in src, 'badge 寫死 → 目錄標籤會錯')
+    ck('build_lessons.py 沒有寫死的教材標籤', not re.search(r"badge'?\s*[:=]\s*'NCE\d", src),
+       '仍有寫死的 badge')
+    idx = '\n'.join(read('index.html'))
+    m = re.search(r'const LESSONS = \[(.*?)\];', idx, re.S)
+    rows = m.group(1) if m else ''
+    bad = [(i, b) for i, b in re.findall(r"id:'([^']+)'[^}]*?badge:'([^']+)'", rows)
+           if not i.upper().startswith(b)]
+    ck('目錄裡每課的 badge 和 id 前綴一致', not bad, bad)
+
+
 # ---- 規則17：造句 mkCheck 要有內容門檻（不只擋純空白），防片段被寬鬆 AI 亂讚美 ----
 def check_make_content_gate():
     print('-- 規則17：英日造句 mkCheck 有內容門檻(英文≥2詞/日文比單詞長)，不只擋純空白')
@@ -263,6 +278,7 @@ def main():
     check_drill_fold_parity()
     check_review_peek_parity()
     check_review_word_typed()
+    check_badge_not_hardcoded()
     check_make_content_gate()
     check_word_norm_parity()
     check_peek_cap_and_skip()
