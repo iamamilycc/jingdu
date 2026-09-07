@@ -297,6 +297,13 @@ def rebuild_index(metas):
         entries[d['id']] = {'num': d['num'],
             'text': "{id:'%s', badge:'%s', num:'%s', en:'%s', zh:'%s', href:'lessons/%s.html', secs:9}"
                     % (d['id'], badge_of(d['id']), d['num'], en, zh, d['id'])}
+    # 清掉死鏈：課頁檔案已不存在的條目要移除，否則孩子點進去是 404
+    #（手寫課如 nce2-01 沒有 data 檔但有 html，仍保留；判斷依據是 html 在不在）
+    dead = [i for i in list(entries)
+            if not os.path.exists(os.path.join(LESSONS_DIR, i + '.html'))]
+    for i in dead:
+        del entries[i]
+        print(f"  · 移除死鏈條目 {i}（lessons/{i}.html 不存在）")
     ordered = sorted(entries.values(), key=lambda e: _numkey(e['num']))
     block = "const LESSONS = [\n" + ",\n".join('  ' + e['text'] for e in ordered) + "\n];"
     new = s[:m.start()] + block + s[m.end():]
