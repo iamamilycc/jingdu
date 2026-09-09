@@ -196,6 +196,9 @@
     if(opened.size >= L.sentences.length) done('read');
   }
 
+  /* 易混詞提示要用的中文釋義：先用本課生詞表的口徑，查不到才用引擎內建的 */
+  const ZH_DICT = (() => { const d={}; (L.vocab||[]).forEach(v=>{ const k=String(v.w).toLowerCase(); if(!d[k]) d[k]=v.zh; }); return d; })();
+
   /* ========== 2 生詞卡（look-cover-write-check：正面看單詞 → 翻面拼寫 → 對✓錯入錯題本） ========== */
   const vg = $('#vocabGrid');
   const judged = new Set();
@@ -225,19 +228,28 @@
       const raw = (input.value||'').trim();
       if(!raw){ input.focus(); return; }
       /* 用 JD.normWord 比對：AI 自建課的詞常含隱形字元/撇號/連字號，去空白後仍不等於→誤判進錯題本 */
-      const ok = JD.normWord(raw) === JD.normWord(v.w);
+      /* ⭐ 兩種「看起來錯、其實不算拼錯」的情況，靠共用引擎判（和測驗站同一套規則）：
+         ① 寫成美式拼法（colour→color）：他沒拼錯，判錯會讓他以為 color 是錯的 → 算對＋說明
+         ② 寫成同音／形近的**另一個真詞**（hear→here）：不是拼錯，是兩個詞記混了 → 判錯，
+            但要講兩個詞的區別，給字母對比只會誤導他「我拼錯了」 */
+      const G = window.GrammarEN;
+      const usNote  = G && G.usSpellingOf  ? G.usSpellingOf(v.w, raw) : '';
+      const conNote = G && G.confusableNote ? G.confusableNote(v.w, raw, ZH_DICT) : '';
+      const ok = JD.normWord(raw) === JD.normWord(v.w) || !!usNote;
       judged.add(i);
       if(ok) vright.add(i);   /* 取最好：拼對過就算會，重做拼錯不抹掉 */
       pos('vocab', judged.size, L.vocab.length, vright.size);
       c.classList.remove('known','unknown');
       c.classList.add(ok?'known':'unknown');
       if(ok){
-        fb.innerHTML='<span class="vok">✓ 拼對了！</span>';
+        fb.innerHTML='<span class="vok">✓ 拼對了！</span>'+
+          (usNote?'<div class="hint" style="margin-top:4px">🇬🇧🇺🇸 '+usNote+'</div>':'');
         JD.speak(v.w,false);
         setTimeout(()=>c.classList.remove('flip'), 900);
         JD.celebrate('good');
       }else{
-        fb.innerHTML='<span class="vbad">✗ 正確拼寫：<b>'+JD.esc(v.w)+'</b></span>';
+        fb.innerHTML='<span class="vbad">✗ 正確拼寫：<b>'+JD.esc(v.w)+'</b></span>'+
+          (conNote?'<div class="hint" style="margin-top:4px">🔀 '+conNote+'</div>':'');
         JD.addError({id:'w:'+L.id+'#'+v.w, lessonId:L.id, en:v.w, zh:v.zh, type:'word', pos:v.pos});
         JD.celebrate('try');
       }

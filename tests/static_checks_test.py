@@ -292,6 +292,11 @@ def check_make_override():
     ck('grammar-en.js 是自動生成且標明勿手改', '不要手改' in eng and 'sync_grammar.py' in eng,
        '兩站引擎必須同源，手改會讓同一句話在兩邊判不一樣')
     ck('grammar-en.js 掛上 window.GrammarEN', 'window.GrammarEN' in eng)
+    # 生詞卡判分要用上共用引擎的兩條規則（寫了表卻沒接＝等於沒有）
+    ck('生詞卡接上「美式拼法也算對」', 'usSpellingOf' in en,
+       '英式教材收 colour，孩子寫 color 被判錯＝讓他以為 color 是錯的')
+    ck('生詞卡接上「同音詞講區別」', 'confusableNote' in en,
+       'hear 寫成 here 只給字母對比，孩子會以為自己拼錯了')
 
 # ---- 規則21：給孩子的內容要有「程序化把關」（不靠模型自我判斷）——孩子沒有判斷能力 ----
 def check_content_guards():
