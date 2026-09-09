@@ -2,7 +2,7 @@
    单一事实源：math_quiz_deploy/build/grammar_en.js
    重新生成：  python3 build/sync_grammar.py（在 math_quiz_deploy 下跑）
    为什么：两个站的造句判分必须一模一样，孩子在这边被判错、在那边被判对，他就不知道该信谁。
-   引擎正文 sha256：e73bad74eab48bdf800abfe60470ebd015a0a5b3a0cba0bdcd2c705a645ee34b
+   引擎正文 sha256：a692c2eb6d4dc622458ef6d88ffc44d03054c8c4cf1f2d66cd1c2d78b2c53436
 */
 window.GRAMMAR_WORDS = [{"w": "excuse", "pos": "v. 动词"}, {"w": "me", "pos": "pron. 代词（宾格）"}, {"w": "yes", "pos": "adv. 副词"}, {"w": "is", "pos": "v. 动词"}, {"w": "this", "pos": "pron. 代词"}, {"w": "your", "pos": "adj. 物主代词"}, {"w": "handbag", "pos": "n. 名词"}, {"w": "pardon", "pos": "int. 感叹语"}, {"w": "it", "pos": "pron. 代词"}, {"w": "thank you", "pos": "phr. 词组"}, {"w": "very much", "pos": "adv. 副词词组"}, {"w": "pen", "pos": "n. 名词"}, {"w": "pencil", "pos": "n. 名词"}, {"w": "book", "pos": "n. 名词"}, {"w": "watch", "pos": "n. 名词"}, {"w": "coat", "pos": "n. 名词"}, {"w": "dress", "pos": "n. 名词"}, {"w": "skirt", "pos": "n. 名词"}, {"w": "shirt", "pos": "n. 名词"}, {"w": "car", "pos": "n. 名词"}, {"w": "house", "pos": "n. 名词"}, {"w": "umbrella", "pos": "n. 名词"}, {"w": "please", "pos": "int. 感叹语"}, {"w": "here", "pos": "adv. 副词"}, {"w": "my", "pos": "adj. 物主代词"}, {"w": "ticket", "pos": "n. 名词"}, {"w": "number", "pos": "n. 名词"}, {"w": "five", "pos": "num. 数词"}, {"w": "sorry", "pos": "adj. 形容词"}, {"w": "sir", "pos": "n. 名词"}, {"w": "cloakroom", "pos": "n. 名词"}, {"w": "suit", "pos": "n. 名词"}, {"w": "school", "pos": "n. 名词"}, {"w": "teacher", "pos": "n. 名词"}, {"w": "son", "pos": "n. 名词"}, {"w": "daughter", "pos": "n. 名词"}, {"w": "Mr.", "pos": "n. 名词"}, {"w": "Miss", "pos": "n. 名词"}, {"w": "good", "pos": "adj. 形容词"}, {"w": "morning", "pos": "n. 名词"}, {"w": "new", "pos": "adj. 形容词"}, {"w": "student", "pos": "n. 名词"}, {"w": "French", "pos": "adj./n. 形容词/名词"}, {"w": "German", "pos": "adj./n. 形容词/名词"}, {"w": "nice", "pos": "adj. 形容词"}, {"w": "meet", "pos": "v. 动词"}, {"w": "too", "pos": "adv. 副词"}, {"w": "Japanese", "pos": "adj./n. 形容词/名词"}, {"w": "Korean", "pos": "adj./n. 形容词/名词"}, {"w": "Chinese", "pos": "adj./n. 形容词/名词"}, {"w": "make", "pos": "n. 名词"}, {"w": "Sweden", "pos": "n. 名词"}, {"w": "Swedish", "pos": "adj./n. 形容词/名词"}, {"w": "England", "pos": "n. 名词"}, {"w": "English", "pos": "adj./n. 形容词/名词"}, {"w": "America", "pos": "n. 名词"}, {"w": "American", "pos": "adj./n. 形容词/名词"}, {"w": "Italy", "pos": "n. 名词"}, {"w": "Italian", "pos": "adj./n. 形容词/名词"}, {"w": "I", "pos": "pron. 代词（主格）"}, {"w": "am", "pos": "v. 动词"}, {"w": "are", "pos": "v. 动词"}, {"w": "name", "pos": "n. 名词"}, {"w": "what", "pos": "pron. 代词"}, {"w": "nationality", "pos": "n. 名词"}, {"w": "job", "pos": "n. 名词"}, {"w": "keyboard operator", "pos": "n. 名词"}, {"w": "engineer", "pos": "n. 名词"}, {"w": "policeman", "pos": "n. 名词"}, {"w": "policewoman", "pos": "n. 名词"}, {"w": "taxi driver", "pos": "n. 名词"}, {"w": "air hostess", "pos": "n. 名词"}, {"w": "postman", "pos": "n. 名词"}, {"w": "nurse", "pos": "n. 名词"}, {"w": "mechanic", "pos": "n. 名词"}, {"w": "hairdresser", "pos": "n. 名词"}, {"w": "housewife", "pos": "n. 名词"}, {"w": "housework", "pos": "n. 名词"}, {"w": "milkman", "pos": "n. 名词"}, {"w": "hello", "pos": "int. 感叹语"}, {"w": "hi", "pos": "int. 感叹语"}, {"w": "how", "pos": "adv. 副词"}, {"w": "today", "pos": "adv./n. 副词/名词"}, {"w": "well", "pos": "adj./adv. 形容词/副词"}, {"w": "fine", "pos": "adj. 形容词"}, {"w": "thanks", "pos": "n. 名词"}, {"w": "goodbye", "pos": "int. 感叹语"}, {"w": "see", "pos": "v. 动词"}, {"w": "fat", "pos": "adj. 形容词"}, {"w": "woman", "pos": "n. 名词"}, {"w": "thin", "pos": "adj. 形容词"}, {"w": "tall", "pos": "adj. 形容词"}, {"w": "short", "pos": "adj. 形容词"}, {"w": "dirty", "pos": "adj. 形容词"}, {"w": "clean", "pos": "adj. 形容词"}, {"w": "hot", "pos": "adj. 形容词"}, {"w": "cold", "pos": "adj. 形容词"}, {"w": "old", "pos": "adj. 形容词"}, {"w": "young", "pos": "adj. 形容词"}, {"w": "busy", "pos": "adj. 形容词"}, {"w": "lazy", "pos": "adj. 形容词"}, {"w": "whose", "pos": "pron. 代词"}, {"w": "blue", "pos": "adj. 形容词"}, {"w": "perhaps", "pos": "adv. 副词"}, {"w": "white", "pos": "adj. 形容词"}, {"w": "catch", "pos": "v. 动词"}, {"w": "father", "pos": "n. 名词"}, {"w": "mother", "pos": "n. 名词"}, {"w": "blouse", "pos": "n. 名词"}, {"w": "sister", "pos": "n. 名词"}, {"w": "tie", "pos": "n. 名词"}, {"w": "brother", "pos": "n. 名词"}, {"w": "his", "pos": "adj./pron. 物主代词"}, {"w": "colour", "pos": "n. 名词"}, {"w": "come", "pos": "v. 动词"}, {"w": "upstairs", "pos": "adv. 副词"}, {"w": "downstairs", "pos": "adv. 副词"}, {"w": "smart", "pos": "adj. 形容词"}, {"w": "hat", "pos": "n. 名词"}, {"w": "same", "pos": "adj. 形容词"}, {"w": "lovely", "pos": "adj. 形容词"}, {"w": "case", "pos": "n. 名词"}, {"w": "carpet", "pos": "n. 名词"}, {"w": "blanket", "pos": "n. 名词"}, {"w": "dog", "pos": "n. 名词"}, {"w": "puppy", "pos": "n. 名词"}, {"w": "green", "pos": "adj. 形容词"}, {"w": "customs", "pos": "n. 名词"}, {"w": "officer", "pos": "n. 名词"}, {"w": "girl", "pos": "n. 名词"}, {"w": "passport", "pos": "n. 名词"}, {"w": "Danish", "pos": "adj./n. 形容词/名词"}, {"w": "Denmark", "pos": "n. 名词"}, {"w": "friend", "pos": "n. 名词"}, {"w": "Norwegian", "pos": "adj./n. 形容词/名词"}, {"w": "tourist", "pos": "n. 名词"}, {"w": "brown", "pos": "adj. 形容词"}, {"w": "Russian", "pos": "adj./n. 形容词/名词"}, {"w": "Russia", "pos": "n. 名词"}, {"w": "Dutch", "pos": "adj./n. 形容词/名词"}, {"w": "Holland", "pos": "n. 名词"}, {"w": "these", "pos": "pron. 代词"}, {"w": "red", "pos": "adj. 形容词"}, {"w": "grey", "pos": "adj. 形容词"}, {"w": "yellow", "pos": "adj. 形容词"}, {"w": "black", "pos": "adj. 形容词"}, {"w": "orange", "pos": "adj./n. 形容词/名词"}, {"w": "employee", "pos": "n. 名词"}, {"w": "hard-working", "pos": "adj. 形容词"}, {"w": "man", "pos": "n. 名词"}, {"w": "office", "pos": "n. 名词"}, {"w": "assistant", "pos": "n. 名词"}, {"w": "sales reps", "pos": "n. 名词"}, {"w": "matter", "pos": "n. 名词"}, {"w": "children", "pos": "n. 名词"}, {"w": "child", "pos": "n. 名词"}, {"w": "tired", "pos": "adj. 形容词"}, {"w": "boy", "pos": "n. 名词"}, {"w": "thirsty", "pos": "adj. 形容词"}, {"w": "mum", "pos": "n. 名词"}, {"w": "sit down", "pos": "phr. 词组"}, {"w": "ice cream", "pos": "n. 名词"}, {"w": "big", "pos": "adj. 形容词"}, {"w": "small", "pos": "adj. 形容词"}, {"w": "open", "pos": "adj./v. 形容词/动词"}, {"w": "shut", "pos": "adj./v. 形容词/动词"}, {"w": "light", "pos": "adj. 形容词"}, {"w": "heavy", "pos": "adj. 形容词"}, {"w": "long", "pos": "adj. 形容词"}, {"w": "shoe", "pos": "n. 名词"}, {"w": "grandfather", "pos": "n. 名词"}, {"w": "grandmother", "pos": "n. 名词"}, {"w": "give", "pos": "v. 动词"}, {"w": "one", "pos": "num./pron. 数词/代词"}, {"w": "which", "pos": "pron. 代词"}, {"w": "empty", "pos": "adj. 形容词"}, {"w": "full", "pos": "adj. 形容词"}, {"w": "large", "pos": "adj. 形容词"}, {"w": "little", "pos": "adj. 形容词"}, {"w": "sharp", "pos": "adj. 形容词"}, {"w": "blunt", "pos": "adj. 形容词"}, {"w": "box", "pos": "n. 名词"}, {"w": "glass", "pos": "n. 名词"}, {"w": "cup", "pos": "n. 名词"}, {"w": "bottle", "pos": "n. 名词"}, {"w": "tin", "pos": "n. 名词"}, {"w": "knife", "pos": "n. 名词"}, {"w": "fork", "pos": "n. 名词"}, {"w": "chopsticks", "pos": "n. 名词"}, {"w": "shelf", "pos": "n. 名词"}, {"w": "desk", "pos": "n. 名词"}, {"w": "table", "pos": "n. 名词"}, {"w": "plate", "pos": "n. 名词"}, {"w": "dish", "pos": "n. 名词"}, {"w": "cupboard", "pos": "n. 名词"}, {"w": "television", "pos": "n. 名词"}, {"w": "floor", "pos": "n. 名词"}, {"w": "magazine", "pos": "n. 名词"}, {"w": "bed", "pos": "n. 名词"}, {"w": "newspaper", "pos": "n. 名词"}, {"w": "radio", "pos": "n. 名词"}, {"w": "refrigerator", "pos": "n. 名词"}, {"w": "electric", "pos": "adj. 形容词"}, {"w": "cooker", "pos": "n. 名词"}, {"w": "right", "pos": "n./adj. 名词/形容词"}, {"w": "left", "pos": "n./adj. 名词/形容词"}, {"w": "room", "pos": "n. 名词"}, {"w": "where", "pos": "adv. 副词"}, {"w": "living room", "pos": "n. 名词"}, {"w": "near", "pos": "prep. 介词"}, {"w": "armchair", "pos": "n. 名词"}, {"w": "door", "pos": "n. 名词"}, {"w": "picture", "pos": "n. 名词"}, {"w": "wall", "pos": "n. 名词"}, {"w": "trousers", "pos": "n. 名词"}, {"w": "bedroom", "pos": "n. 名词"}, {"w": "untidy", "pos": "adj. 形容词"}, {"w": "tidy", "pos": "adj./v. 形容词/动词"}, {"w": "must", "pos": "v. 情态动词"}, {"w": "air", "pos": "n. 名词"}, {"w": "put", "pos": "v. 动词"}, {"w": "clothes", "pos": "n. 名词"}, {"w": "wardrobe", "pos": "n. 名词"}, {"w": "dust", "pos": "v./n. 动词/名词"}, {"w": "sweep", "pos": "v. 动词"}, {"w": "sharpen", "pos": "v. 动词"}, {"w": "put on", "pos": "phr. 词组"}, {"w": "take off", "pos": "phr. 词组"}, {"w": "turn on", "pos": "phr. 词组"}, {"w": "turn off", "pos": "phr. 词组"}, {"w": "garden", "pos": "n. 名词"}, {"w": "under", "pos": "prep. 介词"}, {"w": "tree", "pos": "n. 名词"}, {"w": "climb", "pos": "v. 动词"}, {"w": "who", "pos": "pron. 代词"}, {"w": "run", "pos": "v. 动词"}, {"w": "grass", "pos": "n. 名词"}, {"w": "after", "pos": "prep. 介词"}, {"w": "cat", "pos": "n. 名词"}, {"w": "letter", "pos": "n. 名词"}, {"w": "basket", "pos": "n. 名词"}, {"w": "eat", "pos": "v. 动词"}, {"w": "bone", "pos": "n. 名词"}, {"w": "tooth", "pos": "n. 名词"}, {"w": "milk", "pos": "n. 名词"}, {"w": "drink", "pos": "v. 动词"}, {"w": "tap", "pos": "n. 名词"}, {"w": "across", "pos": "prep. 介词"}, {"w": "fly", "pos": "v. 动词"}, {"w": "cloud", "pos": "n. 名词"}, {"w": "sky", "pos": "n. 名词"}, {"w": "sun", "pos": "n. 名词"}, {"w": "shine", "pos": "v. 动词"}, {"w": "family", "pos": "n. 名词"}, {"w": "walk", "pos": "v./n. 动词/名词"}, {"w": "over", "pos": "prep. 介词"}, {"w": "bridge", "pos": "n. 名词"}, {"w": "boat", "pos": "n. 名词"}, {"w": "ship", "pos": "n. 名词"}, {"w": "river", "pos": "n. 名词"}, {"w": "aeroplane", "pos": "n. 名词"}, {"w": "sleep", "pos": "v. 动词"}, {"w": "shave", "pos": "v. 动词"}, {"w": "cry", "pos": "v. 动词"}, {"w": "wash", "pos": "v. 动词"}, {"w": "wait", "pos": "v. 动词"}, {"w": "jump", "pos": "v. 动词"}, {"w": "photograph", "pos": "n. 名词"}, {"w": "village", "pos": "n. 名词"}, {"w": "valley", "pos": "n. 名词"}, {"w": "country", "pos": "n. 名词"}, {"w": "between", "pos": "prep. 介词"}, {"w": "hill", "pos": "n. 名词"}, {"w": "mountain", "pos": "n. 名词"}, {"w": "another", "pos": "adj. 形容词"}, {"w": "wife", "pos": "n. 名词"}, {"w": "along", "pos": "prep. 介词"}, {"w": "bank", "pos": "n. 名词"}, {"w": "water", "pos": "n. 名词"}, {"w": "swim", "pos": "v. 动词"}, {"w": "building", "pos": "n. 名词"}, {"w": "park", "pos": "n. 名词"}, {"w": "into", "pos": "prep. 介词"}, {"w": "beside", "pos": "prep. 介词"}, {"w": "work", "pos": "v./n. 动词/名词"}, {"w": "hard", "pos": "adv./adj. 副词/形容词"}, {"w": "bookcase", "pos": "n. 名词"}, {"w": "hammer", "pos": "n. 名词"}, {"w": "paint", "pos": "v./n. 动词/名词"}, {"w": "pink", "pos": "adj. 形容词"}, {"w": "favourite", "pos": "adj. 形容词"}, {"w": "homework", "pos": "n. 名词"}, {"w": "listen", "pos": "v. 动词"}, {"w": "front", "pos": "n. 名词"}, {"w": "careful", "pos": "adj. 形容词"}, {"w": "drop", "pos": "v. 动词"}, {"w": "vase", "pos": "n. 名词"}, {"w": "flower", "pos": "n. 名词"}, {"w": "show", "pos": "v. 动词"}, {"w": "send", "pos": "v. 动词"}, {"w": "take", "pos": "v. 动词"}, {"w": "bring", "pos": "v. 动词"}, {"w": "cheese", "pos": "n. 名词"}, {"w": "bread", "pos": "n. 名词"}, {"w": "soap", "pos": "n. 名词"}, {"w": "chocolate", "pos": "n. 名词"}, {"w": "sugar", "pos": "n. 名词"}, {"w": "coffee", "pos": "n. 名词"}, {"w": "tea", "pos": "n. 名词"}, {"w": "tobacco", "pos": "n. 名词"}, {"w": "loaf", "pos": "n. 名词"}, {"w": "certainly", "pos": "adv. 副词"}, {"w": "bird", "pos": "n. 名词"}, {"w": "any", "pos": "adj. 形容词"}, {"w": "some", "pos": "adj. 形容词"}, {"w": "of course", "pos": "phr. 词组"}, {"w": "kettle", "pos": "n. 名词"}, {"w": "teapot", "pos": "n. 名词"}, {"w": "behind", "pos": "prep. 介词"}, {"w": "find", "pos": "v. 动词"}, {"w": "boil", "pos": "v. 动词"}, {"w": "look for", "pos": "phr. 词组"}, {"w": "can", "pos": "v. 情态动词"}, {"w": "boss", "pos": "n. 名词"}, {"w": "minute", "pos": "n. 名词"}, {"w": "hour", "pos": "n. 名词"}, {"w": "ask", "pos": "v. 动词"}, {"w": "handwriting", "pos": "n. 名词"}, {"w": "terrible", "pos": "adj. 形容词"}, {"w": "answer", "pos": "v./n. 动词/名词"}, {"w": "lift", "pos": "n. 名词"}, {"w": "cake", "pos": "n. 名词"}, {"w": "biscuit", "pos": "n. 名词"}, {"w": "like", "pos": "v. 动词"}, {"w": "want", "pos": "v. 动词"}, {"w": "fresh", "pos": "adj. 形容词"}, {"w": "egg", "pos": "n. 名词"}, {"w": "butter", "pos": "n. 名词"}, {"w": "honey", "pos": "n. 名词"}, {"w": "ripe", "pos": "adj. 形容词"}, {"w": "banana", "pos": "n. 名词"}, {"w": "jam", "pos": "n. 名词"}, {"w": "sweet", "pos": "adj. 形容词"}, {"w": "apple", "pos": "n. 名词"}, {"w": "blackboard", "pos": "n. 名词"}, {"w": "butcher", "pos": "n. 名词"}, {"w": "meat", "pos": "n. 名词"}, {"w": "beef", "pos": "n. 名词"}, {"w": "steak", "pos": "n. 名词"}, {"w": "lamb", "pos": "n. 名词"}, {"w": "husband", "pos": "n. 名词"}, {"w": "chicken", "pos": "n. 名词"}, {"w": "tell", "pos": "v. 动词"}, {"w": "truth", "pos": "n. 名词"}, {"w": "tomato", "pos": "n. 名词"}, {"w": "potato", "pos": "n. 名词"}, {"w": "cabbage", "pos": "n. 名词"}, {"w": "pea", "pos": "n. 名词"}, {"w": "bean", "pos": "n. 名词"}, {"w": "pear", "pos": "n. 名词"}, {"w": "grape", "pos": "n. 名词"}, {"w": "peach", "pos": "n. 名词"}, {"w": "climate", "pos": "n. 名词"}, {"w": "pleasant", "pos": "adj. 形容词"}, {"w": "weather", "pos": "n. 名词"}, {"w": "spring", "pos": "n. 名词"}, {"w": "windy", "pos": "adj. 形容词"}, {"w": "warm", "pos": "adj. 形容词"}, {"w": "rain", "pos": "n./v. 名词/动词"}, {"w": "sometimes", "pos": "adv. 副词"}, {"w": "summer", "pos": "n. 名词"}, {"w": "autumn", "pos": "n. 名词"}, {"w": "winter", "pos": "n. 名词"}, {"w": "snow", "pos": "n./v. 名词/动词"}, {"w": "January", "pos": "n. 名词"}, {"w": "February", "pos": "n. 名词"}, {"w": "March", "pos": "n. 名词"}, {"w": "April", "pos": "n. 名词"}, {"w": "June", "pos": "n. 名词"}, {"w": "July", "pos": "n. 名词"}, {"w": "August", "pos": "n. 名词"}, {"w": "September", "pos": "n. 名词"}, {"w": "October", "pos": "n. 名词"}, {"w": "November", "pos": "n. 名词"}, {"w": "December", "pos": "n. 名词"}, {"w": "Greece", "pos": "n. 名词"}, {"w": "Brazil", "pos": "n. 名词"}, {"w": "France", "pos": "n. 名词"}, {"w": "Germany", "pos": "n. 名词"}, {"w": "Norway", "pos": "n. 名词"}, {"w": "Spain", "pos": "n. 名词"}, {"w": "Japan", "pos": "n. 名词"}, {"w": "Korea", "pos": "n. 名词"}, {"w": "China", "pos": "n. 名词"}, {"w": "Australia", "pos": "n. 名词"}, {"w": "Canada", "pos": "n. 名词"}, {"w": "India", "pos": "n. 名词"}, {"w": "mild", "pos": "adj. 形容词"}, {"w": "always", "pos": "adv. 副词"}, {"w": "north", "pos": "n. 名词"}, {"w": "south", "pos": "n. 名词"}, {"w": "east", "pos": "n. 名词"}, {"w": "west", "pos": "n. 名词"}, {"w": "wet", "pos": "adj. 形容词"}, {"w": "season", "pos": "n. 名词"}, {"w": "night", "pos": "n. 名词"}, {"w": "rise", "pos": "v. 动词"}, {"w": "set", "pos": "v. 动词"}, {"w": "early", "pos": "adv./adj. 副词/形容词"}, {"w": "late", "pos": "adv./adj. 副词/形容词"}, {"w": "interesting", "pos": "adj. 形容词"}, {"w": "subject", "pos": "n. 名词"}, {"w": "conversation", "pos": "n. 名词"}, {"w": "live", "pos": "v. 动词"}, {"w": "lunch", "pos": "n. 名词"}, {"w": "afternoon", "pos": "n. 名词"}, {"w": "usually", "pos": "adv. 副词"}, {"w": "together", "pos": "adv. 副词"}, {"w": "evening", "pos": "n. 名词"}, {"w": "arrive", "pos": "v. 动词"}, {"w": "stay", "pos": "v. 动词"}, {"w": "shop", "pos": "n. 名词"}, {"w": "moment", "pos": "n. 名词"}, {"w": "envelope", "pos": "n. 名词"}, {"w": "writing paper", "pos": "n. 名词"}, {"w": "page", "pos": "n. 名词"}, {"w": "shop assistant", "pos": "n. 名词"}, {"w": "size", "pos": "n. 名词"}, {"w": "glue", "pos": "n. 名词"}, {"w": "chalk", "pos": "n. 名词"}, {"w": "change", "pos": "n./v. 名词/动词"}, {"w": "feel", "pos": "v. 动词"}, {"w": "doctor", "pos": "n. 名词"}, {"w": "remember", "pos": "v. 动词"}, {"w": "mouth", "pos": "n. 名词"}, {"w": "tongue", "pos": "n. 名词"}, {"w": "bad", "pos": "adj. 形容词"}, {"w": "headache", "pos": "n. 名词"}, {"w": "toothache", "pos": "n. 名词"}, {"w": "dentist", "pos": "n. 名词"}, {"w": "medicine", "pos": "n. 名词"}, {"w": "temperature", "pos": "n. 名词"}, {"w": "flu", "pos": "n. 名词"}, {"w": "better", "pos": "adj. 形容词"}, {"w": "get up", "pos": "phr. 词组"}, {"w": "yet", "pos": "adv. 副词"}, {"w": "rich", "pos": "adj. 形容词"}, {"w": "food", "pos": "n. 名词"}, {"w": "play", "pos": "v. 动词"}, {"w": "match", "pos": "n. 名词"}, {"w": "talk", "pos": "v. 动词"}, {"w": "library", "pos": "n. 名词"}, {"w": "drive", "pos": "v. 动词"}, {"w": "quickly", "pos": "adv. 副词"}, {"w": "break", "pos": "v. 动词"}, {"w": "dad", "pos": "n. 名词"}, {"w": "key", "pos": "n. 名词"}, {"w": "baby", "pos": "n. 名词"}, {"w": "hear", "pos": "v. 动词"}, {"w": "enjoy", "pos": "v. 动词"}, {"w": "myself", "pos": "pron. 反身代词"}, {"w": "yourself", "pos": "pron. 反身代词"}, {"w": "himself", "pos": "pron. 反身代词"}, {"w": "herself", "pos": "pron. 反身代词"}, {"w": "ourselves", "pos": "pron. 反身代词"}, {"w": "themselves", "pos": "pron. 反身代词"}, {"w": "absent", "pos": "adj. 形容词"}, {"w": "Monday", "pos": "n. 名词"}, {"w": "Saturday", "pos": "n. 名词"}, {"w": "weekend", "pos": "n. 名词"}, {"w": "keep", "pos": "v. 动词"}, {"w": "spend", "pos": "v. 动词"}, {"w": "lucky", "pos": "adj. 形容词"}, {"w": "year", "pos": "n. 名词"}, {"w": "race", "pos": "n. 名词"}, {"w": "town", "pos": "n. 名词"}, {"w": "crowd", "pos": "n. 名词"}, {"w": "exciting", "pos": "adj. 形容词"}, {"w": "just", "pos": "adv. 副词"}, {"w": "finish", "pos": "v. 动词"}, {"w": "winner", "pos": "n. 名词"}, {"w": "way", "pos": "n. 名词"}, {"w": "awful", "pos": "adj. 形容词"}, {"w": "time", "pos": "n. 名词"}, {"w": "last", "pos": "adj. 形容词"}, {"w": "again", "pos": "adv. 副词"}, {"w": "say", "pos": "v. 动词"}, {"w": "street", "pos": "n. 名词"}, {"w": "turn", "pos": "v. 动词"}, {"w": "corner", "pos": "n. 名词"}, {"w": "second", "pos": "adj. 形容词"}, {"w": "third", "pos": "adj. 形容词"}, {"w": "past", "pos": "prep. 介词"}, {"w": "uncomfortable", "pos": "adj. 形容词"}, {"w": "pair", "pos": "n. 名词"}, {"w": "buy", "pos": "v. 动词"}, {"w": "wear", "pos": "v. 动词"}, {"w": "hurt", "pos": "v. 动词"}, {"w": "toothpaste", "pos": "n. 名词"}, {"w": "hurry", "pos": "v. 动词"}, {"w": "afraid", "pos": "adj. 形容词"}, {"w": "appointment", "pos": "n. 名词"}, {"w": "list", "pos": "n. 名词"}, {"w": "flour", "pos": "n. 名词"}, {"w": "shampoo", "pos": "n. 名词"}, {"w": "supermarket", "pos": "n. 名词"}, {"w": "roast", "pos": "adj./v. 形容词/动词"}, {"w": "dinner", "pos": "n. 名词"}, {"w": "hope", "pos": "v. 动词"}, {"w": "smell", "pos": "v. 动词"}, {"w": "holiday", "pos": "n. 名词"}, {"w": "decorate", "pos": "v. 动词"}, {"w": "spare", "pos": "adj. 形容词"}, {"w": "already", "pos": "adv. 副词"}, {"w": "spend time", "pos": "phr. 词组"}, {"w": "film", "pos": "n. 名词"}, {"w": "camera", "pos": "n. 名词"}, {"w": "sight", "pos": "n. 名词"}, {"w": "crash", "pos": "n. 名词"}, {"w": "garage", "pos": "n. 名词"}, {"w": "repair", "pos": "v. 动词"}, {"w": "ready", "pos": "adj. 形容词"}, {"w": "tomorrow", "pos": "adv./n. 副词/名词"}, {"w": "for sale", "pos": "phr. 词组"}, {"w": "hotel", "pos": "n. 名词"}, {"w": "cost", "pos": "v. 动词"}, {"w": "sell", "pos": "v. 动词"}, {"w": "poor", "pos": "adj. 形容词"}, {"w": "borrow", "pos": "v. 动词"}, {"w": "lend", "pos": "v. 动词"}, {"w": "neighbour", "pos": "n. 名词"}, {"w": "noise", "pos": "n. 名词"}, {"w": "quiet", "pos": "adj. 形容词"}, {"w": "platform", "pos": "n. 名词"}, {"w": "sit", "pos": "v. 动词"}, {"w": "seat", "pos": "n. 名词"}, {"w": "look at", "pos": "phr. 词组"}, {"w": "lost", "pos": "adj. 形容词"}, {"w": "describe", "pos": "v. 动词"}, {"w": "handle", "pos": "n. 名词"}, {"w": "contain", "pos": "v. 动词"}, {"w": "arm", "pos": "n. 名词"}, {"w": "leg", "pos": "n. 名词"}, {"w": "knee", "pos": "n. 名词"}, {"w": "finger", "pos": "n. 名词"}, {"w": "card", "pos": "n. 名词"}, {"w": "wonderful", "pos": "adj. 形容词"}, {"w": "news", "pos": "n. 名词"}, {"w": "test", "pos": "n. 名词"}, {"w": "mark", "pos": "n. 名词"}, {"w": "mistake", "pos": "n. 名词"}, {"w": "correct", "pos": "adj./v. 形容词/动词"}, {"w": "enough", "pos": "adv./adj. 副词/形容词"}, {"w": "idea", "pos": "n. 名词"}, {"w": "smell of", "pos": "phr. 词组"}, {"w": "expensive", "pos": "adj. 形容词"}, {"w": "cheap", "pos": "adj. 形容词"}, {"w": "model", "pos": "n. 名词"}, {"w": "price", "pos": "n. 名词"}, {"w": "money", "pos": "n. 名词"}, {"w": "pound", "pos": "n. 名词"}, {"w": "return", "pos": "v. 动词"}, {"w": "knock", "pos": "v. 动词"}, {"w": "every", "pos": "adj. 形容词"}, {"w": "all", "pos": "adj. 形容词"}, {"w": "breakfast", "pos": "n. 名词"}, {"w": "hungry", "pos": "adj. 形容词"}, {"w": "true", "pos": "adj. 形容词"}, {"w": "story", "pos": "n. 名词"}, {"w": "wake", "pos": "v. 动词"}, {"w": "asleep", "pos": "adj. 形容词"}, {"w": "wallet", "pos": "n. 名词"}, {"w": "pocket", "pos": "n. 名词"}, {"w": "police", "pos": "n. 名词"}, {"w": "trip", "pos": "n. 名词"}, {"w": "abroad", "pos": "adv. 副词"}, {"w": "passenger", "pos": "n. 名词"}, {"w": "tea for two", "pos": "phr. 词组"}, {"w": "waiter", "pos": "n. 名词"}, {"w": "bill", "pos": "n. 名词"}, {"w": "pay", "pos": "v. 动词"}, {"w": "famous", "pos": "adj. 形容词"}, {"w": "actress", "pos": "n. 名词"}, {"w": "important", "pos": "adj. 形容词"}, {"w": "mile", "pos": "n. 名词"}, {"w": "speed", "pos": "n. 名词"}, {"w": "dangerous", "pos": "adj. 形容词"}, {"w": "sure", "pos": "adj. 形容词"}, {"w": "would like", "pos": "phr. 词组"}, {"w": "hate", "pos": "v. 动词"}, {"w": "sensational", "pos": "adj. 形容词"}, {"w": "report", "pos": "n./v. 名词/动词"}, {"w": "latest", "pos": "adj. 形容词"}, {"w": "dream", "pos": "n./v. 名词/动词"}, {"w": "worry", "pos": "v. 动词"}, {"w": "ride", "pos": "n./v. 名词/动词"}, {"w": "wood", "pos": "n. 名词"}, {"w": "through", "pos": "prep. 介词"}, {"w": "path", "pos": "n. 名词"}, {"w": "notice", "pos": "v./n. 动词/名词"}, {"w": "sign", "pos": "n. 名词"}];
 window.GrammarEN = (function () {
@@ -167,6 +167,7 @@ const PURE_NOUNS = (() => {
       /* 兼形容词的词不能算「确定是名词」——the right answer 里 right 是形容词，
          把它当主语就会把 answer 误判成动词。 */
       if (String(w.pos).includes('名词') && !String(w.pos).includes('形容词') &&
+          !String(w.pos).includes('副词') &&
           !String(w.pos).includes('动词') && k.indexOf(' ') < 0 && !BASE_VERBS.has(k) &&
           !THIRD_TO_BASE[k] && !PAST_TO_BASE[k]) set.add(k);
     });
@@ -182,11 +183,46 @@ const ALL_NOUNS = (() => {
   try {
     GRAMMAR_WORDS_SAFE.forEach(w => {
       const k = String(w.w).toLowerCase();
-      if (String(w.pos).includes('名词') && k.indexOf(' ') < 0) set.add(k);
+      /* ⚠️ 兼形容词／副词的词不算名词，否则「Are you Chinese?」「What day is it today?」
+         这两句完全正确的话会被判成「要用物主代词」——拿题库 1443 句反扫出来的误报。 */
+      if (String(w.pos).includes('名词') && !String(w.pos).includes('形容词') &&
+          !String(w.pos).includes('副词') && k.indexOf(' ') < 0) set.add(k);
     });
   } catch (e) {}
   return set;
 })();
+/* ⭐ 下面这几张表是拿英语题库的 458 个「整句英文」干扰项反扫出来的**漏报清单**：
+   那些句子确实是错的（题目把它们排除在正确答案外），但检查器原本抓不到。
+   孩子造句时同样会犯，所以补进来。每条都限死词表，宁可漏报不可误报。 */
+/* 只能当宾语的代词，出现在句首当主语就是错的：Me and Tom are friends. */
+const OBJ_PRON = { me: 'I', him: 'he', her: 'she', them: 'they', us: 'we' };
+/* 纯过去分词（和过去式不同形），前面没有 have/has/had/be 就不能单独当谓语：I seen him. */
+const PP_ONLY = { seen: 'saw', gone: 'went', done: 'did', eaten: 'ate', written: 'wrote',
+  broken: 'broke', taken: 'took', given: 'gave', spoken: 'spoke', known: 'knew', drunk: 'drank',
+  ridden: 'rode', risen: 'rose', driven: 'drove', fallen: 'fell', flown: 'flew', grown: 'grew',
+  thrown: 'threw', blown: 'blew', drawn: 'drew', worn: 'wore', torn: 'tore', chosen: 'chose',
+  frozen: 'froze', stolen: 'stole', forgotten: 'forgot', begun: 'began', sung: 'sang', swum: 'swam' };
+/* 职业／身份名词：be 后面是单数职业名词，前面必须有冠词或物主代词：He is teacher. → a teacher */
+const JOB_NOUNS = new Set(['teacher','doctor','student','nurse','driver','engineer','worker','farmer',
+  'policeman','postman','waiter','waitress','singer','writer','painter','actor','actress','manager',
+  'cook','pilot','dentist','lawyer','soldier','boy','girl','man','woman','friend','child','baby']);
+/* 动词后面该用副词却写成形容词：He drives careful. → carefully */
+const ADV_NEEDED = { careful: 'carefully', quick: 'quickly', slow: 'slowly', quiet: 'quietly',
+  loud: 'loudly', bad: 'badly', beautiful: 'beautifully', clear: 'clearly', happy: 'happily',
+  sad: 'sadly', easy: 'easily', angry: 'angrily', polite: 'politely', good: 'well' };
+const ADV_VERBS = new Set(['drive','drives','drove','sing','sings','sang','run','runs','ran',
+  'walk','walks','walked','speak','speaks','spoke','write','writes','wrote','work','works','worked',
+  'play','plays','played','dance','dances','danced','swim','swims','swam','read','reads','draw','draws','drew']);
+/* 不可数名词：There are some bread… 里的 are 是错的 */
+const UNCOUNTABLE = new Set(['bread','water','milk','rice','money','information','news','homework',
+  'furniture','luggage','advice','tea','coffee','juice','meat','paper','music','time','work','food',
+  'fruit','sugar','salt','soup','cheese','butter','weather','air','snow','rain','hair','wood','glass']);
+/* 短暂动词：完成时不能跟 for + 一段时间（He has joined the army for three years.） */
+const PUNCTUAL = { join: 'be in', buy: 'have', die: 'be dead', come: 'be here', go: 'be away',
+  arrive: 'be here', begin: 'be on', start: 'be on', finish: 'be over', leave: 'be away',
+  borrow: 'keep', marry: 'be married', open: 'be open', close: 'be closed', get: 'have' };
+/* 疑问词：出现在句中（宾语从句）时后面要用陈述语序 */
+const WH_WORDS = new Set(['what','where','when','who','whom','which','how','why','whose']);
 /* ⚠️ her / his / its 本身就能当物主代词（her coat 是对的），绝不能列进来，
    否则会把正确的句子判成错——这是全册例句自检抓出来的。 */
 /* 不规则复数：the children come… 是对的，不能当成「名词主语漏了 s」 */
@@ -260,8 +296,15 @@ function checkGrammar(sent) {
     if (nx && w === nx && !pf[i] && !['had','that'].includes(w))
       add('error', '「' + w + ' ' + nx + '」写重复了', '删掉多余的那个 <b>' + w + '</b>');
 
-    /* R4 be 动词与主语不一致 */
-    if (nx && BE_ALL.has(nx)) {
+    /* R4 be 动词与主语不一致
+       ⚠️ 三个例外，都是拿题库里 1443 个英文句子反扫出来的误报（误报比漏报更伤）：
+       ① 完成式疑问句：Have you been…? / Has he been…? —— been 前面的 have/has/had 才是谓语
+       ② 复合主语：Tom and I are… / You and he are… —— 主语是两个人，本来就配 are
+       ③ 疑问句倒装：Are you…? / Is he…? —— 这在 R4 之外由句首判断处理 */
+    const prevW = i > 0 ? t[i - 1] : '';
+    const perfectQ = nx === 'been' && ['have','has','had'].includes(prevW);
+    const beCompound = (i >= 1 && t[i - 1] === 'and') || (nx2 === 'and');
+    if (nx && BE_ALL.has(nx) && !perfectQ && !beCompound) {
       if (SUBJ_I.has(w) && !['am','was'].includes(nx))
         add('error', 'I 后面不能用 <b>' + nx + '</b>', 'I 配 <b>am</b>（过去式 was）：I <b>am</b> …');
       if (SUBJ_3S.has(w) && !['is','was'].includes(nx))
@@ -316,7 +359,10 @@ function checkGrammar(sent) {
           '要么去掉 <b>' + w + '</b>，要么把动词改成 ing：' + w + ' <b>' + nx.replace(/e$/, '') + 'ing</b>');
 
     /* R8 a / an 用错（看后面单词的读音） */
-    if (w === 'a' && nx && /^[aeiou]/.test(nx) && !AN_EXCEPT_A.has(nx))
+    /* ⚠️ 「Which is bigger, A or B?」里的 A 是代号不是冠词——用原文大小写判，小写的 a 才是冠词 */
+    const rawTok = (raw.match(/[A-Za-z'’]+/g) || [])[i] || '';
+    const isLetterLabel = /^[A-Z]$/.test(rawTok);
+    if (w === 'a' && !isLetterLabel && nx && /^[aeiou]/.test(nx) && !AN_EXCEPT_A.has(nx))
       add('error', '<b>a ' + nx + '</b> 要改成 <b>an ' + nx + '</b>', nx + ' 读音以元音开头，冠词用 <b>an</b>');
     if (w === 'an' && nx && !/^[aeiou]/.test(nx) && !A_EXCEPT_AN.has(nx))
       add('error', '<b>an ' + nx + '</b> 要改成 <b>a ' + nx + '</b>', nx + ' 读音以辅音开头，冠词用 <b>a</b>');
@@ -399,6 +445,87 @@ function checkGrammar(sent) {
     if (!prevIsAction && PRON_NEEDS_POSS[w] && nx && PURE_NOUNS.has(nx) && !pf[i])
       add('error', '<b>' + w + ' ' + nx + '</b> 不对，这里要用「谁的」',
           '表示「' + w + ' 的 ' + nx + '」要用物主代词：<b>' + PRON_NEEDS_POSS[w] + ' ' + nx + '</b>');
+
+
+
+    /* R26 宾语从句要用陈述语序：I don't know what did you do. → what you did
+       限死：疑问词不在句首（句首是真正的疑问句，语序本来就该倒装）。 */
+    /* ⚠️ 前一个词后面有标点＝这是新的一句（Good morning, how are you? 里的 how 是独立问句），
+       不是宾语从句——全册例句自检抓到的误报。 */
+    /* ⚠️ 介词前置的疑问句是对的：To whom did you give it? / In which box is it? */
+    if (i > 0 && !pf[i - 1] && !PREPS.has(t[i - 1]) &&
+        WH_WORDS.has(w) && nx && (AUX_DO.has(nx) || BE_ALL.has(nx) || MODALS.has(nx)) &&
+        nx2 && (SUBJ_I.has(nx2) || SUBJ_3S.has(nx2) || SUBJ_PL.has(nx2)))
+      add('error', '<b>' + w + '</b> 引导的从句要用陈述语序，不能像问句那样倒装',
+          '把 <b>' + nx + ' ' + nx2 + '</b> 换成 <b>' + nx2 + ' …</b>：… ' + w + ' <b>' + nx2 + '</b> …');
+
+    /* R27 if 条件句里不用 will：If it will rain tomorrow… → If it rains tomorrow…
+       限死：只在句首的 If 报（句中的 if 多半是「是否」，那种可以跟 will）。 */
+    if (i === 0 && w === 'if') {
+      /* ⚠️ 从句到第一个逗号为止——will 在主句里是对的（If it rains, we will stay home.）。
+         tokenize 会去掉标点，所以逗号位置要用 punctFlags 判，不能在 token 里找 ','。 */
+      let end = t.length;
+      for (let k = 0; k < t.length; k++) { if (pf[k]) { end = k + 1; break; } }
+      const clause = t.slice(0, end);
+      const wi = clause.indexOf('will');
+      if (wi > 0)
+        add('error', '<b>if</b> 引导的条件句里不用 <b>will</b>',
+            '条件句用一般现在时表示将来：If it <b>rains</b> tomorrow, we <b>will</b> …（will 留给主句）');
+    }
+
+    /* R28 There is/are + 不可数名词：There are some bread… → There is some bread */
+    if (w === 'there' && nx && BE_ALL.has(nx) && nx2) {
+      const noun = (nx2 === 'some' || nx2 === 'much' || nx2 === 'a' || nx2 === 'any') ? t[i + 3] : nx2;
+      if (noun && UNCOUNTABLE.has(noun) && ['are','were'].includes(nx))
+        add('error', '<b>' + noun + '</b> 是不可数名词，前面要用 <b>' + (nx === 'are' ? 'is' : 'was') + '</b>',
+            '不可数名词当单数看：There <b>' + (nx === 'are' ? 'is' : 'was') + '</b> some ' + noun + ' …');
+    }
+
+    /* R29 短暂动词的完成时 + for 一段时间：He has joined the army for three years. */
+    if (['have','has','had'].includes(w) && nx && PUNCTUAL[PAST_TO_BASE[nx] || nx.replace(/ed$/, '')] &&
+        t.slice(i, i + 8).includes('for')) {
+      const base = PAST_TO_BASE[nx] || nx.replace(/ed$/, '');
+      add('error', '<b>' + base + '</b> 是短暂动词，完成时不能跟 <b>for + 一段时间</b>',
+          '换成表示状态的说法：<b>' + w + ' ' + PUNCTUAL[base] + '</b> … for …');
+    }
+
+    /* R20 宾格代词当主语：Me and Tom are friends. → Tom and I are friends.
+       限死：只在句首（i===0）报，句中的 me/him 都是宾语，正确。 */
+    if (i === 0 && OBJ_PRON[w] && nx && (nx === 'and' || isVerbTok(nx)))
+      add('error', '<b>' + w + '</b> 不能放在句子开头当主语',
+          '当主语要用 <b>' + OBJ_PRON[w] + '</b>（' + w + ' 只能当宾语，放在动词或介词后面）' +
+          (nx === 'and' ? '；而且英语习惯把自己放后面：Tom and <b>I</b>' : ''));
+
+    /* R21 过去分词单独当谓语：I seen him yesterday. → I saw / I have seen
+       限死：主语代词紧跟纯过去分词，且前面没有 have/has/had/be（那才是完成式或被动）。 */
+    if (nx && PP_ONLY[nx] && (SUBJ_I.has(w) || SUBJ_3S.has(w) || SUBJ_PL.has(w)) &&
+        !(i > 0 && (['have','has','had'].includes(t[i - 1]) || BE_ALL.has(t[i - 1]))))
+      add('error', '<b>' + nx + '</b> 不能单独当谓语',
+          '要么用过去式 <b>' + PP_ONLY[nx] + '</b>，要么用完成时 <b>have/has ' + nx + '</b>');
+
+    /* R22 do/does/did + 情态动词：Does he can swim? → Can he swim? */
+    /* 疑问句语序是 do + 主语 + 动词，所以情态动词可能落在 nx 或 nx2 */
+    const modalAfterDo = MODALS.has(nx) ? nx :
+      ((SUBJ_I.has(nx) || SUBJ_3S.has(nx) || SUBJ_PL.has(nx)) && MODALS.has(nx2) ? nx2 : '');
+    if (AUX_DO.has(w) && modalAfterDo)
+      add('error', '<b>' + w + '</b> 和 <b>' + modalAfterDo + '</b> 不能一起用',
+          '情态动词自己就能提问：<b>' + modalAfterDo.charAt(0).toUpperCase() + modalAfterDo.slice(1) + '</b> ' +
+          (modalAfterDo === nx2 ? nx : '…') + ' …?');
+
+    /* R23 as + 比较级 as：He is as taller as me. → as tall as */
+    if (w === 'as' && nx && /er$/.test(nx) && nx.length > 3 && nx2 === 'as' && !PREPS.has(nx))
+      add('error', '<b>as … as</b> 中间要用原级，不能用比较级 <b>' + nx + '</b>',
+          '改成 as <b>' + nx.replace(/ier$/, 'y').replace(/er$/, '') + '</b> as');
+
+    /* R24 be + 单数职业名词却少了冠词：He is teacher. → He is a teacher. */
+    if (BE_ALL.has(w) && nx && JOB_NOUNS.has(nx) && !DET.has(nx))
+      add('error', '<b>' + nx + '</b> 前面少了冠词',
+          '单数的人／职业前面要加 <b>a</b> 或 <b>an</b>：' + w + ' <b>' + (/^[aeiou]/.test(nx) ? 'an' : 'a') + ' ' + nx + '</b>');
+
+    /* R25 动词后面该用副词却用了形容词：He drives careful. → carefully */
+    if (ADV_VERBS.has(w) && nx && ADV_NEEDED[nx] && (!nx2 || pf[i + 1]))
+      add('error', '修饰动词 <b>' + w + '</b> 要用副词，不能用形容词 <b>' + nx + '</b>',
+          '改成 <b>' + ADV_NEEDED[nx] + '</b>：' + w + ' <b>' + ADV_NEEDED[nx] + '</b>');
 
     /* R13 to + 动词ing（want to / like to 后面要原形） */
     if (w === 'to' && nx && /ing$/.test(nx) && nx.length > 4 && !['nothing','something','anything','morning','evening'].includes(nx))
