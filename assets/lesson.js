@@ -93,8 +93,8 @@
   /* 系統合成聲逐句朗讀（雲端沒開/失敗時的保底），保留高亮與看門狗 */
   function ltSystemSpeak(i, text){
     const u = new SpeechSynthesisUtterance(text);
-    u.lang='en-US'; u.rate = lt.slow ? 0.6 : 0.9;
-    const v = JD.pickVoice('en-US'); if(v) u.voice = v;
+    u.lang='en-GB'; u.rate = lt.slow ? 0.6 : 0.9;   /* 英式教材→英式朗讀 */
+    const v = JD.pickVoice('en-GB'); if(v) u.voice = v;
     let advanced=false;
     const go=()=>{ if(advanced) return; advanced=true; clearTimeout(watchdog); ltAdvance(i); };
     u.onend=go; u.onerror=go;
@@ -154,7 +154,7 @@
       localStorage.setItem('jingdu_updatedAt',String(Date.now())); if(window.JDSYNC) window.JDSYNC.schedule(); upd(); };
     upd(); pb.parentNode.appendChild(btn);
   })();
-  /* 全文中文翻譯卡：插在全文下方，播放時對應句一起高亮；小朋友看不懂英文可對照 */
+  /* 全文中文翻譯卡：插在全文下方，播放時對應句一起高亮；看不懂英文可對照 */
   function insertZhCard(box, sentences){
     const card=document.createElement('div'); card.className='card'; card.id='ltZhCard';
     card.innerHTML='<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'+
@@ -467,8 +467,8 @@
   function qzSysSpeak(idxs, k){
     k = k||0; if(k>=idxs.length) return;
     const u = new SpeechSynthesisUtterance(L.sentences[idxs[k]].en);
-    u.lang='en-US'; u.rate=0.9;
-    const v = JD.pickVoice('en-US'); if(v) u.voice = v;
+    u.lang='en-GB'; u.rate=0.9;   /* 英式教材→英式朗讀 */
+    const v = JD.pickVoice('en-GB'); if(v) u.voice = v;
     const nx=()=>setTimeout(()=>qzSysSpeak(idxs,k+1), 300);
     u.onend=nx; u.onerror=nx;
     try{ JD.toPlaybackRoute&&JD.toPlaybackRoute(); }catch(e){}  /* iOS：剛錄過音→設回外放，免小聲/走聽筒 */

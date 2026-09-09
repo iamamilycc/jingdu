@@ -152,7 +152,7 @@ def run():
         pg.wait_for_timeout(600)
         sys2 = pg.evaluate("window.__sys")
         r2 = pg.evaluate("window.__r2")
-        ck('兜底：第一次走正常 prompt', len(sys2) >= 2 and '精讀老師，為小學生製作' in sys2[0], sys2[:1])
+        ck('兜底：第一次走正常 prompt', len(sys2) >= 2 and '精讀老師，為初中生製作' in sys2[0], sys2[:1])
         ck('兜底：沒句子→第二次改走單詞課 prompt', len(sys2) >= 2 and '單詞精讀課' in sys2[1], sys2[1:2])
         ck('兜底：最終成功回傳課(有 title)', r2 and r2.get('ok') == True, r2)
 
@@ -172,7 +172,7 @@ def run():
         pg.evaluate("(async()=>{ try{ await JDGen.fromText('en','apple\\nbanana\\ncat', ()=>{}, 'text'); }catch(e){} })()")
         pg.wait_for_timeout(300)
         sysT = pg.evaluate('window.__sys')
-        ck("forceMode='text' 強制→詞表也走課文 prompt", len(sysT)>=1 and '精讀老師，為小學生製作' in sysT[0] and '單詞精讀課' not in sysT[0], sysT[:1])
+        ck("forceMode='text' 強制→詞表也走課文 prompt", len(sysT)>=1 and '精讀老師，為初中生製作' in sysT[0] and '單詞精讀課' not in sysT[0], sysT[:1])
 
         pg.close(); b.close()
 

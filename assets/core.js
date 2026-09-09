@@ -419,7 +419,7 @@
   }
   /* 對外朗讀：優先用雲端神經語音（更像真人），任何失敗自動退回系統合成聲，絕不會沒聲音。 */
   function speak(text, slow, lang){
-    lang = lang || 'en-US';
+    lang = lang || 'en-GB';   /* 朗讀＝英式，跟教材與音標一致 */
     try{ if('speechSynthesis' in window) speechSynthesis.cancel(); }catch(e){}
     if(window.JDTTS) JDTTS.stop();
     if(window.JDTTS && JDTTS.enabled()){
