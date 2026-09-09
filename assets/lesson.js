@@ -732,8 +732,12 @@
 
   /* ========== 5.6 造句挑戰（每個生詞：先看 3 個例句 → 自己造 3 句） ==========
      規則（2026-09-07 用戶定）：所有生詞都要造、每詞 3 句、每句至少 5 個單詞、三句不得重複。
-     判分兩層：① 前端確定性檢查（詞數／有沒有用上這個詞／和自己前面那句重不重複）——不需要 AI Key
-               ② 有 AI Key 再送語法批改；沒 key 或出錯走自評兜底 */
+     ⭐ 判分四層（2026-09-09 用戶定：兒童向產品不准把校驗推給人）：
+       ① 硬檢查：詞數／有沒有用上這個詞／和自己前面那句重不重複
+       ② 規則引擎 GrammarEN：文法 → 意思說不通 → 中式說法（三層都是確定性的，命中就地給結論）
+       ③ 以上都沒話說，才送 AI 看語義／地道度
+       ④ AI 的輸出先過規則引擎＋必須用上這個詞，不過就丟；AI 說「意思怪」只當提醒，判分仍以規則為準
+     ⚠️ 引擎 = assets/grammar-en.js，兩個站共用的單一事實源，由 math_quiz_deploy/build/sync_grammar.py 生成。 */
   const MK_PER_WORD = 3;      /* 每個詞要造幾句 */
   const MK_MIN_WORDS = 5;     /* 每句最少幾個單詞（內建下限，家長設更高則從高） */
   const mkWords = (L.vocab||[]).slice();
@@ -858,45 +862,87 @@
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
       (ok||!fix?'':'<div class="eg" style="margin-top:8px">✍️ <b>改好的完整句子</b>：'+JD.esc(fix)+'</div>')+
       betterHTML+
-      /* AI 判分可能誤把正確句判錯（幻想文法錯），給人工否決：一按當對、撤掉剛加的錯題 */
-      (ok?'':'<div style="margin-top:8px"><button class="big-btn ghost jd-mkok">🙋 我覺得這句沒問題</button></div>')+
-      '<div style="margin-top:10px">'+(ok?'':'<span class="hint" style="display:block;margin-bottom:6px">改一改上面的句子再按「檢查」，或按上面確認沒問題</span>')+
+      '<div style="margin-top:10px">'+(ok?'':'<span class="hint" style="display:block;margin-bottom:6px">照著上面改一遍再按「檢查」，或先跳過</span>')+
       '<button class="big-btn teal" onclick="mkNext()">'+nextLabel+'</button></div>';
     /* 發音鍵用 .onclick 綁定，不內嵌 onclick（示範句可能含引號會打架）*/
     const bv=$('#mkBetterVoice'); if(bv && better) bv.onclick=()=>JD.speak(better,false);
-    const ob=$('#mkFb').querySelector('.jd-mkok');
-    if(ob) ob.onclick=()=>{ if(errId) JD.restoreError(errId, bookBefore); mkAfter(true, '', '你確認沒問題，算你對！👍', better, betterZh, sentence); };
   }
-  /* 沒有 AI 老師時的兜底：孩子沒有判斷能力，不能只問「你覺得對嗎」——
-     改成給一張<b>逐項可對照的檢查清單</b>＋把例句擺在旁邊比對，把「判斷」變成「核對」。
-     能機械檢查的（大寫、句號、有沒有動詞）先幫他標好，剩下的一項一項問。 */
-  function mkSelfCheck(msg, sentence){
-    window.__mkPendingSent = sentence;
-    const v = mkWords[mk.i], egs = mkEgs(v);
-    const capOK  = /^[A-Z]/.test((sentence||'').trim());
-    const endOK  = /[.!?]$/.test((sentence||'').trim());
-    const verbOK = mkHasVerb(sentence||'');
-    const row=(ok,txt,fix)=>'<div class="eg" style="margin-bottom:5px">'+(ok?'✅ ':'⚠️ ')+txt+
-      (ok?'':'<br><span style="color:var(--coral,#E85D3D);font-size:.88rem">→ '+fix+'</span>')+'</div>';
-    $('#mkFb').innerHTML='<div class="acc-badge">'+JD.esc(msg)+'</div>'+
+  /* ⭐ AI 說「意思怪」時走這裡：規則層已經判他通過，AI 只降級成一條提醒。
+     絕不能給一顆「我覺得這句沒問題」讓孩子自己裁決 AI ——
+     兒童向產品不准把校驗推給人，他沒有判斷能力，那等於沒判分。 */
+  function mkAfterAiDoubt(tip, fix, better, betterZh, sentence, ruleHtml){
+    const flat = mkFlat(mk.i, mk.j);
+    mk.results[flat] = true;                       /* 判分以規則層為準：通過 */
+    if(sentence){ (mk.sents[mk.i] = mk.sents[mk.i] || [])[mk.j] = sentence; }
+    mkPills(); JD.celebrate('good');
+    const last = (mk.i===mkWords.length-1) && (mk.j===MK_PER_WORD-1);
+    const nextLabel = (mk.j < MK_PER_WORD-1) ? ('再造第 '+(mk.j+2)+' 句 →') : (last ? '完成 →' : '下一個詞 →');
+    const betterHTML = better ? '<div class="eg" style="margin-top:8px">🌟 <b>地道說法（歐美人常這樣說）</b>：'+JD.esc(better)+
+      (betterZh?'<br><span style="color:var(--muted);font-size:.9rem">'+JD.esc(betterZh)+'</span>':'')+'</div>' : '';
+    $('#mkFb').innerHTML=
+      '<div class="acc-badge good">🎉 規則檢查通過！文法、常見中式說法、意思說不通的搭配都查過了</div>'+
+      (ruleHtml||'')+
       '<div class="card" style="margin-top:10px;text-align:left">'+
-        '<div style="font-family:var(--font-head);font-size:.92rem;margin-bottom:6px">🔍 照著這張表核對你的句子</div>'+
-        '<div class="eg" style="margin-bottom:8px;font-weight:600">'+JD.esc(sentence||'')+'</div>'+
-        row(capOK, '第一個字母大寫了嗎？', '英文句子開頭要大寫，把 '+JD.esc((sentence||'').trim().charAt(0))+' 改成大寫') +
-        row(endOK, '句子末尾有標點嗎？', '陳述句結尾要加句號 <b>.</b>（問句用 <b>?</b>）') +
-        row(verbOK, '句子裡有動詞嗎？', '每句英文都要有動詞（是 am/is/are，或 like/have/go 這類動作詞）') +
-        '<div class="eg" style="margin-top:8px">🔤 再看一眼動詞形式：主語是 he/she/it 或一個人時，動作詞要加 <b>s</b>（He <b>likes</b>）；說過去的事要用過去式（I <b>went</b>）。</div>'+
+        '<div style="font-family:var(--font-head);font-size:.92rem">🤔 AI 老師另外提了一句'+(tip?'：'+JD.esc(tip):'')+'</div>'+
+        (fix?'<div class="eg" style="margin-top:6px">它建議說：'+JD.esc(fix)+'</div>':'')+ betterHTML +
+        '<p class="hint" style="margin:8px 0 0">這條只是<b>參考</b>，AI 有時會看錯。<b>你這句是通過的</b> ✅ '+
+        '覺得有道理就改一改，不然直接下一句 —— 不用你來判斷誰對。</p>'+
       '</div>'+
-      (egs.length ? '<div class="card" style="margin-top:8px;text-align:left;background:transparent">'+
-        '<div style="font-family:var(--font-head);font-size:.92rem;margin-bottom:6px">📖 和例句比一比，結構像不像</div>'+
-        egs.map(e=>'<div class="eg" style="margin-bottom:4px">'+JD.esc(e)+'</div>').join('')+'</div>' : '')+
-      '<p style="margin:10px 0 6px;font-size:.88rem;color:var(--muted)">上面每一項都核對過了嗎？</p>'+
-      '<button class="big-btn teal" onclick="mkSelf(true)">✅ 都核對過，沒問題</button>'+
-      '<button class="big-btn ghost" onclick="mkSelf(false)">🙋 有不確定的，先記下來</button>';
+      '<div style="margin-top:10px"><button class="big-btn teal" onclick="mkNext()">'+nextLabel+'</button></div>';
   }
-  window.mkSelf=function(ok){
-    mkAfter(ok, '', ok?'核對通過！':'不確定的先記進錯題本，複盤時再練這個詞', '', '', window.__mkPendingSent);
-  };
+  /* 規則層給結論——不通過就是不通過，通過就是通過，沒有「你自己覺得呢」 */
+  function mkAfterRule(ok, ruleHtml, sentence){
+    const flat = mkFlat(mk.i, mk.j);
+    mk.results[flat] = mk.results[flat] || ok; mkPills();
+    if(ok && sentence){ (mk.sents[mk.i] = mk.sents[mk.i] || [])[mk.j] = sentence; }
+    const mv = mkWords[mk.i];
+    if(!ok && mv) JD.addError({id:'w:'+L.id+'#'+mv.w, lessonId:L.id, en:mv.w, zh:mv.zh, type:'word', pos:mv.pos});
+    JD.celebrate(ok?'good':'try');
+    const last = (mk.i===mkWords.length-1) && (mk.j===MK_PER_WORD-1);
+    const nextLabel = (mk.j < MK_PER_WORD-1) ? ('再造第 '+(mk.j+2)+' 句 →') : (last ? '完成 →' : '下一個詞 →');
+    $('#mkFb').innerHTML=
+      '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 檢查通過！':'💪 這句要改一改')+'</div>'+
+      (ruleHtml||'')+
+      '<div style="margin-top:10px">'+
+      (ok?'':'<button class="big-btn teal" onclick="mkCheck()">改好了，再檢查一次</button>')+
+      '<button class="big-btn '+(ok?'teal':'ghost')+'" onclick="mkNext()">'+(ok?nextLabel:'這句先跳過')+'</button></div>';
+  }
+
+  /* 規則層的結論怎麼呈現（不需要 AI，一定給得出）：
+     錯在哪 → 改好長這樣 → 同樣的意思歐美人會怎麼說。 */
+  function mkRuleHtml(s, errs, warns, cHits, sHits){
+    const G = window.GrammarEN;
+    const li = a => '<ul style="margin:6px 0 0;padding-left:20px">'+a.map(x=>'<li style="margin-bottom:4px">'+
+        (x.level==='error'?'❌ ':'💡 ')+x.why+'<br><span style="color:var(--coral,#E85D3D);font-size:.9rem">→ '+x.fix+'</span></li>').join('')+'</ul>';
+    let h = '';
+    if(errs.length){
+      const fixed = G.collocFix(G.autoFix(s, errs));
+      h += '<div class="card" style="margin-top:10px;text-align:left">'+
+        '<div style="font-family:var(--font-head);font-size:.92rem">這句有 <b>'+errs.length+'</b> 個地方要改</div>'+
+        '<div class="eg" style="margin:6px 0">'+JD.esc(s)+'</div>'+ li(errs) + (warns.length?li(warns):'')+
+        (G.normSent(fixed)!==G.normSent(s) ?
+          '<div style="margin-top:8px">✍️ <b>改好應該是這樣</b>：<div class="eg" style="margin-top:4px">'+JD.esc(fixed)+'</div></div>' : '')+
+        '</div>';
+    }
+    if(sHits.length){
+      h += '<div class="card" style="margin-top:8px;text-align:left">'+
+        '<div style="font-family:var(--font-head);font-size:.92rem">🤔 意思上說不通</div>'+
+        '<ul style="margin:6px 0 0;padding-left:20px">'+sHits.map(x=>'<li>❌ '+x.why+
+          '<br><span style="color:var(--coral,#E85D3D);font-size:.9rem">→ '+x.fix+'</span></li>').join('')+'</ul></div>';
+    }
+    if(cHits.length){
+      const fixed = G.collocFix(s);
+      h += '<div class="card" style="margin-top:8px;text-align:left">'+
+        '<div style="font-family:var(--font-head);font-size:.92rem">🌏 文法對，但歐美人不這麼說</div>'+
+        '<ul style="margin:6px 0 0;padding-left:20px">'+cHits.map(x=>'<li>❌ 你寫的「'+JD.esc(G.hitText(x,s))+'」'+
+          '<br><span style="color:var(--teal-deep);font-size:.9rem">→ 應該說 <b>'+JD.esc(x.good)+'</b></span>'+
+          '<br><span style="color:var(--muted);font-size:.88rem">'+JD.esc(x.zh)+'</span></li>').join('')+'</ul>'+
+        (G.normSent(fixed)!==G.normSent(s) ?
+          '<div style="margin-top:8px">✍️ <b>改好應該是這樣</b>：<div class="eg" style="margin-top:4px">'+JD.esc(fixed)+'</div></div>' : '')+
+        '</div>';
+    }
+    return h;
+  }
   /* 粗略判斷句中有沒有動詞：命中常見動詞/be 動詞/助動詞，或出現動詞常見詞尾。
      只用來「提醒」不用來「攔截」——寧可漏提醒，也不能把對的句子擋下來。 */
   const MK_VERBS = new Set(('am is are was were be been being do does did have has had can could will would '+
@@ -929,12 +975,54 @@
     const prev=(mk.sents[mk.i]||[]).filter((x,k)=>x && k!==mk.j);
     const dup = prev.find(p=>mkTooSimilar(p, s));
     if(dup){ bad('這句和你前面造的「'+JD.esc(dup)+'」太像了。<br>換個<b>角度</b>再想一句：換人（I→My brother）、換時間（今天→昨天）、換地方，或改成問句/否定句 💡'); return; }
-    if(!window.JDGen || !JDGen.getKey()){ mkSelfCheck('沒設定 AI Key，這關改用自評', s); return; }
+    /* ---- ④ 規則層判分：孩子沒有判斷能力，對錯必須由測過的確定性規則給結論 ----
+       分層原則：凡是規則能百分之百確定的，就地給結論，不調 AI。
+       ① 文法  ② 意思說不通（吃書喝桌子這類查表能確定的）  ③ 中式說法
+       只有這三層都沒話說，才輪到 AI 補那一小塊語義／地道度。
+       ⚠️ 引擎是兩個站共用的單一事實源（assets/grammar-en.js，由 sync_grammar.py 生成）。 */
+    const G = window.GrammarEN;
+    if(G){
+      const issues = G.checkGrammar(s);
+      const errs = issues.filter(x=>x.level==='error');
+      const warns = issues.filter(x=>x.level==='warn');
+      const cHits = G.collocHits(s), sHits = G.senseHits(s);
+      const ruleHtml = mkRuleHtml(s, errs, warns, cHits, sHits);
+      if(errs.length || sHits.length || cHits.length){
+        /* 規則已經百分之百確定該怎麼改 → 判不通過，也不必問 AI */
+        mkAfterRule(false, ruleHtml, s);
+        return;
+      }
+      if(!window.JDGen || !JDGen.getKey()){
+        mkAfterRule(true, '<p class="hint" style="margin:8px 0 0">系統能確定的都查過了：文法、常見中式說法、意思說不通的搭配，全都沒問題 ✅</p>', s);
+        return;
+      }
+      $('#mkFb').innerHTML='<div class="acc-badge">⏳ 規則都通過了，再讓 AI 老師看一眼意思…</div>';
+      try{
+        const r=await JDGen.judgeSentence('en', v.w, s);
+        const keep = t => { const x=String(t||'').trim(); if(!x) return '';
+          if(G.checkGrammar(x).filter(y=>y.level==='error').length) return '';   /* ① 程序清洗 */
+          if(!G.hasWord(x, v.w)) return '';                                      /* ② 聚焦二次核對 */
+          if(G.collocHits(x).length || G.senseHits(x).length) return '';
+          return x; };
+        if(r.ok) mkAfter(true, '', r.tip, keep(r.better), r.betterZh, s);
+        else     mkAfterAiDoubt(r.tip, keep(r.fix), keep(r.better), r.betterZh, s, '');  /* ③ 程序化保底 */
+      }catch(e){
+        mkAfterRule(true, '<p class="hint" style="margin:8px 0 0">（AI 這次沒回應，規則檢查的結論仍然有效）</p>', s);
+      }
+      return;
+    }
+    /* 引擎沒載入（理論上不會發生）——老實說明，不假裝判過 */
+    if(!window.JDGen || !JDGen.getKey()){
+      $('#mkFb').innerHTML='<div class="acc-badge bad">判分引擎沒載入成功，這句先跳過，回頭重新整理頁面再練</div>'+
+        '<div style="margin-top:10px"><button class="big-btn teal" onclick="mkNext()">下一句 →</button></div>';
+      return;
+    }
     $('#mkFb').innerHTML='<div class="acc-badge">⏳ AI 老師看句子中…</div>';
     try{
       const r=await JDGen.judgeSentence('en', v.w, s);
-      mkAfter(r.ok, r.fix, r.tip, r.better, r.betterZh, s);
-    }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評', s); }
+      if(r.ok) mkAfter(true, '', r.tip, r.better, r.betterZh, s);
+      else     mkAfterAiDoubt(r.tip, r.fix, r.better, r.betterZh, s, '');
+    }catch(e){ mkAfter(true, '', 'AI 沒回應，這句先算過', '', '', s); }
   };
   function mkSync(){ pos('make', mk.results.filter(x=>x!=null).length, mkTotal, mk.results.filter(Boolean).length); }
   window.mkNext=function(){

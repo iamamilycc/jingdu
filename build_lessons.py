@@ -149,6 +149,8 @@ window.LESSON = {lesson_json};
 <script src="../assets/core.js"></script>
 <script src="../assets/sync.js"></script>
 <script src="../assets/generate.js"></script>
+<!-- 造句判分引擎：兩個站共用的單一事實源，由 math_quiz_deploy/build/sync_grammar.py 生成 -->
+<script src="../assets/grammar-en.js"></script>
 <script src="../assets/lesson.js"></script>
 </body>
 </html>

@@ -101,18 +101,23 @@ def main():
             f = check(pg, f'I really enjoy every {word}s in spring.')
             ck('用複數變形不被判成沒用上', '沒有用上' not in f, f[:70])
 
-            # --- 6 無 AI Key 的兜底是核對清單，不是「你覺得對嗎」---
+            # --- 6 沒有 AI Key 時，規則引擎自己給結論（2026-09-09：核對清單也是把校驗推給孩子，已廢除）---
             has_key = pg.evaluate("!!(window.JDGen && JDGen.getKey && JDGen.getKey())")
             if not has_key:
-                ck('兜底出現逐項核對清單', '核對' in f and ('大寫' in f or '標點' in f), f[:90])
-                ck('兜底不再問「你覺得對嗎」', '覺得這個詞用對了嗎' not in f, f[:70])
-                ck('兜底把例句擺出來比對', '比一比' in f or '例句' in f, f[:90])
+                ck('沒 Key 也直接給結論', ('檢查通過' in f) or ('要改一改' in f), f[:90])
+                ck('沒 Key 時說清楚查過哪些', '系統能確定的都查過了' in f or '要改一改' in f, f[:120])
+                ck('不再叫孩子自己核對', ('都核對過' not in f) and ('覺得這個詞用對了嗎' not in f), f[:90])
+                # 規則層真的在判：文法錯的句子必須被判錯
+                bad = check(pg, f'He like this {word} very much.')
+                ck('規則層判得出文法錯', '要改一改' in bad and '少了 s' in bad, bad[:120])
+                ck('判錯時給改好的整句', '改好應該是這樣' in bad, bad[:150])
             else:
                 print('  --  已設 AI Key，跳過兜底檢查')
 
             # --- 7 重複偵測：第 1 句通過並前進到第 2 句，再送幾乎一樣的句子 ---
-            pg.evaluate("mkSelf(true)"); pg.wait_for_timeout(150)   # 第 1 句過
-            pg.evaluate("mkNext()"); pg.wait_for_timeout(200)       # 前進到第 2 句
+            # 規則層判過就是過（不再有自評），直接前進到第 2 句
+            check(pg, f'I really enjoy every {word}s in spring.')
+            pg.evaluate("mkNext()"); pg.wait_for_timeout(200)
             f = check(pg, f'I really enjoy every {word}s in spring.')
             ck('和前一句重複被擋下', '太像' in f, f[:80])
             ck('重複時給了「換角度」的建議', '換' in f and ('角度' in f or '時間' in f), f[:100])
@@ -131,14 +136,10 @@ def main():
             w0, s0 = where(pg)
             ck('目前在第 1 個詞的第 2 句', (w0, s0) == (1, 2), f'{w0=} {s0=}')
             f = check(pg, f'My brother bought a new {word} yesterday.')
-            if '沒設定 AI Key' in f or '核對' in f:
-                pg.evaluate("mkSelf(true)"); pg.wait_for_timeout(150)
             pg.evaluate("mkNext()"); pg.wait_for_timeout(200)
             w1, s1 = where(pg)
             ck('造完第 2 句仍停在同一個詞、進到第 3 句', (w1, s1) == (w0, 3), f'{w1=} {s1=}')
             f = check(pg, f'The old {word} near my house looks nice.')
-            if '沒設定 AI Key' in f or '核對' in f:
-                pg.evaluate("mkSelf(true)"); pg.wait_for_timeout(150)
             pg.evaluate("mkNext()"); pg.wait_for_timeout(200)
             w2, s2 = where(pg)
             ck('第 3 句做完才換下一個詞', (w2, s2) == (w0 + 1, 1), f'{w2=} {s2=}')

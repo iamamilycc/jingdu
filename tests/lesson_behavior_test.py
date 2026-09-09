@@ -43,7 +43,8 @@ def run():
             window.JDGen = Object.assign(window.JDGen||{}, {
               getKey:()=>'x',
               judgeSentence: async (lg,word,sent)=>{ window._judgeCalls++;
-                return {ok:true,fix:'',tip:'很好',better:'This is a much better sentence.',betterZh:'這是更地道的說法。'}; }
+                /* better 必須用上這個生詞，否則會被「聚焦二次核對」丟掉（跑題的建議對這關沒用） */
+                return {ok:true,fix:'',tip:'很好',better:'This is a much better '+word+' sentence.',betterZh:'這是更地道的說法。'}; }
             });""")
 
         # ---- mkMin：不足詞數擋下、不送 AI ----
@@ -63,22 +64,40 @@ def run():
         # ---- 造句地道說法：better 渲染 ----
         print('-- 造句地道說法：judgeSentence 回 better → 渲染 🌟 地道說法 + 發音鈕')
         fb2 = pg.evaluate("(document.getElementById('mkFb')||{}).innerText||''")
-        ck('顯示 🌟 地道說法示範句', ('地道' in fb2) and ('better sentence' in fb2), fb2)
+        ck('顯示 🌟 地道說法示範句', ('地道' in fb2) and ('much better' in fb2), fb2)
         ck('地道說法有發音鈕 #mkBetterVoice', pg.evaluate("!!document.getElementById('mkBetterVoice')"))
 
-        # ---- 造句沒造對→那個詞進錯題本複盤 ----
-        print('-- 造句沒造對→進錯題本')
+        # ---- 規則層判錯→那個詞進錯題本複盤（2026-09-09：判分改由規則層負責，不再由 AI 定生死）----
+        print('-- 規則層判錯→進錯題本')
         pg.evaluate("JD.setMkMin(0); localStorage.removeItem('jingdu_errbook')")
-        # mock judgeSentence 回 ok:false（沒造對）
         pg.evaluate("""window.JDGen=Object.assign(window.JDGen||{},{ getKey:()=>'x',
-            judgeSentence: async ()=>({ok:false,fix:'try this',tip:'再想想',better:'',betterZh:''}) });""")
+            judgeSentence: async ()=>({ok:true,fix:'',tip:'AI 說好',better:'',betterZh:''}) });""")
         before_e = pg.evaluate("Object.keys(JD.getBook()).length")
         pg.evaluate("switchTab('make'); mkRestart && mkRestart()"); pg.wait_for_timeout(150)
-        # 2026-09-07：句子要先過得了前端檢查（≥5 詞 + 用上生詞）才會送到 AI，才走得到「判錯→進錯題本」
+        # 三單漏 s：規則層一定抓得到，不必問 AI
         pg.evaluate("""(()=>{const w=(document.querySelector('#p-make .target b')||{}).innerText||'thing';
-            document.getElementById('mkInput').value='This is some wrong sentence about '+w+'.'; mkCheck();})()"""); pg.wait_for_timeout(300)
+            window._judgeCalls=0;
+            document.getElementById('mkInput').value='He like this wrong '+w+' very much.'; mkCheck();})()"""); pg.wait_for_timeout(300)
         after_e = pg.evaluate("Object.keys(JD.getBook()).length")
-        ck('造句沒造對→錯題本多一條(進複盤)', after_e == before_e + 1, '%d→%d' % (before_e, after_e))
+        ck('規則層判錯→錯題本多一條(進複盤)', after_e == before_e + 1, '%d→%d' % (before_e, after_e))
+        ck('規則能確定時不調 AI', pg.evaluate("window._judgeCalls") == 0, pg.evaluate("window._judgeCalls"))
+        fb3 = pg.evaluate("(document.getElementById('mkFb')||{}).innerText||''")
+        ck('直接給出改好的整句', '改好應該是這樣' in fb3, fb3[:200])
+
+        # ---- ⭐ AI 說「意思怪」時：降級成提醒，不由孩子裁決 ----
+        print('-- AI 判錯只當參考，判分以規則層為準')
+        pg.evaluate("localStorage.removeItem('jingdu_errbook'); mkRestart && mkRestart()")
+        pg.evaluate("""window.JDGen=Object.assign(window.JDGen||{},{ getKey:()=>'x',
+            judgeSentence: async ()=>({ok:false,fix:'',tip:'意思怪怪的',better:'',betterZh:''}) });""")
+        pg.wait_for_timeout(150)
+        pg.evaluate("""(()=>{const w=(document.querySelector('#p-make .target b')||{}).innerText||'thing';
+            document.getElementById('mkInput').value='I really like this '+w+' very much.'; mkCheck();})()"""); pg.wait_for_timeout(400)
+        fb4 = pg.evaluate("(document.getElementById('mkFb')||{}).innerText||''")
+        ck('AI 判錯只顯示成「另外提了一句」', 'AI 老師另外提了一句' in fb4, fb4[:200])
+        ck('明講規則判他通過', '你這句是通過的' in fb4, fb4[:300])
+        ck('不給「我覺得這句沒問題」讓孩子裁決', '我覺得這句沒問題' not in fb4, fb4[:300])
+        ck('AI 判錯不進錯題本（規則說通過就是通過）',
+           pg.evaluate("Object.keys(JD.getBook()).length") == 0, pg.evaluate("Object.keys(JD.getBook())"))
         # 造對的不進錯題本
         pg.evaluate("""window.JDGen=Object.assign(window.JDGen||{},{ getKey:()=>'x',
             judgeSentence: async ()=>({ok:true,fix:'',tip:'好',better:'',betterZh:''}) });

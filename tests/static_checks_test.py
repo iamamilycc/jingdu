@@ -220,8 +220,15 @@ def check_make_content_gate():
     ck('lesson.js mkCheck 檢查三句不得重複', 'mkTooSimilar(' in body, '同一句可以混過三格→重複練習沒意義')
     ck('lesson.js 內建下限就是 5', re.search(r'MK_MIN_WORDS\s*=\s*5', en) is not None, '每句至少 5 個單詞是用戶定的硬規則')
     ck('lesson.js 每詞要造 3 句', re.search(r'MK_PER_WORD\s*=\s*3', en) is not None, '每個生詞造 3 句是用戶定的硬規則')
-    ck('lesson.js 無 AI Key 兜底是核對清單而非自我判斷', ('mkHasVerb' in en) and ('照著這張表核對' in en),
-       '孩子沒有判斷能力，兜底不能只問「你覺得對嗎」')
+    # 2026-09-09 用戶定：兒童向產品不准把校驗推給人。核對清單也是推給人（要孩子自己判斷每一項），
+    # 已改成規則引擎直接給結論——沒 AI Key 照樣判得了對錯。
+    ck('lesson.js 造句判分走規則引擎 GrammarEN', 'window.GrammarEN' in en,
+       '沒接引擎＝對錯又交回給 AI 或孩子自己')
+    ck('lesson.js 規則能確定時不調 AI', re.search(r'if\(errs\.length \|\| sHits\.length \|\| cHits\.length\)', en) is not None,
+       '規則已經百分之百確定，還去問概率模型')
+    ck('lesson.js 沒 Key 也給得出結論', '系統能確定的都查過了' in en, '沒 Key 就不判分＝這一關白練')
+    ck('lesson.js 不再有自評清單', ('mkSelfCheck' not in en) and ('都核對過，沒問題' not in en),
+       '自評＝把校驗推給沒有判斷能力的孩子')
     jp = '\n'.join(read('assets/lesson-jp.js'))
     m2 = re.search(r'window\.mkCheck=async function\(\)\{(.*?)\n  \};', jp, re.S)
     body2 = m2.group(1) if m2 else ''
@@ -253,13 +260,38 @@ def check_peek_cap_and_skip():
     for rel in ('review.html', 'jp/review.html'):
         ck('%s 複習背句有 qSkipPeek 跳過' % rel, 'qSkipPeek' in '\n'.join(read(rel)), '複習看題不能提早跳=放寬上限後要乾等')
 
-# ---- 規則20：造句 mkAfter 判錯時有人工否決鈕(jd-mkok)+還原(restoreError)，英日兩版；防AI誤判冤枉正確句 ----
+
+def code_only(txt):
+    """去掉註解再比對——註解裡寫「不准有 X」不該被當成「有 X」（help.html 也踩過同一坑）。"""
+    txt = re.sub(r'/\*[\s\S]*?\*/', '', txt)
+    return re.sub(r'(?m)^\s*//.*$', '', txt)
+
+
+# ---- 規則20（2026-09-09 反轉）：不准讓孩子裁決 AI 說得對不對 ----
+#   舊設計給了一顆「🙋 我覺得這句沒問題」，一按就當對。出發點是防 AI 誤判，
+#   但那等於把校驗推給一個沒有判斷能力的孩子——他要是能判斷，就不用學了。
+#   新做法：判分以規則引擎為準；AI 說「意思怪」只降級成一條參考提醒，不阻斷、也不用他裁決。
 def check_make_override():
-    print('-- 規則20：英日造句判錯有「我覺得這句沒問題」否決鈕+restoreError(撤回誤判)')
+    print('-- 規則20：造句判分不准把對錯丟回給孩子')
     for rel in ('assets/lesson.js', 'assets/lesson-jp.js'):
+        txt = code_only('\n'.join(read(rel)))
+        ck('%s 沒有「我覺得這句沒問題」裁決鈕' % rel,
+           ('jd-mkok' not in txt) and ('我覺得這句沒問題' not in txt),
+           '讓孩子裁決 AI＝把校驗推給人')
+        ck('%s 沒有自評按鈕' % rel, 'mkSelf' not in txt, '自評＝沒判分')
+    en = '\n'.join(read('assets/lesson.js'))
+    ck('英文版 AI 判錯降級成提醒', 'mkAfterAiDoubt' in en and '你這句是通過的' in en,
+       'AI 說不通就判孩子錯＝把概率模型當裁判')
+    jp = '\n'.join(read('assets/lesson-jp.js'))
+    ck('日文版沒 AI 時老實說判不了', 'mkCannotJudge' in jp, '判不了要說判不了，不能改叫孩子自評')
+    # 引擎沒被課頁載入 = 前面那些斷言全是空的（寫了函式沒人載入的老坑）
+    for rel in ('build_lessons.py', 'lessons/view.html'):
         txt = '\n'.join(read(rel))
-        ck('%s mkAfter 有否決鈕 jd-mkok' % rel, 'jd-mkok' in txt, 'AI誤判正確句時沒人工兜底')
-        ck('%s 否決用 JD.restoreError 還原(不誤刪本來錯題)' % rel, 'restoreError' in txt, '否決沒還原快照=可能誤刪本來的錯題')
+        ck('%s 有載入 grammar-en.js' % rel, 'grammar-en.js' in txt, '課頁沒載入引擎＝造句又回到 AI 手上')
+    eng = '\n'.join(read('assets/grammar-en.js'))
+    ck('grammar-en.js 是自動生成且標明勿手改', '不要手改' in eng and 'sync_grammar.py' in eng,
+       '兩站引擎必須同源，手改會讓同一句話在兩邊判不一樣')
+    ck('grammar-en.js 掛上 window.GrammarEN', 'window.GrammarEN' in eng)
 
 # ---- 規則21：給孩子的內容要有「程序化把關」（不靠模型自我判斷）——孩子沒有判斷能力 ----
 def check_content_guards():

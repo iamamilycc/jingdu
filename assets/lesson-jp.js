@@ -757,22 +757,24 @@
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
       (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">✍️ <b>改好的完整句子</b>：'+R.toRubyHTML(JD.esc(fix))+'</div>')+
       betterHTML+
-      /* AI 判分可能誤把正確句判錯，給人工否決：一按當對、撤掉剛加的錯題 */
-      (ok?'':'<div style="margin-top:8px"><button class="big-btn ghost jd-mkok">🙋 我覺得這句沒問題</button></div>')+
-      '<div style="margin-top:10px">'+(ok?'':'<span class="hint" style="display:block;margin-bottom:6px">改一改上面的句子再按「檢查」，或按上面確認沒問題</span>')+
-      '<button class="big-btn teal" onclick="mkNext()">下一個詞 →</button></div>';
+      /* ⭐ 不給「我覺得這句沒問題」——兒童向產品不准把對錯的判斷推給孩子。
+         AI 可能看錯，但那要由系統的規則／提示來兜，不能叫一個沒有判斷能力的人來裁決。 */
+      (ok?'':'<p class="hint" style="margin:8px 0 0">照著上面改一遍再按「檢查」，或先跳過（這個詞會進錯題本，複盤時再練）</p>')+
+      '<div style="margin-top:10px">'+
+      (ok?'':'<button class="big-btn teal" onclick="mkCheck()">改好了，再檢查一次</button>')+
+      '<button class="big-btn '+(ok?'teal':'ghost')+'" onclick="mkNext()">'+(ok?'下一個詞 →':'先跳過')+'</button></div>';
     /* 發音鍵用 .onclick 綁定；日語示範句傳 R.toKana 避免漢字+注音讀兩遍 */
     const bv=$('#mkBetterVoice'); if(bv && better) bv.onclick=()=>JD.speak(R.toKana(better),false,LANG);
-    const ob=$('#mkFb').querySelector('.jd-mkok');
-    if(ob) ob.onclick=()=>{ if(errId) JD.restoreError(errId, bookBefore); mkAfter(true, '', '你確認沒問題，算你對！👍', better, betterZh); };
   }
-  function mkSelfCheck(msg){
+  /* ⭐ 判不了就老實說判不了，不准讓孩子自評「你覺得用對了嗎」——
+     他要是能判斷，就不用學了。日語這關沒有規則引擎（引擎只做英語），所以沒 AI 就直說。 */
+  function mkCannotJudge(msg){
     $('#mkFb').innerHTML='<div class="acc-badge">'+JD.esc(msg)+'</div>'+
-      '<p style="margin:10px 0 6px;font-size:.88rem;color:var(--muted)">自己讀一遍，覺得這個詞用對了嗎？</p>'+
-      '<button class="big-btn teal" onclick="mkSelf(true)">✅ 用對了</button>'+
-      '<button class="big-btn ghost" onclick="mkSelf(false)">🤔 沒把握</button>';
+      '<p class="hint" style="margin:10px 0 6px">這一關要 AI 老師才判得了對錯。'+
+      '沒有 AI 的時候，系統只能幫你確認：<b>有沒有用上這個詞、句子夠不夠長、有沒有和前面重複</b> —— 這三項你都過了。<br>'+
+      '要真的判對錯，請大人到設定裡填 AI Key；現在可以先往下練。</p>'+
+      '<button class="big-btn teal" onclick="mkNext()">下一個詞 →</button>';
   }
-  window.mkSelf=function(ok){ mkAfter(ok, '', ok?'自評通過！':'下次找大人一起看看'); };
   window.mkCheck=async function(){
     const v=mkWords[mk.i];
     const s=($('#mkInput')&&$('#mkInput').value||'').trim();
@@ -787,12 +789,12 @@
     const minW = JD.getMkMin ? JD.getMkMin() : 0;
     if(minW>0){ const need=Math.round(minW*1.6), got=s.replace(/\s/g,'').length;
       if(got<need){ $('#mkFb').innerHTML='<div class="acc-badge bad">句子太短了，家長設了<b>每句至少 '+minW+' 個詞</b>（約 '+need+' 字）。再多寫一點，讓句子更完整 💪</div>'; return; } }
-    if(!window.JDGen || !JDGen.getKey()){ mkSelfCheck('沒設定 AI Key，這關改用自評'); return; }
+    if(!window.JDGen || !JDGen.getKey()){ mkCannotJudge('還沒設定 AI Key，這關判不了對錯'); return; }
     $('#mkFb').innerHTML='<div class="acc-badge">⏳ AI 老師看句子中…</div>';
     try{
       const r=await JDGen.judgeSentence('jp', mkPlain(v.w), s);
       mkAfter(r.ok, r.fix, r.tip, r.better, r.betterZh);
-    }catch(e){ mkSelfCheck('AI 檢查沒成功（'+(e.message||e)+'），改用自評'); }
+    }catch(e){ mkCannotJudge('AI 檢查沒成功（'+(e.message||e)+'），這句先跳過'); }
   };
   window.mkNext=function(){ if(mk.results[mk.i]==null) mk.results[mk.i]=false; mk.i++; pos('make', mk.results.filter(x=>x!=null).length, mkWords.length, mk.results.filter(Boolean).length); mkRender(); };  /* 跳過沒檢查=不算造對 */
   window.mkPrev=function(){ mk.i = Math.max(mk.i-1, 0); mkRender(); };
