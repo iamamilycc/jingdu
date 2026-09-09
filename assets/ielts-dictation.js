@@ -24,8 +24,12 @@
               'did', 'will', 'would', 'can', 'could', 'that', 'as', 'it', 'its', 'his',
               'her', 'them', 'us', 'he', 'she', 'we', 'they', 'you', 'i', 'from', 'with'];
 
+  /* ⚠️ 撇號先歸一再比對：iPad / iPhone 的「智能標點」會把 ' 自動變成 ’，
+     不歸一的話 don’t 會被切成「don t」兩個詞，和原文的 don't 對不上——
+     孩子明明聽寫對了卻被判錯，而且逐詞對齊會整段錯位。 */
+  function fixApos(s) { return String(s || '').replace(/[\u2018\u2019\u02bc\u00b4\u0060]/g, "'"); }
   function norm(s) {
-    return String(s || '').toLowerCase().replace(/[^\w\s']/g, ' ').replace(/\s+/g, ' ').trim();
+    return fixApos(s).toLowerCase().replace(/[^\w\s']/g, ' ').replace(/\s+/g, ' ').trim();
   }
   function words(s) { return norm(s).split(' ').filter(Boolean); }
   function isNum(w) { return /\d/.test(w); }

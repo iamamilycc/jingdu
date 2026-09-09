@@ -470,7 +470,9 @@ ${schema}`;
          · 沒有真的用上指定單詞 → 這句示範不合用，寧可不顯示
          · 和孩子那句錯句一模一樣 → 等於沒改，顯示了只會讓孩子困惑
        擋掉後該欄留空，UI 本來就是「有才顯示」，不會出現空殼。 */
-    const bare = s => String(s||'').replace(/\[[^\]]*\]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+    /* ⚠️ 撇號要先歸一：AI 回的是 don’t、生詞存的是 don't，不歸一會誤判成「沒用上這個詞」而白白丟掉 */
+    const bare = s => String(s||'').replace(/\[[^\]]*\]/g,'')
+      .replace(/[\u2018\u2019\u02bc\u00b4\u0060]/g,"'").toLowerCase().replace(/\s+/g,' ').trim();
     const w = bare(word), kid = bare(sentence);
     const usesWord = s => { const t2 = bare(s); return !!t2 && (!w || t2.indexOf(w) >= 0); };
     const sameAsKid = s => bare(s) === kid;
