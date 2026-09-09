@@ -115,7 +115,7 @@ def check_behavior():
         ck('學習紀錄仍在雅思空間', pg.evaluate("() => window.JD_NS") == 'ielts_')
 
         print('-- 預設用免費模型（金絲雀：先免費跑通再談花錢）')
-        ck('預設 glm-4-flash', pg.evaluate("() => WRITE.getModel()") == 'glm-4-flash')
+        ck('預設 glm-4.7-flash', pg.evaluate("() => WRITE.getModel()") == 'glm-4.7-flash')
 
         print('-- 批改提示詞有要求從嚴給分')
         pr = pg.evaluate("() => WRITE._prompt('Q', 'E')")

@@ -123,7 +123,7 @@ function setContentMode(m){ contentMode=m;
   $('#cmAuto').classList.toggle('on', m==='auto'); $('#cmText').classList.toggle('on', m==='text'); $('#cmWords').classList.toggle('on', m==='words'); }
 
 /* 出題品質：一鍵預設，不必自己打模型名稱。免費視覺模型固定用 glm-4v-flash，不需要用戶選。 */
-let quality = JDGen.getTextModel()==='glm-4-flash' ? 'free' : 'good';
+let quality = (JDGen.getTextModel()==='glm-4.7-flash' || JDGen.getTextModel()==='glm-4-flash') ? 'free' : 'good';  /* 相容舊存的 glm-4-flash */
 function setQuality(q){
   quality=q;
   $('#qtyGood').classList.toggle('on', q==='good');
@@ -229,7 +229,7 @@ async function doGenerate(){
   const key = $('#apiKey').value.trim();
   if(!key){ fb('請先填智譜 API Key', true); return; }
   JDGen.setKey(key);
-  JDGen.setModels(quality==='free' ? 'glm-4-flash' : 'glm-4-plus', 'glm-4v-flash');
+  JDGen.setModels(quality==='free' ? 'glm-4.7-flash' : 'glm-4-plus', 'glm-4v-flash');
 
   const text = $('#pasteText').value.trim();
   const hasCurrent = !!(photoDataUrls.length || text);

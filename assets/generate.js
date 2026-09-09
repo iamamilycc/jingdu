@@ -11,7 +11,7 @@
   function setKey(k){ if(k) localStorage.setItem(KEY, k.trim()); else localStorage.removeItem(KEY); }
 
   /* 文字模型預設 glm-4-plus：出閱讀理解題/講解質量明顯優於免費的 flash，一課約幾分錢（付費，需智譜帳戶有餘額）。
-     想省錢可在「新增課文→進階」改回 glm-4-flash（免費，但聽力題多走程序化保底）。 */
+     想省錢可在「新增課文→進階」改回 glm-4.7-flash（免費，但聽力題多走程序化保底）。 */
   function getTextModel(){ return localStorage.getItem(MODEL_TEXT_KEY) || 'glm-4-plus'; }
   function getVisionModel(){ return localStorage.getItem(MODEL_VISION_KEY) || 'glm-4v-flash'; }
   function setModels(t, v){ if(t) localStorage.setItem(MODEL_TEXT_KEY,t); if(v) localStorage.setItem(MODEL_VISION_KEY,v); }
@@ -130,7 +130,7 @@ ${schema}`;
     catch(e){
       /* 二次容錯：去掉物件/陣列的尾逗號（模型常見瑕疵）再試一次 */
       try{ d = JSON.parse(t.replace(/,\s*([}\]])/g, '$1')); }
-      catch(e2){ throw new Error('AI 輸出的內容格式有誤（多半是課文太長被截斷）。試試：①把課文分成短一點的幾段分別生成 ②或在「進階」把文字模型換成 glm-4-plus（比 flash 更穩）。'); }
+      catch(e2){ throw new Error('AI 輸出的內容格式有誤（多半是課文太長被截斷）。試試：①把課文分成短一點的幾段分別生成 ②或在「進階」把文字模型換成 glm-4-plus（比免費 flash 更穩）。'); }
     }
     if(!d.sentences || !d.sentences.length) throw new Error('生成結果沒有句子');
     d.vocab = d.vocab || []; d.listening = d.listening || []; d.grammar = d.grammar || [];

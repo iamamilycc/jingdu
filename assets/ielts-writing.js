@@ -29,7 +29,7 @@
   function getKey() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
   function setKey(k) { try { localStorage.setItem(KEY, k); } catch (e) {} }
   /* 預設用免費的 flash：批改是高頻操作，先免費跑通再談要不要花錢升級（金絲雀） */
-  function getModel() { try { return localStorage.getItem(MODEL_KEY) || 'glm-4-flash'; } catch (e) { return 'glm-4-flash'; } }
+  function getModel() { try { return localStorage.getItem(MODEL_KEY) || 'glm-4.7-flash'; } catch (e) { return 'glm-4.7-flash'; } }
   function setModel(m) { try { localStorage.setItem(MODEL_KEY, m); } catch (e) {} }
 
   function wordCount(text) {
