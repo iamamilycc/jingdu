@@ -76,6 +76,16 @@ def run():
            pg.evaluate("Object.keys(JD.getBook())"))
         ck('沒有「我覺得這句沒問題」裁決鈕', not pg.evaluate("!!document.querySelector('#mkFb .jd-mkok')"))
 
+        print('-- ①b 文法錯 + 中式說法同時命中：只能給「一個」改好的句子')
+        pg.evaluate("localStorage.removeItem('jingdu_errbook'); mkRestart&&mkRestart()"); pg.wait_for_timeout(120)
+        pg.evaluate("""(()=>{const w=(document.querySelector('#mkStage .target b')||{}).innerText||'thing';
+          document.getElementById('mkInput').value='I very like this '+w+' today.'; mkCheck();})()""")
+        pg.wait_for_timeout(400)
+        fb1b = pg.evaluate("(document.getElementById('mkFb')||{}).innerText||''")
+        ck('中式說法也被指出來', '歐美人不這麼說' in fb1b, fb1b[:200])
+        ck('只給一個「改好應該是這樣」（兩個會互相矛盾，孩子不知照哪個抄）',
+           fb1b.count('改好應該是這樣') == 1, '出現 %d 次' % fb1b.count('改好應該是這樣'))
+
         print('-- ② 規則層判通過、AI 卻說錯：AI 只當參考，不阻斷也不進錯題本')
         pg.evaluate("localStorage.removeItem('jingdu_errbook'); mkRestart&&mkRestart()"); pg.wait_for_timeout(120)
         pg.evaluate(MOCK_WRONG)

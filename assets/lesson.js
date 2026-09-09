@@ -931,7 +931,9 @@
           '<br><span style="color:var(--coral,#E85D3D);font-size:.9rem">→ '+x.fix+'</span></li>').join('')+'</ul></div>';
     }
     if(cHits.length){
-      const fixed = G.collocFix(s);
+      /* ⚠️ 文法錯那一段已經給過「改好應該是這樣」（autoFix + collocFix 一起改的整句）。
+         這裡再給第二個整句，兩句還不一樣，孩子會不知道該照哪個抄——所以只在文法沒錯時才給。 */
+      const fixed = errs.length ? s : G.collocFix(s);
       h += '<div class="card" style="margin-top:8px;text-align:left">'+
         '<div style="font-family:var(--font-head);font-size:.92rem">🌏 文法對，但歐美人不這麼說</div>'+
         '<ul style="margin:6px 0 0;padding-left:20px">'+cHits.map(x=>'<li>❌ 你寫的「'+JD.esc(G.hitText(x,s))+'」'+
