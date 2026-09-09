@@ -261,6 +261,21 @@ def check_make_override():
         ck('%s mkAfter 有否決鈕 jd-mkok' % rel, 'jd-mkok' in txt, 'AI誤判正確句時沒人工兜底')
         ck('%s 否決用 JD.restoreError 還原(不誤刪本來錯題)' % rel, 'restoreError' in txt, '否決沒還原快照=可能誤刪本來的錯題')
 
+# ---- 規則21：給孩子的內容要有「程序化把關」（不靠模型自我判斷）——孩子沒有判斷能力 ----
+def check_content_guards():
+    print('-- 規則21：生詞卡 sanitizeVocab + 造句示範句程序化把關（弱模型出錯孩子看不出來）')
+    g = '\n'.join(read('assets/generate.js'))
+    ck('generate.js 有 sanitizeVocab 程序化清洗', 'function sanitizeVocab(' in g,
+       '生詞的中文意思/音標/例句沒有程序把關')
+    ck('parseLesson 有呼叫 sanitizeVocab', re.search(r'sanitizeVocab\(d, lang\)', g) is not None,
+       '寫了函式卻沒接上=等於沒防護')
+    m = re.search(r'async function judgeSentence\(.*?\n  \}', g, re.S)
+    body = m.group(0) if m else ''
+    ck('judgeSentence 驗示範句有真的用上該單詞', 'usesWord' in body, 'AI 給的示範句可能沒用上該詞')
+    ck('judgeSentence 擋「改好的句子跟錯句一樣」', 'sameAsKid' in body, '等於沒改卻顯示，孩子會困惑')
+    ck('有生詞中文意思的二次核對 verifyVocab', 'async function verifyVocab(' in g,
+       '缺少聚焦二次核對這層')
+
 def main():
     check_playback_route()
     check_record_route()
@@ -283,6 +298,7 @@ def main():
     check_word_norm_parity()
     check_peek_cap_and_skip()
     check_make_override()
+    check_content_guards()
     print('\n' + '=' * 40)
     if FAILS:
         print('❌ %d 條靜態不變量被違反：' % len(FAILS))

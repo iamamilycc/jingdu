@@ -137,6 +137,47 @@ ${schema}`;
     d.level = (Number.isInteger(d.level) && d.level>=1 && d.level<=5) ? d.level : 0; /* 0=未知,不顯示 */
     sanitizeListening(d);
     sanitizeSpeakers(d, lang);
+    sanitizeVocab(d, lang);
+    return d;
+  }
+
+  /* ---- 生詞卡程序化校驗（確定性規則，不靠模型自我判斷）----
+     生詞的「中文意思／音標／例句」是孩子直接當事實背的，弱模型出錯孩子無法察覺。
+     這裡用**程式就能判定對錯**的規則把關，抓到就修掉或丟棄，寧可少給也不給錯：
+       ① 沒有中文意思（空、或整串沒有一個中文字）→ 丟棄（生詞卡就是靠中文意思出題，沒它等於壞卡）
+       ② 音標格式不對（不是 /.../ 或 [...]、或裡面混進中文）→ 清空音標（錯音標會教錯發音，寧可不顯示）
+       ③ 例句沒有真的含這個詞 → 換成課文裡真的含這個詞的句子；找不到就清空例句
+       ④ 同一個詞重複出現 → 去重（只留第一個）
+       ⑤ 詞本身是空的 → 丟棄 */
+  function sanitizeVocab(d, lang){
+    const HAN = /[一-鿿]/;                      /* 中文字（判斷「中文意思」真的是中文） */
+    const plain = s => String(s==null?'':s).replace(/\[[^\]]*\]/g,'').trim();   /* 去掉日文振假名 */
+    const seen = {};
+    /* raw=原句(日文保留振假名，供替換用)，flat=去振假名(供比對用) */
+    const raws = d.sentences.map(s => String((lang==='jp' ? s.jp : s.en) || ''));
+    const flats = raws.map(plain);
+    d.vocab = d.vocab.filter(v => {
+      const w = plain(v.w);
+      if(!w) return false;                                            /* ⑤ 空詞 */
+      const key = w.toLowerCase();
+      if(seen[key]) return false; seen[key] = 1;                      /* ④ 去重 */
+      const zh = String(v.zh==null?'':v.zh).trim();
+      if(!zh || !HAN.test(zh)) return false;                          /* ① 沒有中文意思＝壞卡，丟棄 */
+      /* ② 音標：英文才有；必須是 /.../ 或 [...] 且不含中文，否則清空不顯示 */
+      if(lang!=='jp'){
+        const ipa = String(v.ipa==null?'':v.ipa).trim();
+        if(ipa && !(/^[\/\[].*[\/\]]$/.test(ipa) && !HAN.test(ipa))) v.ipa = '';
+      }
+      /* ③ 例句必須真的含這個詞（英文忽略大小寫；日文比對去振假名後的字面） */
+      const eg = plain(v.eg);
+      const has = t => lang==='jp' ? t.indexOf(w) >= 0 : t.toLowerCase().indexOf(key) >= 0;
+      if(!eg || !has(eg)){
+        const i = flats.findIndex(has);
+        if(i >= 0) v.eg = raws[i];           /* 用課文裡真的含這個詞的原句替換(日文保留振假名) */
+        /* 找不到就保留原例句：單詞課的例句本來就是 AI 造的，清空反而讓卡片空白 */
+      }
+      return true;
+    });
     return d;
   }
 
@@ -343,7 +384,37 @@ ${schema}`;
       }
     }
     if(onProgress) onProgress('正在整理課文…');
-    return verifyListening(lang, d, onProgress);
+    d = await verifyListening(lang, d, onProgress);
+    d = await verifyVocab(lang, d, onProgress);
+    return d;
+  }
+
+  /* 生詞中文意思二次核對：弱模型偶爾給錯/張冠李戴的中文意思，小朋友當事實背最危險。
+     聚焦逐詞複查「中文意思」，**只有明確錯誤才改、拿不準一律保留原值**；核對失敗整段跳過不阻斷生成。
+     這是「加強給孩子的資訊正確度」的第一道二次防線（比照聽力題 verifyListening 的聚焦核對思路）。 */
+  async function verifyVocab(lang, d, onProgress){
+    if(!d.vocab || !d.vocab.length) return d;
+    if(onProgress) onProgress('正在逐詞核對生詞的中文意思…');
+    const langName = lang==='jp' ? '日語' : '英語';
+    const list = d.vocab.map((v,i)=> i+'. '+String(v.w||'').replace(/\[[^\]]+\]/g,'')+'（'+(v.pos||'')+'）→ 目前中文意思：'+(v.zh||'')).join('\n');
+    try{
+      const content = await callApi(getTextModel(), [
+        { role:'user', content:
+          '下面是一份給小學生的'+langName+'生詞表，每個詞附「目前中文意思」。請逐個檢查中文意思對不對：\n'+
+          '· 正確或基本可接受 → **原樣返回**，不要改寫措辭。\n'+
+          '· **明確錯誤/張冠李戴**（意思根本不是這個詞的）→ 返回正確、簡短、小學程度的中文意思。\n'+
+          '⚠️拿不準、或只是「可以更精確」時一律**保留原意思**，絕不亂改（改錯比不改更糟）。\n'+
+          '只輸出 JSON：{"zh":[每個詞對應的中文意思字串，順序與上面相同]}，長度必須等於詞數，不要任何解釋。\n\n'+list }
+      ], null, { json:true, max_tokens:1024 });
+      let t = stripFences(content);
+      let parsed; try{ parsed = JSON.parse(t); }
+      catch(e2){ const a=t.indexOf('{'), b=t.lastIndexOf('}'); if(a>=0 && b>a) parsed = JSON.parse(t.slice(a,b+1)); }
+      const arr = parsed && Array.isArray(parsed.zh) ? parsed.zh : null;
+      if(Array.isArray(arr) && arr.length===d.vocab.length){
+        arr.forEach((zh,i)=>{ zh=String(zh==null?'':zh).trim(); if(zh) d.vocab[i].zh = zh; });
+      }
+    }catch(e){ /* 核對失敗 → 保留原意思，不阻斷生成 */ }
+    return d;
   }
 
   /* 圖片建課分兩步：①視覺模型只做「照抄圖片文字」（輸出短，遠低於視覺模型 1024 token 硬上限）
@@ -380,10 +451,12 @@ ${schema}`;
         '   ⚠️**下列情況一律判 ok:true，不准判錯**：語序/副詞位置只要文法可接受（例如 nearly、often、always 放的位置不同都常見）、選詞是否「最自然/最地道」、風格好不好、拼寫大小寫標點小毛病。\n'+
         '   ⚠️**拿不準、或只是「可以更好」時，一律判 ok:true**。寧可放過，也不要把孩子本來正確的句子判成錯（誤判會讓孩子很挫敗）。\n'+
         'ok:true 只需同時滿足「用上了指定單詞」+「沒有上面那種明確文法錯」。「更自然的說法」放進 better，不要因此判錯。\n'+
-        '若真的 ok:false，fix 給一句改正後的完整句子，tip 用繁體中文**具體說出錯在哪**（例如「should 後面要用動詞原形 go，不是 went」），30字內。\n'+
-        '最後，不管對不對，都用「同一個單詞」示範一句**更自然、更像'+langName+'母語者平常會說**的地道句子（和孩子的句子同類、難度相近，別太難）。\n'+
+        '若真的 ok:false：\n'+
+        '  · tip 用繁體中文說清楚**錯在哪＋該怎麼改**（先指出錯處，再說怎麼改對，例如「時態錯了：句子講昨天的事，go 要改成過去式 went」），50字內、小學生看得懂。\n'+
+        '  · fix 給一句**改好的完整句子**（把孩子的句子直接改對，盡量保留他原本的意思，只動錯的地方）。\n'+
+        '最後，不管對不對，都用「同一個單詞」示範一句**歐美母語者平常真的會這樣說**的地道句子（和孩子的句子同類、難度相近，別太難），放進 better。\n'+
         (lang==='jp' ? 'better 句的漢字要標振假名 漢字[かな]（只標漢字）。\n' : '')+
-        '只輸出 JSON，不要任何解釋：{"ok":true或false,"fix":"若不對，給一句修正後的句子；對則留空","tip":"一句繁體中文的鼓勵或提示，30字內","better":"用同一個單詞、更地道的一句示範","betterZh":"better 那句的繁體中文翻譯"}\n\n'+
+        '只輸出 JSON，不要任何解釋：{"ok":true或false,"fix":"若不對，給改好的完整句子；對則留空","tip":"錯在哪＋怎麼改，繁體中文，50字內","better":"用同一個單詞、歐美母語者常用的一句地道示範","betterZh":"better 那句的繁體中文翻譯"}\n\n'+
         '指定單詞：'+word+'\n孩子的句子：'+sentence }
     ], null, { json:true, max_tokens:512 });
     let t = stripFences(content);
@@ -391,7 +464,20 @@ ${schema}`;
     if(a>=0 && b>a) t=t.slice(a,b+1);
     const r = JSON.parse(t);
     if(typeof r.ok!=='boolean') throw new Error('AI 返回格式不對');
-    return { ok:r.ok, fix:String(r.fix||''), tip:String(r.tip||''), better:String(r.better||''), betterZh:String(r.betterZh||'') };
+    let fix = String(r.fix||''), better = String(r.better||''), betterZh = String(r.betterZh||'');
+    /* ---- 程序化把關（確定性規則，不靠模型自我判斷）----
+       AI 給的「改好的句子／地道說法」若本身不合格，孩子會照著學錯。這裡程式驗得出來的先擋掉：
+         · 沒有真的用上指定單詞 → 這句示範不合用，寧可不顯示
+         · 和孩子那句錯句一模一樣 → 等於沒改，顯示了只會讓孩子困惑
+       擋掉後該欄留空，UI 本來就是「有才顯示」，不會出現空殼。 */
+    const bare = s => String(s||'').replace(/\[[^\]]*\]/g,'').toLowerCase().replace(/\s+/g,' ').trim();
+    const w = bare(word), kid = bare(sentence);
+    const usesWord = s => { const t2 = bare(s); return !!t2 && (!w || t2.indexOf(w) >= 0); };
+    const sameAsKid = s => bare(s) === kid;
+    if(fix && (!usesWord(fix) || sameAsKid(fix))) fix = '';
+    if(better && (!usesWord(better) || sameAsKid(better))) { better = ''; betterZh = ''; }
+    if(!better) betterZh = '';                 /* 沒示範句就別留孤兒翻譯 */
+    return { ok:r.ok, fix:fix, tip:String(r.tip||''), better:better, betterZh:betterZh };
   }
 
   /* ---- 課後小故事：只用學過的詞寫超短故事（泛讀甜點，AI 生成零版權）；結構校驗，失敗拋錯由 UI 兜底 ---- */

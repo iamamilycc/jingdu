@@ -750,12 +750,12 @@
     const bookBefore = errId ? JD.getBook()[errId] : null;   /* 加錯題前快照，供人工否決還原 */
     if(!ok && mv) JD.addError({id:errId, lessonId:L.id, en:R.toKana(mv.w), zh:mv.zh, type:'word', pos:mv.pos, kmap:KANJI_MAP});
     JD.celebrate(ok?'good':'try');
-    const betterHTML = better ? '<div class="eg jp-text" style="margin-top:8px">🌟 <b>地道說法</b>：'+R.toRubyHTML(JD.esc(better))+
+    const betterHTML = better ? '<div class="eg jp-text" style="margin-top:8px">🌟 <b>地道說法（歐美/母語者常這樣說）</b>：'+R.toRubyHTML(JD.esc(better))+
       (betterZh?'<br><span style="color:var(--muted);font-size:.9rem">'+JD.esc(betterZh)+'</span>':'')+
       ' <button class="btn-voice" id="mkBetterVoice">🔊</button></div>' : '';
     $('#mkFb').innerHTML=
       '<div class="acc-badge '+(ok?'good':'bad')+'">'+(ok?'🎉 ':'💪 ')+JD.esc(tip||(ok?'好句子！':'再看看'))+'</div>'+
-      (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">可以這樣說：'+R.toRubyHTML(JD.esc(fix))+'</div>')+
+      (ok||!fix?'':'<div class="eg jp-text" style="margin-top:8px">✍️ <b>改好的完整句子</b>：'+R.toRubyHTML(JD.esc(fix))+'</div>')+
       betterHTML+
       /* AI 判分可能誤把正確句判錯，給人工否決：一按當對、撤掉剛加的錯題 */
       (ok?'':'<div style="margin-top:8px"><button class="big-btn ghost jd-mkok">🙋 我覺得這句沒問題</button></div>')+
